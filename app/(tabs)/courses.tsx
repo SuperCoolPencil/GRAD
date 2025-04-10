@@ -1,5 +1,7 @@
-import { StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, Alert, View } from 'react-native';
 import { useContext, useState } from 'react';
+import { Link } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Collapsible } from '@/components/Collapsible';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -140,8 +142,13 @@ export default function CoursesScreen() {
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">My Courses</ThemedText>
+        <Link href="/add-course" asChild>
+          <TouchableOpacity style={styles.addButton}>
+            <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
+          </TouchableOpacity>
+        </Link>
       </ThemedView>
-      
+
       {courses.length > 0 ? (
         <FlatList
           data={courses}
@@ -252,5 +259,9 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     opacity: 0.6,
+  },
+  addButton: {
+    marginLeft: 'auto', // Push the button to the right
+    padding: 4,
   },
 });
