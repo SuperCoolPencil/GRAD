@@ -29,11 +29,6 @@ export default function AddCourseScreen() {
 
   const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  // Function to round to nearest step
-  const roundToStep = (value: number, step: number) => {
-    return Math.round(value / step) * step;
-  };
-
   // --- Schedule Management Functions ---
   const handleAddScheduleItem = () => {
     setScheduleError(null); // Reset error
@@ -49,8 +44,8 @@ export default function AddCourseScreen() {
     const start = startTime.split(':').map(Number);
     const end = endTime.split(':').map(Number);
     if (start[0] > end[0] || (start[0] === end[0] && start[1] >= end[1])) {
-       setScheduleError('Start time must be before end time.');
-       return;
+      setScheduleError('Start time must be before end time.');
+      return;
     }
 
     const newItem: ScheduleItem = {
@@ -203,8 +198,8 @@ export default function AddCourseScreen() {
               step={5}
               value={requiredAttendance}
               // Use onSlidingComplete for final value, onValueChange for visual feedback (rounded)
-              onValueChange={(value) => setRequiredAttendance(roundToStep(value, 5))} // Update visual state rounded to step
-              // onSlidingComplete={(value) => setRequiredAttendance(roundToStep(value, 5))} // Optionally use this for final state update if onValueChange is still problematic
+              onValueChange={(value) => setRequiredAttendance(value)} // Update visual state rounded to step
+              onSlidingComplete={(value) => setRequiredAttendance(value)} // Optionally use this for final state update if onValueChange is still problematic
               minimumTrackTintColor={Colors[colorScheme ?? 'light'].tint}
               maximumTrackTintColor={Colors[colorScheme ?? 'light'].icon}
               thumbTintColor={Colors[colorScheme ?? 'light'].tint}
@@ -216,25 +211,38 @@ export default function AddCourseScreen() {
           <View style={styles.scheduleInputContainer}>
             {/* Day Picker (Simplified) - Consider a proper Picker component later */}
             <View style={styles.scheduleInputGroup}>
-               <ThemedText style={styles.label}>Day:</ThemedText>
-               {/* Basic buttons for day selection - Replace with Picker */}
-               <View style={styles.daySelector}>
-                  {DAYS_OF_WEEK.map(day => (
-                      <TouchableOpacity
-                          key={day}
-                          style={[
-                              styles.dayButton,
-                              selectedDay === day && styles.dayButtonSelected,
-                              { backgroundColor: selectedDay === day ? Colors[colorScheme ?? 'light'].tint : Colors[colorScheme ?? 'light'].background }
-                          ]}
-                          onPress={() => setSelectedDay(day)}
-                      >
-                          <ThemedText style={{ color: selectedDay === day ? Colors[colorScheme ?? 'light'].background : Colors[colorScheme ?? 'light'].text }}>
-                              {day.substring(0, 3)}
-                          </ThemedText>
-                      </TouchableOpacity>
-                  ))}
-               </View>
+              <ThemedText style={styles.label}>Day:</ThemedText>
+              {/* Basic buttons for day selection - Replace with Picker */}
+              <View style={styles.daySelector}>
+                {DAYS_OF_WEEK.map(day => {
+                  const isSelected = selectedDay === day;
+                  const themeColors = Colors[colorScheme ?? 'light'];
+
+                  return (
+                    <TouchableOpacity
+                      key={day}
+                      style={[
+                        styles.dayButton,
+                        isSelected && styles.dayButtonSelected,
+                        { backgroundColor: isSelected ? themeColors.tint : themeColors.background }
+                      ]}
+                      onPress={() => setSelectedDay(day)}
+                    >
+                      <ThemedText style={
+                        { 
+                        fontWeight: 'bold',  
+                        color: isSelected ? 
+                        themeColors.background 
+                        : day === 'Sunday'
+                          ? 'red'
+                        : themeColors.text }}>
+                        {day[0]}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
             </View>
 
             <View style={styles.scheduleInputGroupRow}>
@@ -246,8 +254,8 @@ export default function AddCourseScreen() {
                   placeholder="HH:MM"
                   value={startTime}
                   onChangeText={(text) => {
-                      setStartTime(text);
-                      if (scheduleError) setScheduleError(null); // Clear error on type
+                    setStartTime(text);
+                    if (scheduleError) setScheduleError(null); // Clear error on type
                   }}
                   maxLength={5}
                   keyboardType="numbers-and-punctuation" // Allows ':'
@@ -261,9 +269,9 @@ export default function AddCourseScreen() {
                   style={[styles.input, styles.timeInput, { borderColor: Colors[colorScheme ?? 'light'].icon, color: Colors[colorScheme ?? 'light'].text, backgroundColor: Colors[colorScheme ?? 'light'].background }]}
                   placeholder="HH:MM"
                   value={endTime}
-                   onChangeText={(text) => {
-                      setEndTime(text);
-                      if (scheduleError) setScheduleError(null); // Clear error on type
+                  onChangeText={(text) => {
+                    setEndTime(text);
+                    if (scheduleError) setScheduleError(null); // Clear error on type
                   }}
                   maxLength={5}
                   keyboardType="numbers-and-punctuation" // Allows ':'
@@ -275,7 +283,7 @@ export default function AddCourseScreen() {
             <Button title="Add Class Time" onPress={handleAddScheduleItem} />
           </View>
 
-           {/* Display Added Schedule Items */}
+          {/* Display Added Schedule Items */}
           {currentScheduleItems.length > 0 && (
             <View style={styles.scheduleListContainer}>
               <ThemedText type="defaultSemiBold">Class Times:</ThemedText>
@@ -353,7 +361,7 @@ const styles = StyleSheet.create({
   scheduleInputGroup: {
     gap: 8,
   },
-   scheduleInputGroupRow: {
+  scheduleInputGroupRow: {
     flexDirection: 'row',
     gap: 16,
     alignItems: 'flex-end', // Align items nicely if labels are different heights
@@ -371,9 +379,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dayButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    width: 40, // or any fixed size
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: '#ccc',
   },
