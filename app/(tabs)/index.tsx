@@ -58,7 +58,7 @@ const getAttendanceDelta = (
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].tint; // Exactly at required => tint color
+  return Colors[colorScheme].tint; // Exactly at required => yellow accent
 };
 
 export default function TodaysClassesScreen() {
@@ -253,30 +253,12 @@ function TodaysClassesContent({
               </ThemedText>
             </View>
             <View style={styles.infoRow}>
-              {attendanceNote === 'At required attendance' && (
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={16}
-                  color={accentColor}
-                  style={{ marginRight: 4 }}
-                />
-              )}
-              {attendanceNote.startsWith('Can Bunk') && (
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={16}
-                  color={accentColor}
-                  style={{ marginRight: 4 }}
-                />
-              )}
-              {attendanceNote.startsWith('Need to Attend') && (
-                <Ionicons
-                  name="close-circle-outline"
-                  size={16}
-                  color={accentColor}
-                  style={{ marginRight: 4 }}
-                />
-              )}
+              <Ionicons
+                name={item.needToAttend <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+                size={16}
+                color={accentColor}
+                style={{ marginRight: 4 }}
+              />
               <ThemedText style={{ color: accentColor }}>
                 {attendanceNote}
               </ThemedText>
@@ -305,13 +287,13 @@ function TodaysClassesContent({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#9E9E9E' }]}
+              style={[styles.actionButton, { backgroundColor: '#A0A0A0' }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
+              <ThemedText style={styles.actionButtonText}>Cancelled</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -350,7 +332,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16, 
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32, 
     backgroundColor: "transparent",
     alignItems: "center",
   },

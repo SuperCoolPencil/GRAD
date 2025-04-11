@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16, 
-    paddingBottom: 8, // Reduced bottom padding for title
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 16, 
+    paddingBottom: 16, // Reduced bottom padding for title
     backgroundColor: 'transparent', // Ensure background color doesn't interfere
   },
   contentContainer: {

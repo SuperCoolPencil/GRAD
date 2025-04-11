@@ -23,6 +23,7 @@ export const Colors = {
     border: '#CCCCCC', // Example border color
     inputBackground: '#FFFFFF', // Example input background color
     buttonText: '#FFFFFF', // Example button text color
+    card: '#F7F7F7',
   },
   dark: {
     text: '#ECEDEE',
@@ -40,5 +41,6 @@ export const Colors = {
     border: '#666666', // Example border color
     inputBackground: '#333333', // Example input background color
     buttonText: '#FFFFFF', // Example button text color
+    card: '#1A1A1A',
   },
 };
