@@ -5,6 +5,8 @@ import { Course, AttendanceRecord, ScheduleItem } from '../types';
 interface AppContextType {
     courses: Course[];
     loading: boolean;
+    theme: string;
+    toggleTheme: () => void;
     addCourse: (newCourse: Course) => void;
     updateCourse: (updatedCourse: Course) => void;
     deleteCourse: (courseId: string) => void;
@@ -15,6 +17,8 @@ interface AppContextType {
 export const AppContext = createContext<AppContextType>({
     courses: [],
     loading: true,
+    theme: 'light',
+    toggleTheme: () => { },
     addCourse: () => { },
     updateCourse: () => { },
     deleteCourse: () => { },
@@ -29,13 +33,22 @@ interface AppProviderProps {
 export const AppProvider = ({ children }: AppProviderProps) => {
     const [loading, setLoading] = useState(true);
     const [courses, setCourses] = useState<Course[]>([]);
+    const [theme, setTheme] = useState<string>('light');
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    };
 
     useEffect(() => {
         const loadData = async () => {
             try {
                 const storedCourses = await AsyncStorage.getItem('courses');
+                const storedTheme = await AsyncStorage.getItem('theme');
                 if (storedCourses) {
                     setCourses(JSON.parse(storedCourses));
+                }
+                if (storedTheme) {
+                    setTheme(storedTheme);
                 }
             } catch (error) {
                 console.error("Failed to load data", error);
@@ -159,11 +172,25 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         );
     }
 
+    useEffect(() => {
+        const saveTheme = async () => {
+            try {
+                await AsyncStorage.setItem('theme', theme);
+            } catch (error) {
+                console.error("Failed to save theme", error);
+            }
+        };
+
+        saveTheme();
+    }, [theme]);
+
     return (
         <AppContext.Provider
             value={{
                 courses,
                 loading,
+                theme,
+                toggleTheme,
                 addCourse,
                 updateCourse,
                 deleteCourse,

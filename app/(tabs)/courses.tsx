@@ -89,7 +89,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
 
   return (
     <View>
-      <ThemedView style={styles.titleContainer}>
+      <ThemedView style={[styles.titleContainer, { marginTop: 0 }]}>
         <ThemedText
           type="title"
           style={{ color: Colors[colorScheme || 'light'].text }}
@@ -131,12 +131,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   coursesList: {
-    gap: 16,
+    gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
   courseCardContainer: {
-    borderLeftWidth: 6, // Accent thickness
+    borderLeftWidth: 4, // Accent thickness
     borderRadius: 8,
     marginBottom: 16,
     // Shadows for iOS:
