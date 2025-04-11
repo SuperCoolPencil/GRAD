@@ -54,10 +54,10 @@ Join our community of developers creating universal apps.
 Here are some demo screenshots of the app:
 
 ### Demo 1
-![Demo 1](./demo-screens/demo01.png){width="300"}
+<img src="./demo-screens/demo01.png" width="300"/>
 
 ### Demo 2
-![Demo 2](./demo-screens/demo02.png){width="300"}
+<img src="./demo-screens/demo02.png" width="300"/>
 
 ### Demo 3
-![Demo 3](./demo-screens/demo03.png){width="300"}
+<img src="./demo-screens/demo03.png" width="300"/>
