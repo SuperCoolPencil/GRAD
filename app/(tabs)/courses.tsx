@@ -19,48 +19,59 @@ export default function CoursesScreen() {
   // Calculate attendance percentage for each course.
   const calculateAttendancePercentage = (course: Course) => {
     const totalClasses =
-      (course.presents || 0) + (course.absents || 0) + (course.cancelled || 0);
+      (course.presents || 0) + (course.absents || 0);
     if (totalClasses === 0) return 100;
     return Math.round(((course.presents || 0) / totalClasses) * 100);
   };
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = calculateAttendancePercentage(item);
-
+  
+    // Determine the accent color based on attendance percentage
+    const getAccentColor = () => {
+      if (attendancePercentage >= item.requiredAttendance) return '#4CAF50'; // Green for good attendance
+      if (attendancePercentage >= item.requiredAttendance - 10) return '#FFC107'; // Yellow for borderline
+      return '#F44336'; // Red for poor attendance
+    };
+  
+    const accentColor = getAccentColor();
+  
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
-        <ThemedView
-          style={[
-            styles.courseCard,
-            { backgroundColor: Colors[colorScheme ?? 'light'].background },
-          ]}
-        >
-          <ThemedView style={styles.courseHeader}>
-            <View style={styles.courseInfo}>
-              <ThemedText
-                type="subtitle"
-                style={{ color: Colors[colorScheme ?? 'light'].text }}
-              >
-                {item.name} ({item.id})
-              </ThemedText>
-              <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
-                Attendance: {attendancePercentage}%
-              </ThemedText>
-              <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
-                Required: {item.requiredAttendance}%
-              </ThemedText>
-            </View>
-            {/* Right Arrow Icon indicating navigation */}
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={Colors[colorScheme ?? 'light'].icon || '#808080'}
-            />
+        <View style={[styles.courseCardContainer, { borderLeftColor: accentColor }]}>
+          <ThemedView
+            style={[
+              styles.courseCard,
+              { backgroundColor: Colors[colorScheme ?? 'light'].background },
+            ]}
+          >
+            <ThemedView style={styles.courseHeader}>
+              <View style={styles.courseInfo}>
+                <ThemedText
+                  type="subtitle"
+                  style={{ color: Colors[colorScheme ?? 'light'].text }}
+                >
+                  {item.name} ({item.id})
+                </ThemedText>
+                <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+                  Attendance: {attendancePercentage}%
+                </ThemedText>
+                <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+                  Required: {item.requiredAttendance}%
+                </ThemedText>
+              </View>
+              {/* Right Arrow Icon indicating navigation */}
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={Colors[colorScheme ?? 'light'].icon || '#808080'}
+              />
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
+        </View>
       </TouchableOpacity>
     );
-  };
+  };  
 
   return (
     <ParallaxScrollView
@@ -128,20 +139,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  courseCardContainer: {
+    borderLeftWidth: 6, // Accent thickness
+    borderRadius: 8,
+    marginBottom: 16,
+    // Shadows for iOS:
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    // Elevation for Android:
+    elevation: 3,
+  },
   courseCard: {
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
-    // Shadows for iOS:
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    // Elevation for Android:
-    elevation: 5,
   },
   courseHeader: {
     flexDirection: 'row',
@@ -151,15 +164,6 @@ const styles = StyleSheet.create({
   courseInfo: {
     flex: 1,
     gap: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    textAlign: 'center',
-    opacity: 0.6,
   },
   addButton: {
     marginLeft: 'auto', // Push the button to the right
