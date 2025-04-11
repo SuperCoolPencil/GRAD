@@ -6,8 +6,9 @@ import {
   Alert,
   View,
   useColorScheme,
-  Animated,
+  Platform, // Import Platform
 } from "react-native";
+import Constants from 'expo-constants'; // Import Constants
 import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
 import { AppContext } from "@/context/AppContext";
 import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
@@ -330,7 +331,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
-    marginTop: 16,
+    // Use paddingTop instead of marginTop to account for status bar
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16, 
     backgroundColor: "transparent",
     alignItems: "center",
   },

@@ -1,6 +1,7 @@
-import { StyleSheet, FlatList, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, View, Platform } from 'react-native'; // Import Platform
 import { useContext } from 'react';
 import { Link, useRouter } from 'expo-router';
+import Constants from 'expo-constants'; // Import Constants
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -18,7 +19,28 @@ export default function CoursesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
-    <View style={{ flex: 1 }}>
+    // Add background color to the main container, consistent with settings.tsx
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+      {/* Move Title Container Here */}
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText
+          type="title"
+          numberOfLines={1}
+          style={[{ color: Colors[colorScheme].text }]}
+        >
+          My Courses
+        </ThemedText>
+        <Link href="/add-course" asChild>
+          <TouchableOpacity style={styles.addButton}>
+            <Ionicons
+              name="add-circle-outline"
+              size={28}
+              color={Colors[colorScheme].tint || '#007AFF'}
+            />
+          </TouchableOpacity>
+        </Link>
+      </ThemedView>
+      {/* Pass props to Content */}
       <CoursesContent
         courses={courses}
         colorScheme={colorScheme}
@@ -93,35 +115,9 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
   };
 
   return (
-    <View 
-    style={{
-      flex: 1,
-      backgroundColor: Colors[colorScheme || 'light'].background,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
-      paddingTop: 16,
-    }}>
-      <ThemedView style={[styles.titleContainer, { marginTop: 0 }]}>
-        <ThemedText
-          type="title"
-          numberOfLines={1} // This ensures the text doesn't exceed one line
-          style={[{
-            color: Colors[colorScheme || 'light'].text,
-          }]}
-        >
-          My Courses
-        </ThemedText>
-        <Link href="/add-course" asChild>
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons 
-              name="add-circle-outline" 
-              size={28} 
-              color={Colors[colorScheme || 'light'].tint || '#007AFF'} 
-            />
-          </TouchableOpacity>
-        </Link>
-      </ThemedView>
+    // Simplify the outer View in Content, main View and FlatList handle layout/padding
+    <View style={{ flex: 1 }}>
+      {/* Title Container Removed From Here */}
 
       {courses.length > 0 ? (
         <FlatList
@@ -144,14 +140,17 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
 }
 
 const styles = StyleSheet.create({
+  // Adjust titleContainer style to match index.tsx and settings.tsx pattern
   titleContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: 'transparent',
     alignItems: 'center',
+    justifyContent: 'space-between', // Ensure button stays right
+    gap: 8,
+    paddingHorizontal: 16,
+    // Use paddingTop instead of marginTop to account for status bar
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16, 
+    paddingBottom: 8, // Consistent bottom padding
+    backgroundColor: 'transparent', // Keep transparent
   },
   coursesList: {
     gap: 8,
