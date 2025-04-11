@@ -13,6 +13,7 @@ interface AppContextType {
   theme: string;
   toggleTheme: () => void;
   addCourse: (newCourse: Course) => void;
+  editCourse: (updatedCourse: Course) => void;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
   markAttendance: (
@@ -37,6 +38,7 @@ export const AppContext = createContext<AppContextType>({
   theme: "light",
   toggleTheme: () => {},
   addCourse: () => {},
+  editCourse: () => {},
   updateCourse: () => {},
   deleteCourse: () => {},
   markAttendance: () => {},
@@ -251,6 +253,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         theme,
         toggleTheme,
         addCourse,
+        editCourse: updateCourse,
         updateCourse,
         deleteCourse,
         markAttendance,

@@ -19,9 +19,7 @@ npx expo start
 
 ## 🐞 Known Bugs to Fix in v0.1.0
 
-- Replace the "add-extra-class" feature with a user-friendly datetime picker.
 - Improve the design of the course information page to resolve usability issues.
-- Implement an edit-course page to allow modifications to course details.
 - Add a distinctive app logo and name to address branding inconsistencies.
 - Fix daily attendance logging and ensure it displays correctly on the course information page.
 - Resolve issues with the dark mode toggle in the settings.
