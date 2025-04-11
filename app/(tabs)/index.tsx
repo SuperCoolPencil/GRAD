@@ -6,13 +6,14 @@ import {
   Alert,
   View,
   useColorScheme,
+  Animated,
 } from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { ClassItem, Course, ScheduleItem, ExtraClass } from '@/types';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import TopBar from '@/components/TopBar';
 
 const DAYS_OF_WEEK = [
   'Sunday',
@@ -36,8 +37,8 @@ const getAttendanceDelta = (
   const total = presents + absents;
   const requiredFraction = requiredAttendance / 100;
   if (total === 0) {
-    // With no classes held, assume you must attend at least one class.
-    return 1;
+    // With no classes held, assume you must attend no class.
+    return 0;
   }
   const currentFraction = presents / total;
   if (currentFraction >= requiredFraction) {
@@ -63,6 +64,36 @@ export default function TodaysClassesScreen() {
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const colorScheme = useColorScheme();
 
+  return (
+    <View style={{ flex: 1 }}>
+      <TopBar />
+      <TodaysClassesContent
+        courses={courses}
+        markAttendance={markAttendance}
+        loading={loading}
+        todaysClasses={todaysClasses}
+        setTodaysClasses={setTodaysClasses}
+        colorScheme={colorScheme}
+      />
+    </View>
+  );
+}
+
+function TodaysClassesContent({
+  courses,
+  markAttendance,
+  loading,
+  todaysClasses,
+  setTodaysClasses,
+  colorScheme,
+}: {
+  courses: any;
+  markAttendance: any;
+  loading: any;
+  todaysClasses: any;
+  setTodaysClasses: any;
+  colorScheme: any;
+}) {
   // Calculate attendance percentage for a course.
   const calculateAttendancePercentage = (course: Course): number => {
     const presents = course.presents || 0;
@@ -137,14 +168,15 @@ export default function TodaysClassesScreen() {
   const handleMarkAttendance = (
     courseId: string,
     status: 'present' | 'absent' | 'cancelled',
-    isExtraClass: boolean
+    isExtraClass: boolean,
+    scheduleItemId?: string
   ) => {
     Alert.alert('Mark Attendance', `Mark this class as ${status}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'OK',
         onPress: () => {
-          markAttendance(courseId, status, isExtraClass);
+          markAttendance(courseId, status, isExtraClass, scheduleItemId);
         },
       },
     ]);
@@ -217,7 +249,7 @@ export default function TodaysClassesScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'present', item.isExtraClass)
+                handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id)
               }
             >
               <Ionicons name="checkmark-circle-outline" size={20} color="white" />
@@ -227,7 +259,7 @@ export default function TodaysClassesScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#F44336' }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass)
+                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id)
               }
             >
               <Ionicons name="close-circle-outline" size={20} color="white" />
@@ -237,7 +269,7 @@ export default function TodaysClassesScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: '#9E9E9E' }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass)
+                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color="white" />
@@ -250,35 +282,20 @@ export default function TodaysClassesScreen() {
   };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Ionicons size={310} name="calendar-outline" style={styles.headerImage} />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Today's Classes</ThemedText>
-      </ThemedView>
-
-      {loading ? (
-        <ThemedView style={styles.emptyContainer}>
-          <ThemedText>Loading classes...</ThemedText>
-        </ThemedView>
-      ) : todaysClasses.length > 0 ? (
-        <FlatList
-          data={todaysClasses}
-          renderItem={renderClassItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.classesList}
-        />
-      ) : (
+    <FlatList
+      data={todaysClasses}
+      renderItem={renderClassItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.classesList}
+      ListEmptyComponent={() => (
         <ThemedView style={styles.emptyContainer}>
           <ThemedText style={styles.emptyText}>
             No classes scheduled for today!
           </ThemedText>
         </ThemedView>
       )}
-    </ParallaxScrollView>
+      removeClippedSubviews={false}
+    />
   );
 }
 

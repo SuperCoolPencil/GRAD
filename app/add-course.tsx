@@ -23,14 +23,14 @@ export default function AddCourseScreen() {
 
   // State for weekly schedule builder
   const [currentScheduleItems, setCurrentScheduleItems] = useState<ScheduleItem[]>([]);
-  const [selectedDay, setSelectedDay] = useState('Monday');
   const [startTime, setStartTime] = useState(''); // Revert to string state
   const [endTime, setEndTime] = useState(''); // Revert to string state
 
   const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const [selectedDay, setSelectedDay] = useState('Monday');
 
   // --- Schedule Management Functions ---
-  const handleAddScheduleItem = () => {
+  const handleAddScheduleItem = (selectedDay: string) => {
     setScheduleError(null); // Reset error
 
     // Basic time format validation (HH:MM)
@@ -58,7 +58,7 @@ export default function AddCourseScreen() {
     // Check for overlapping schedule items
     const isOverlapping = currentScheduleItems.some(item => {
       if (item.day === newItem.day) {
-        // Convert times to minutes since midnight for easier comparison
+        // Convert times to minutes to midnight for easier comparison
         const itemStartMinutes = parseInt(item.timeStart.split(':')[0]) * 60 + parseInt(item.timeStart.split(':')[1]);
         const itemEndMinutes = parseInt(item.timeEnd.split(':')[0]) * 60 + parseInt(item.timeEnd.split(':')[1]);
         const newItemStartMinutes = parseInt(newItem.timeStart.split(':')[0]) * 60 + parseInt(newItem.timeStart.split(':')[1]);
@@ -280,26 +280,21 @@ export default function AddCourseScreen() {
               </View>
             </View>
             {scheduleError && <ThemedText style={styles.errorText}>{scheduleError}</ThemedText>}
-            <Button title="Add Class Time" onPress={handleAddScheduleItem} />
+            <Button title="Add Class Time" onPress={() => handleAddScheduleItem(selectedDay)} />
           </View>
 
           {/* Display Added Schedule Items */}
           {currentScheduleItems.length > 0 && (
             <View style={styles.scheduleListContainer}>
               <ThemedText type="defaultSemiBold">Class Times:</ThemedText>
-              <FlatList
-                data={currentScheduleItems}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <View style={styles.scheduleListItem}>
-                    <ThemedText>{item.day}, {item.timeStart} - {item.timeEnd}</ThemedText>
-                    <TouchableOpacity onPress={() => handleRemoveScheduleItem(item.id)}>
-                      <Ionicons name="trash-outline" size={20} color="red" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                scrollEnabled={false} // Prevent nested scrolling issues
-              />
+              {currentScheduleItems.map((item) => (
+                <View style={styles.scheduleListItem} key={item.id}>
+                  <ThemedText>{item.day}, {item.timeStart} - {item.timeEnd}</ThemedText>
+                  <TouchableOpacity onPress={() => handleRemoveScheduleItem(item.id)}>
+                    <Ionicons name="trash-outline" size={20} color="red" />
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           )}
           {/* --- End Weekly Schedule Section --- */}
@@ -314,8 +309,10 @@ export default function AddCourseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexGrow: 1,
     padding: 20,
     gap: 20, // Add gap between elements
+    marginBottom: 200,
   },
   inputGroup: {
     gap: 8, // Space between label and input

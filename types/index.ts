@@ -2,7 +2,8 @@ export interface AttendanceRecord {
     id: string;
     data: string;
     Status: 'present' | 'absent' | 'cancelled';
-    isExtraClass: boolean
+    isExtraClass: boolean;
+    scheduleItemId?: string;
 }
 
 export interface ScheduleItem {

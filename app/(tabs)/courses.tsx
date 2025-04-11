@@ -10,12 +10,26 @@ import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import TopBar from '@/components/TopBar';
 
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
 
+  return (
+    <View style={{ flex: 1 }}>
+      <TopBar />
+      <CoursesContent
+        courses={courses}
+        colorScheme={colorScheme}
+        router={router}
+      />
+    </View>
+  );
+}
+
+function CoursesContent({ courses, colorScheme, router }: { courses: any; colorScheme: 'light' | 'dark'; router: any }) {
   // Calculate attendance percentage for each course.
   const calculateAttendancePercentage = (course: Course) => {
     const totalClasses =
@@ -26,16 +40,16 @@ export default function CoursesScreen() {
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = calculateAttendancePercentage(item);
-  
+
     // Determine the accent color based on attendance percentage
     const getAccentColor = () => {
       if (attendancePercentage >= item.requiredAttendance) return '#4CAF50'; // Green for good attendance
       if (attendancePercentage >= item.requiredAttendance - 10) return '#FFC107'; // Yellow for borderline
       return '#F44336'; // Red for poor attendance
     };
-  
+
     const accentColor = getAccentColor();
-  
+
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
         <View style={[styles.courseCardContainer, { borderLeftColor: accentColor }]}>
@@ -49,14 +63,14 @@ export default function CoursesScreen() {
               <View style={styles.courseInfo}>
                 <ThemedText
                   type="subtitle"
-                  style={{ color: Colors[colorScheme ?? 'light'].text }}
+                  style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}
                 >
                   {item.name} ({item.id})
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}>
                   Attendance: {attendancePercentage}%
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}>
                   Required: {item.requiredAttendance}%
                 </ThemedText>
               </View>
@@ -64,33 +78,21 @@ export default function CoursesScreen() {
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={Colors[colorScheme ?? 'light'].icon || '#808080'}
+                color={Colors[colorScheme ? colorScheme : 'light'].icon || '#808080'}
               />
             </ThemedView>
           </ThemedView>
         </View>
       </TouchableOpacity>
     );
-  };  
+  };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{
-        light: '#D0D0D0',
-        dark: '#353636',
-      }}
-      headerImage={
-        <Ionicons
-          size={310}
-          name="list-outline"
-          style={styles.headerImage}
-        />
-      }
-    >
+    <View>
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
-          style={{ color: Colors[colorScheme ?? 'light'].text }}
+          style={{ color: Colors[colorScheme || 'light'].text }}
         >
           My Courses
         </ThemedText>
@@ -115,17 +117,11 @@ export default function CoursesScreen() {
           </ThemedText>
         </ThemedView>
       )}
-    </ParallaxScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080', // Adjust based on theme if needed
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
@@ -168,5 +164,16 @@ const styles = StyleSheet.create({
   addButton: {
     marginLeft: 'auto', // Push the button to the right
     padding: 4,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    marginTop: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    opacity: 0.6,
+    fontSize: 16,
   },
 });

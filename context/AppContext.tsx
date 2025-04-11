@@ -8,7 +8,7 @@ interface AppContextType {
     addCourse: (newCourse: Course) => void;
     updateCourse: (updatedCourse: Course) => void;
     deleteCourse: (courseId: string) => void;
-    markAttendance: (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
+    markAttendance: (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, scheduleItemId?: string) => void;
     addScheduleItem: (courseId: string, newScheduleItem: ScheduleItem) => void;
 }
 
@@ -79,27 +79,22 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     };
 
     const markAttendance = (
-        courseId: string, 
-        status: 'present' | 'absent' | 'cancelled', 
-        isExtraClass: boolean
+        courseId: string,
+        status: 'present' | 'absent' | 'cancelled',
+        isExtraClass: boolean,
+        scheduleItemId?: string
     ) => {
         setCourses(prevCourses =>
             prevCourses.map((course) => {
                 if (course.id === courseId) {
-
-                    // create a new attendance record
-                    const newRecord: AttendanceRecord = {
-                        id: Date.now().toString(),
-                        data: new Date().toISOString(),
-                        Status: status,
-                        isExtraClass,
-                    };
-
                     const updatedCourse = { ...course };
 
-                    // Find if an attendance record exists for the current day
+                    // Find if an attendance record exists for the current day and schedule item
                     const existingRecordIndex = updatedCourse.attendanceRecords?.findIndex(
-                        record => new Date(record.data).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) && record.isExtraClass === isExtraClass
+                        record =>
+                            new Date(record.data).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) &&
+                            record.isExtraClass === isExtraClass &&
+                            record.scheduleItemId === scheduleItemId
                     ) ?? -1;
 
                     if (existingRecordIndex > -1 && updatedCourse.attendanceRecords) {
@@ -109,15 +104,16 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                             Status: status,
                         };
                     } else {
-                        // create a new attendance record
+                        // Create a new attendance record
                         const newRecord: AttendanceRecord = {
                             id: Date.now().toString(),
                             data: new Date().toISOString(),
                             Status: status,
                             isExtraClass,
+                            scheduleItemId: scheduleItemId,
                         };
 
-                        // add the new record to the attendance records
+                        // Add the new record to the attendance records
                         updatedCourse.attendanceRecords = updatedCourse.attendanceRecords ? [
                             ...updatedCourse.attendanceRecords,
                             newRecord,
@@ -128,6 +124,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                     updatedCourse.presents = updatedCourse.attendanceRecords?.filter(r => r.Status === 'present').length || 0;
                     updatedCourse.absents = updatedCourse.attendanceRecords?.filter(r => r.Status === 'absent').length || 0;
                     updatedCourse.cancelled = updatedCourse.attendanceRecords?.filter(r => r.Status === 'cancelled').length || 0;
+
+                    console.log("markAttendance", {
+                        courseId,
+                        status,
+                        isExtraClass,
+                        scheduleItemId,
+                        updatedCourse
+                    });
 
                     return updatedCourse;
                 }
