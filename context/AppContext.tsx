@@ -96,20 +96,38 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                     };
 
                     const updatedCourse = { ...course };
-                    // update counters
-                    if (status === 'present') {
-                        updatedCourse.presents = (course.presents || 0) + 1;
-                    } else if (status === 'absent') {
-                        updatedCourse.absents = (course.absents || 0) + 1;
-                    } else if (status === 'cancelled') {
-                        updatedCourse.cancelled = (course.cancelled || 0) + 1;
+
+                    // Find if an attendance record exists for the current day
+                    const existingRecordIndex = updatedCourse.attendanceRecords?.findIndex(
+                        record => new Date(record.data).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) && record.isExtraClass === isExtraClass
+                    ) ?? -1;
+
+                    if (existingRecordIndex > -1 && updatedCourse.attendanceRecords) {
+                        // Update the existing record
+                        updatedCourse.attendanceRecords[existingRecordIndex] = {
+                            ...updatedCourse.attendanceRecords[existingRecordIndex],
+                            Status: status,
+                        };
+                    } else {
+                        // create a new attendance record
+                        const newRecord: AttendanceRecord = {
+                            id: Date.now().toString(),
+                            data: new Date().toISOString(),
+                            Status: status,
+                            isExtraClass,
+                        };
+
+                        // add the new record to the attendance records
+                        updatedCourse.attendanceRecords = updatedCourse.attendanceRecords ? [
+                            ...updatedCourse.attendanceRecords,
+                            newRecord,
+                        ] : [newRecord];
                     }
 
-                    // add the new record to the attendance records
-                    updatedCourse.attendanceRecords = [
-                        ...(course.attendanceRecords || []),
-                        newRecord,
-                    ];
+                    // Recalculate counters
+                    updatedCourse.presents = updatedCourse.attendanceRecords?.filter(r => r.Status === 'present').length || 0;
+                    updatedCourse.absents = updatedCourse.attendanceRecords?.filter(r => r.Status === 'absent').length || 0;
+                    updatedCourse.cancelled = updatedCourse.attendanceRecords?.filter(r => r.Status === 'cancelled').length || 0;
 
                     return updatedCourse;
                 }
@@ -118,7 +136,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         );
     };
 
-    const AddScheduleItem = (
+    const addScheduleItem = (
         courseId: string, 
         newScheduleItem: ScheduleItem
     ) => {
@@ -146,11 +164,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                 updateCourse,
                 deleteCourse,
                 markAttendance,
-                addScheduleItem: AddScheduleItem,
+                addScheduleItem: addScheduleItem,
             }}
         >
             {children}
         </AppContext.Provider>
     );
 }
-

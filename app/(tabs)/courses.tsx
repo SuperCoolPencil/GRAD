@@ -18,9 +18,9 @@ export default function CoursesScreen() {
 
   // Removed unused functions and state
 
-  const calculateAttendancePercentage = (course: Course) => {
-    const totalClasses = (course.presents || 0) + (course.absents || 0);
-    if (totalClasses === 0) return 0;
+ const calculateAttendancePercentage = (course: Course) => {
+    const totalClasses = (course.presents || 0) + (course.absents || 0) + (course.cancelled || 0);
+    if (totalClasses === 0) return 100;
     return Math.round((course.presents || 0) / totalClasses * 100);
   };
 
@@ -74,7 +74,6 @@ export default function CoursesScreen() {
           renderItem={renderCourseItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.coursesList}
-          scrollEnabled={false}
         />
       ) : (
         <ThemedView style={styles.emptyContainer}>
@@ -108,6 +107,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
+    backgroundColor: 'white', // Add white background
+    shadowColor: '#000', // Add shadow
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5, // For Android shadow
   },
   courseHeader: {
     flexDirection: 'row',

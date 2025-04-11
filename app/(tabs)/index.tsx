@@ -84,7 +84,6 @@ export default function TodaysClassesScreen() {
   }, [courses, loading]);
 
   const handleMarkAttendance = (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
-    console.log(`Marking attendance for courseId: ${courseId}, status: ${status}, isExtraClass: ${isExtraClass}`); // Add console log
     Alert.alert(
       "Mark Attendance",
       `Mark this class as ${status}?`,
@@ -115,7 +114,7 @@ export default function TodaysClassesScreen() {
         <ThemedText type="subtitle">{item.courseName}</ThemedText>
         <ThemedText>Time: {item.timeStart} - {item.timeEnd} {item.isExtraClass ? '(Extra)' : ''}</ThemedText>
         <ThemedText>Current Attendance: {item.currentAttendance}% (Need: {item.requiredAttendance}%)</ThemedText>
-        {/* <ThemedText>Need to Attend: {item.needToAttend} more classes</ThemedText> */}
+        <ThemedText>Need to Attend: {item.needToAttend} more classes</ThemedText>
       </View>
       <View style={styles.attendanceActions}>
         <TouchableOpacity
@@ -150,7 +149,8 @@ export default function TodaysClassesScreen() {
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
         <Ionicons size={310} name="calendar-outline" style={styles.headerImage} />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Today's Classes</ThemedText>
       </ThemedView>
@@ -163,9 +163,8 @@ export default function TodaysClassesScreen() {
         <FlatList
           data={todaysClasses}
           renderItem={renderClassItem}
-          keyExtractor={(item) => `${item.id}-${Date.now()}`} // Force re-render on attendance change
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.classesList}
-          scrollEnabled={false} // Prevent scrolling within the ParallaxScrollView
         />
       ) : (
         <ThemedView style={styles.emptyContainer}>

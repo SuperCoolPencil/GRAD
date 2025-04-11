@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { StyleSheet, View, Button, Alert, Keyboard, TextInput, FlatList, TouchableOpacity, useColorScheme as useRNColorScheme } from 'react-native'; // Removed Platform, DateTimePicker
+import { StyleSheet, View, Button, Alert, Keyboard, TextInput, FlatList, TouchableOpacity, ScrollView, useColorScheme as useRNColorScheme } from 'react-native'; // Added ScrollView
 import Slider from '@react-native-community/slider';
 import { Stack, useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
@@ -54,15 +54,36 @@ export default function AddCourseScreen() {
     }
 
     const newItem: ScheduleItem = {
-      id: `${selectedDay}-${startTime}-${endTime}-${Date.now()}`, // Use string times for ID
+      id: `${selectedDay}-${startTime}-${endTime}-${Date.now()}`,
       day: selectedDay,
-      timeStart: startTime, // Use string time
-      timeEnd: endTime, // Use string time
+      timeStart: startTime,
+      timeEnd: endTime,
     };
+
+    // Check for overlapping schedule items
+    const isOverlapping = currentScheduleItems.some(item => {
+      if (item.day === newItem.day) {
+        // Convert times to minutes since midnight for easier comparison
+        const itemStartMinutes = parseInt(item.timeStart.split(':')[0]) * 60 + parseInt(item.timeStart.split(':')[1]);
+        const itemEndMinutes = parseInt(item.timeEnd.split(':')[0]) * 60 + parseInt(item.timeEnd.split(':')[1]);
+        const newItemStartMinutes = parseInt(newItem.timeStart.split(':')[0]) * 60 + parseInt(newItem.timeStart.split(':')[1]);
+        const newItemEndMinutes = parseInt(newItem.timeEnd.split(':')[0]) * 60 + parseInt(newItem.timeEnd.split(':')[1]);
+
+        return (
+          (newItemStartMinutes < itemEndMinutes && newItemEndMinutes > itemStartMinutes) // New item starts before existing item ends AND new item ends after existing item starts
+        );
+      }
+      return false;
+    });
+
+    if (isOverlapping) {
+      setScheduleError('This schedule slot overlaps with an existing one.');
+      return;
+    }
+
     setCurrentScheduleItems([...currentScheduleItems, newItem]);
-    // Optionally reset time fields
-    // setStartTime('');
-    // setEndTime('');
+    setStartTime('');
+    setEndTime('');
   };
 
   const handleRemoveScheduleItem = (idToRemove: string) => {
@@ -124,11 +145,12 @@ export default function AddCourseScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Add New Course' }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="subtitle">Course Details</ThemedText>
+      <ScrollView>
+        <ThemedView style={styles.container}>
+          <ThemedText type="subtitle">Course Details</ThemedText>
 
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Course Code:</ThemedText>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Course Code:</ThemedText>
           <TextInput
             style={[
               styles.input,
@@ -252,13 +274,13 @@ export default function AddCourseScreen() {
             </View>
           </View>
           {scheduleError && <ThemedText style={styles.errorText}>{scheduleError}</ThemedText>}
-          <Button title="Add Schedule Slot" onPress={handleAddScheduleItem} />
+          <Button title="Add Class Time" onPress={handleAddScheduleItem} />
         </View>
 
          {/* Display Added Schedule Items */}
         {currentScheduleItems.length > 0 && (
           <View style={styles.scheduleListContainer}>
-            <ThemedText type="defaultSemiBold">Scheduled Slots:</ThemedText>
+            <ThemedText type="defaultSemiBold">Class Times:</ThemedText>
             <FlatList
               data={currentScheduleItems}
               keyExtractor={(item) => item.id}
@@ -276,9 +298,12 @@ export default function AddCourseScreen() {
         )}
         {/* --- End Weekly Schedule Section --- */}
 
-
         <Button title="Save Course" onPress={handleAddCourse} />
-      </ThemedView>
+
+
+          <Button title="Save Course" onPress={handleAddCourse} />
+        </ThemedView>
+      </ScrollView>
     </>
   );
 }
