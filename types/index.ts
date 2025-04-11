@@ -42,4 +42,3 @@ export interface ClassItem {
     currentAttendance: number;
     needToAttend: number;
   }
-  

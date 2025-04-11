@@ -84,6 +84,7 @@ export default function TodaysClassesScreen() {
   }, [courses, loading]);
 
   const handleMarkAttendance = (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
+    console.log(`Marking attendance for courseId: ${courseId}, status: ${status}, isExtraClass: ${isExtraClass}`); // Add console log
     Alert.alert(
       "Mark Attendance",
       `Mark this class as ${status}?`,
@@ -92,7 +93,12 @@ export default function TodaysClassesScreen() {
           text: "Cancel",
           style: "cancel"
         },
-        { text: "OK", onPress: () => markAttendance(courseId, status, isExtraClass) }
+        {
+          text: "OK",
+          onPress: () => {
+            markAttendance(courseId, status, isExtraClass);
+          }
+        }
       ]
     );
   };
@@ -157,7 +163,7 @@ export default function TodaysClassesScreen() {
         <FlatList
           data={todaysClasses}
           renderItem={renderClassItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.id}-${Date.now()}`} // Force re-render on attendance change
           contentContainerStyle={styles.classesList}
           scrollEnabled={false} // Prevent scrolling within the ParallaxScrollView
         />
