@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
+    paddingTop: Platform.OS === 'android' ? 30 : 0,
   },
   appName: {
     fontSize: 20,
