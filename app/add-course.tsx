@@ -109,7 +109,7 @@ const AddCourseScreen = () => {
       <ThemedText style={styles.label}>Start Time:</ThemedText>
       <TouchableOpacity onPress={() => setShowStartTimePicker(true)}>
         <ThemedText>
-          {startTime ? startTime.toLocaleTimeString() : 'Select Start Time'}
+          {startTime ? startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Select Start Time'}
         </ThemedText>
       </TouchableOpacity>
       {showStartTimePicker && (
@@ -130,7 +130,7 @@ const AddCourseScreen = () => {
       <ThemedText style={styles.label}>End Time:</ThemedText>
       <TouchableOpacity onPress={() => setShowEndTimePicker(true)}>
         <ThemedText>
-          {endTime ? endTime.toLocaleTimeString() : 'Select End Time'}
+          {endTime ? endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Select End Time'}
         </ThemedText>
       </TouchableOpacity>
       {showEndTimePicker && (
@@ -157,8 +157,8 @@ const AddCourseScreen = () => {
              const newScheduleItem: ScheduleItem = {
                id: Date.now().toString(),
                day: selectedDay,
-               timeStart: startTime.toLocaleTimeString(),
-               timeEnd: endTime.toLocaleTimeString(),
+               timeStart: startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+               timeEnd: endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
              };
              setWeeklySchedule([...weeklySchedule, newScheduleItem]);
              Alert.alert("Success", "Weekly class added!");
