@@ -58,7 +58,7 @@ const getAttendanceDelta = (
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].warning; // Exactly at required => yellow accent
+  return Colors[colorScheme].tint; // Exactly at required => yellow accent
 };
 
 export default function TodaysClassesScreen() {
@@ -287,13 +287,13 @@ function TodaysClassesContent({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#9E9E9E' }]}
+              style={[styles.actionButton, { backgroundColor: '#A0A0A0' }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
+              <ThemedText style={styles.actionButtonText}>Cancelled</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
