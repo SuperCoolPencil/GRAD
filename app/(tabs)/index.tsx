@@ -1,14 +1,28 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Alert, View } from 'react-native';
+import {
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  View,
+  useColorScheme,
+} from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { ClassItem, Course, ScheduleItem, ExtraClass } from '@/types';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS_OF_WEEK = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 // Helper to calculate attendance delta.
 // Returns a positive number when you need to attend extra classes to reach the required attendance,
@@ -28,23 +42,35 @@ const getAttendanceDelta = (
   const currentFraction = presents / total;
   if (currentFraction >= requiredFraction) {
     // Calculate how many classes can be bunked.
-    return -Math.floor((presents / requiredFraction) - total);
+    return -Math.floor(presents / requiredFraction - total);
   } else {
     // Calculate extra classes needed.
-    return Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
+    return Math.ceil(
+      (requiredFraction * total - presents) / (1 - requiredFraction)
+    );
   }
+};
+
+// Assign a border color or accent color based on delta.
+const getDeltaColor = (delta: number) => {
+  if (delta > 0) return '#F44336';   // Need to attend => red accent
+  if (delta < 0) return '#4CAF50';   // Can bunk => green accent
+  return '#FFC107';                  // Exactly at required => yellow accent
 };
 
 export default function TodaysClassesScreen() {
   const { courses, markAttendance, loading } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
+  const colorScheme = useColorScheme();
 
   // Calculate attendance percentage for a course.
   const calculateAttendancePercentage = (course: Course): number => {
     const presents = course.presents || 0;
     const absents = course.absents || 0;
     const totalClasses = presents + absents;
-    return totalClasses === 0 ? 0 : Math.round((presents / totalClasses) * 100);
+    return totalClasses === 0
+      ? 0
+      : Math.round((presents / totalClasses) * 100);
   };
 
   useEffect(() => {
@@ -73,7 +99,7 @@ export default function TodaysClassesScreen() {
             timeStart: schedule.timeStart,
             timeEnd: schedule.timeEnd,
             isExtraClass: false,
-            requiredAttendance: course.requiredAttendance,
+            requiredAttendance: required,
             currentAttendance: attendancePercentage,
             needToAttend: delta,
           });
@@ -90,7 +116,7 @@ export default function TodaysClassesScreen() {
             timeStart: extra.timeStart,
             timeEnd: extra.timeEnd,
             isExtraClass: true,
-            requiredAttendance: course.requiredAttendance,
+            requiredAttendance: required,
             currentAttendance: attendancePercentage,
             needToAttend: delta,
           });
@@ -113,71 +139,122 @@ export default function TodaysClassesScreen() {
     status: 'present' | 'absent' | 'cancelled',
     isExtraClass: boolean
   ) => {
-    Alert.alert(
-      "Mark Attendance",
-      `Mark this class as ${status}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "OK",
-          onPress: () => {
-            markAttendance(courseId, status, isExtraClass);
-          },
+    Alert.alert('Mark Attendance', `Mark this class as ${status}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'OK',
+        onPress: () => {
+          markAttendance(courseId, status, isExtraClass);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const renderClassItem = ({ item }: { item: ClassItem }) => (
-    <ThemedView style={styles.classCard}>
-      <View style={styles.classInfo}>
-        <ThemedText type="subtitle">{item.courseName}</ThemedText>
-        <ThemedText>
-          Time: {item.timeStart} - {item.timeEnd} {item.isExtraClass ? '(Extra)' : ''}
-        </ThemedText>
-        <ThemedText>
-          Current Attendance: {item.currentAttendance}% (Required: {item.requiredAttendance}%)
-        </ThemedText>
-        <ThemedText>
-          {item.needToAttend > 0
-            ? `Need to Attend: ${item.needToAttend} classes`
-            : item.needToAttend < 0
-            ? `Can Bunk: ${Math.abs(item.needToAttend)} classes`
-            : "At required attendance"}
-        </ThemedText>
-      </View>
-      <View style={styles.attendanceActions}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.presentButton]}
-          onPress={() => handleMarkAttendance(item.courseId, 'present', item.isExtraClass)}
-        >
-          <Ionicons name="checkmark-circle-outline" size={24} color="white" />
-          <ThemedText style={styles.actionButtonText}>Present</ThemedText>
-        </TouchableOpacity>
+  const renderClassItem = ({ item }: { item: ClassItem }) => {
+    const accentColor = getDeltaColor(item.needToAttend);
+    const cardBackground =
+      colorScheme === 'dark' ? '#262626' : '#FFFFFF';
+    // We can color-code the text that indicates how many you must attend/bunk
+    let attendanceNote = 'At required attendance';
+    if (item.needToAttend > 0) {
+      attendanceNote = `Need to Attend: ${item.needToAttend} classes`;
+    } else if (item.needToAttend < 0) {
+      attendanceNote = `Can Bunk: ${Math.abs(item.needToAttend)} classes`;
+    }
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.absentButton]}
-          onPress={() => handleMarkAttendance(item.courseId, 'absent', item.isExtraClass)}
-        >
-          <Ionicons name="close-circle-outline" size={24} color="white" />
-          <ThemedText style={styles.actionButtonText}>Absent</ThemedText>
-        </TouchableOpacity>
+    return (
+      <View
+        style={[
+          styles.classCardContainer,
+          {
+            borderLeftColor: accentColor,
+            backgroundColor: cardBackground,
+          },
+        ]}
+      >
+        <ThemedView style={styles.classCardContent}>
+          <View style={styles.classInfo}>
+            <ThemedText type="subtitle" style={styles.courseName}>
+              {item.courseName}
+            </ThemedText>
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={colorScheme === 'dark' ? '#CCC' : '#888'}
+                style={{ marginRight: 4 }}
+              />
+              <ThemedText>
+                {item.timeStart} - {item.timeEnd}{' '}
+                {item.isExtraClass ? '(Extra)' : ''}
+              </ThemedText>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="stats-chart-outline"
+                size={16}
+                color={colorScheme === 'dark' ? '#CCC' : '#888'}
+                style={{ marginRight: 4 }}
+              />
+              <ThemedText>
+                Current: {item.currentAttendance}% / Req: {item.requiredAttendance}%
+              </ThemedText>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={accentColor}
+                style={{ marginRight: 4 }}
+              />
+              <ThemedText style={{ color: accentColor }}>
+                {attendanceNote}
+              </ThemedText>
+            </View>
+          </View>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.cancelledButton]}
-          onPress={() => handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass)}
-        >
-          <Ionicons name="remove-circle-outline" size={24} color="white" />
-          <ThemedText style={styles.actionButtonText}>Cancelled</ThemedText>
-        </TouchableOpacity>
+          <View style={styles.attendanceActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
+              onPress={() =>
+                handleMarkAttendance(item.courseId, 'present', item.isExtraClass)
+              }
+            >
+              <Ionicons name="checkmark-circle-outline" size={20} color="white" />
+              <ThemedText style={styles.actionButtonText}>Present</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#F44336' }]}
+              onPress={() =>
+                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass)
+              }
+            >
+              <Ionicons name="close-circle-outline" size={20} color="white" />
+              <ThemedText style={styles.actionButtonText}>Absent</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: '#9E9E9E' }]}
+              onPress={() =>
+                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass)
+              }
+            >
+              <Ionicons name="remove-circle-outline" size={20} color="white" />
+              <ThemedText style={styles.actionButtonText}>Cancelled</ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
       </View>
-    </ThemedView>
-  );
+    );
+  };
 
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={<Ionicons size={310} name="calendar-outline" style={styles.headerImage} />}
+      headerImage={
+        <Ionicons size={310} name="calendar-outline" style={styles.headerImage} />
+      }
     >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Today's Classes</ThemedText>
@@ -196,7 +273,9 @@ export default function TodaysClassesScreen() {
         />
       ) : (
         <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>No classes scheduled for today!</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            No classes scheduled for today!
+          </ThemedText>
         </ThemedView>
       )}
     </ParallaxScrollView>
@@ -214,47 +293,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
+    paddingHorizontal: 16,
+    marginTop: 16,
   },
   classesList: {
     gap: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  classCard: {
+  // Outer container for the card, with color-coded accent on the left.
+  classCardContainer: {
+    borderLeftWidth: 6, // Thicker accent for emphasis
     borderRadius: 8,
+    // Shadows for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    // Elevation for Android
+    elevation: 3,
+    marginBottom: 16,
+  },
+  // Inner content container so the left accent doesn't overlap text.
+  classCardContent: {
     padding: 16,
-    gap: 12,
+    borderRadius: 8,
   },
   classInfo: {
-    gap: 4,
+    marginBottom: 16,
+  },
+  courseName: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
   },
   attendanceActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
-    marginTop: 8,
   },
   actionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignItems: 'center',
     flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    borderRadius: 6,
+    paddingVertical: 8,
+    marginHorizontal: 4,
     justifyContent: 'center',
-    gap: 6,
-  },
-  presentButton: {
-    backgroundColor: '#4CAF50',
-  },
-  absentButton: {
-    backgroundColor: '#F44336',
-  },
-  cancelledButton: {
-    backgroundColor: '#9E9E9E',
   },
   actionButtonText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+    marginLeft: 4,
   },
   emptyContainer: {
     alignItems: 'center',
