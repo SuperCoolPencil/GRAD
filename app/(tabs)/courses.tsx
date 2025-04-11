@@ -64,9 +64,9 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
 
     // Determine the accent color based on attendance percentage - theme aware
     const getAccentColor = () => {
-      if (attendancePercentage >= item.requiredAttendance) 
+      if (attendancePercentage >= item.requiredAttendance)
         return Colors[colorScheme || 'light'].success || '#4CAF50'; // Green for good attendance
-      if (attendancePercentage >= item.requiredAttendance - 10) 
+      if (attendancePercentage >= item.requiredAttendance - 10)
         return Colors[colorScheme || 'light'].warning || '#FFC107'; // Yellow for borderline
       return Colors[colorScheme || 'light'].error || '#F44336'; // Red for poor attendance
     };
@@ -75,22 +75,23 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
-        <View style={[styles.courseCardContainer, { 
+        <View style={[styles.courseCardContainer, {
           borderLeftColor: accentColor,
           shadowColor: Colors[colorScheme || 'light'].shadow || '#000',
         }]}>
           <ThemedView
             style={[
               styles.courseCard,
-              { 
-                backgroundColor: Colors[colorScheme || 'light'].foreground, },
+              {
+                backgroundColor: Colors[colorScheme || 'light'].foreground,
+              },
             ]}
           >
             <ThemedView style={styles.courseHeader}>
               <View style={styles.courseInfo}>
                 <ThemedText
                   type="subtitle"
-                  style={{ color: Colors[colorScheme || 'light'].text}}
+                  style={{ color: Colors[colorScheme || 'light'].text }}
                 >
                   {item.name} ({item.id})
                 </ThemedText>
@@ -115,42 +116,34 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
   };
 
   return (
-    // Simplify the outer View in Content, main View and FlatList handle layout/padding
-    <View style={{ flex: 1 }}>
-      {/* Title Container Removed From Here */}
-
-      {courses.length > 0 ? (
-        <FlatList
-          data={courses}
-          renderItem={renderCourseItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.coursesList}
-        />
-      ) : (
+    <FlatList
+      data={courses}
+      renderItem={renderCourseItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.coursesList}
+      ListEmptyComponent={() => (
         <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={[styles.emptyText, {
-            color: Colors[colorScheme || 'light'].text
-          }]}>
-            No courses added yet
+          <ThemedText style={styles.emptyText}>
+            No courses added yet.
           </ThemedText>
         </ThemedView>
       )}
-    </View>
+      removeClippedSubviews={false}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   // Adjust titleContainer style to match index.tsx and settings.tsx pattern
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', // Ensure button stays right
+    flexDirection: "row",
     gap: 8,
+    marginBottom: 16,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 16, 
-    paddingBottom: 8, // Consistent bottom padding
-    backgroundColor: 'transparent', // Keep transparent
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32, 
+    backgroundColor: "transparent",
+    alignItems: "center",
   },
   coursesList: {
     gap: 8,
@@ -160,7 +153,7 @@ const styles = StyleSheet.create({
   },
   courseCardContainer: {
     borderLeftWidth: 4, // Accent thickness
-    borderRadius: 16,  
+    borderRadius: 16,
     marginBottom: 0, // Reduced margin
     // Shadows for iOS:
     shadowOffset: { width: 0, height: 2 },
