@@ -10,12 +10,45 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+// Helper to calculate attendance delta.
+// Returns a positive number when you need to attend extra classes to reach the required attendance,
+// a negative number when you can bunk extra classes and still maintain the requirement,
+// and zero when you’re exactly meeting the requirement.
+const getAttendanceDelta = (
+  presents: number,
+  absents: number,
+  requiredAttendance: number
+): number => {
+  const total = presents + absents;
+  const requiredFraction = requiredAttendance / 100;
+  if (total === 0) {
+    // With no classes held, assume you must attend at least one class.
+    return 1;
+  }
+  const currentFraction = presents / total;
+  if (currentFraction >= requiredFraction) {
+    // Calculate how many classes can be bunked.
+    return -Math.floor((presents / requiredFraction) - total);
+  } else {
+    // Calculate extra classes needed.
+    return Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
+  }
+};
+
 export default function TodaysClassesScreen() {
   const { courses, markAttendance, loading } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
 
+  // Calculate attendance percentage for a course.
+  const calculateAttendancePercentage = (course: Course): number => {
+    const presents = course.presents || 0;
+    const absents = course.absents || 0;
+    const totalClasses = presents + absents;
+    return totalClasses === 0 ? 0 : Math.round((presents / totalClasses) * 100);
+  };
+
   useEffect(() => {
-    if (loading) return; // Don't calculate until courses are loaded
+    if (loading) return; // Wait until courses are loaded
 
     const today = new Date();
     const currentDayName = DAYS_OF_WEEK[today.getDay()];
@@ -24,38 +57,15 @@ export default function TodaysClassesScreen() {
     const classesForToday: ClassItem[] = [];
 
     courses.forEach((course: Course) => {
-      // Check weekly schedule
+      const presents = course.presents || 0;
+      const absents = course.absents || 0;
+      const required = course.requiredAttendance || 75;
+      const attendancePercentage = calculateAttendancePercentage(course);
+      const delta = getAttendanceDelta(presents, absents, required);
+
+      // Process weekly scheduled classes.
       course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
         if (schedule.day === currentDayName) {
-          const presents = course.presents || 0;
-          const absents = course.absents || 0;
-          const totalClasses = presents + absents;
-          const requiredAttendance = course.requiredAttendance || 75;  // default if needed
-          const requiredFraction = requiredAttendance / 100;
-          const attendancePercentage = calculateAttendancePercentage(course);
-
-          let needToAttend = 0;
-
-          if (totalClasses > 0) {
-            const currentFraction = presents / totalClasses;
-
-            // If already at or above required attendance, no more classes needed
-            if (currentFraction >= requiredFraction) {
-              needToAttend = 0;
-            } else {
-              needToAttend = Math.ceil(
-                ((requiredFraction * totalClasses) - presents) / (1 - requiredFraction)
-              );
-            }
-          } else {
-            // If no classes conducted yet and a non-zero requirement, you need at least 1 future class
-            // but in reality it’s an open-ended scenario—this might start at 1 or 0 depending on your logic
-            needToAttend = 1;
-          }
-
-          console.log(`Need to attend: ${needToAttend} more classes`);
-
-
           classesForToday.push({
             id: `${course.id}-${schedule.id}`,
             courseId: course.id,
@@ -65,19 +75,14 @@ export default function TodaysClassesScreen() {
             isExtraClass: false,
             requiredAttendance: course.requiredAttendance,
             currentAttendance: attendancePercentage,
-            needToAttend: needToAttend,
+            needToAttend: delta,
           });
         }
       });
 
-      // Check extra classes
+      // Process extra classes.
       course.extraClasses?.forEach((extra: ExtraClass) => {
         if (extra.date === currentDateString) {
-          const attendancePercentage = calculateAttendancePercentage(course);
-          const totalClasses = (course.presents || 0) + (course.absents || 0);
-          const requiredTotal = Math.ceil(((course.presents || 0) + (course.absents || 0)) / (course.requiredAttendance / 100));
-          const needToAttend = Math.max(0, requiredTotal - totalClasses);
-
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
             courseId: course.id,
@@ -87,58 +92,59 @@ export default function TodaysClassesScreen() {
             isExtraClass: true,
             requiredAttendance: course.requiredAttendance,
             currentAttendance: attendancePercentage,
-            needToAttend: needToAttend,
+            needToAttend: delta,
           });
         }
       });
     });
 
-    // Sort classes by start time
+    // Sort classes by start time.
     classesForToday.sort((a, b) => {
-      const timeA = a.timeStart.split(':').map(Number);
-      const timeB = b.timeStart.split(':').map(Number);
-      if (timeA[0] !== timeB[0]) {
-        return timeA[0] - timeB[0];
-      }
-      return timeA[1] - timeB[1];
+      const [hourA, minuteA] = a.timeStart.split(':').map(Number);
+      const [hourB, minuteB] = b.timeStart.split(':').map(Number);
+      return hourA !== hourB ? hourA - hourB : minuteA - minuteB;
     });
 
     setTodaysClasses(classesForToday);
-
   }, [courses, loading]);
 
-  const handleMarkAttendance = (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
+  const handleMarkAttendance = (
+    courseId: string,
+    status: 'present' | 'absent' | 'cancelled',
+    isExtraClass: boolean
+  ) => {
     Alert.alert(
       "Mark Attendance",
       `Mark this class as ${status}?`,
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "OK",
           onPress: () => {
             markAttendance(courseId, status, isExtraClass);
-          }
-        }
+          },
+        },
       ]
     );
-  };
-
-  const calculateAttendancePercentage = (course: Course) => {
-    const totalClasses = (course.presents || 0) + (course.absents || 0);
-    if (totalClasses === 0) return 0;
-    return Math.round(((course.presents || 0) / totalClasses) * 100);
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => (
     <ThemedView style={styles.classCard}>
       <View style={styles.classInfo}>
         <ThemedText type="subtitle">{item.courseName}</ThemedText>
-        <ThemedText>Time: {item.timeStart} - {item.timeEnd} {item.isExtraClass ? '(Extra)' : ''}</ThemedText>
-        <ThemedText>Current Attendance: {item.currentAttendance}% (Need: {item.requiredAttendance}%)</ThemedText>
-        <ThemedText>Need to Attend: {item.needToAttend} more classes</ThemedText>
+        <ThemedText>
+          Time: {item.timeStart} - {item.timeEnd} {item.isExtraClass ? '(Extra)' : ''}
+        </ThemedText>
+        <ThemedText>
+          Current Attendance: {item.currentAttendance}% (Required: {item.requiredAttendance}%)
+        </ThemedText>
+        <ThemedText>
+          {item.needToAttend > 0
+            ? `Need to Attend: ${item.needToAttend} classes`
+            : item.needToAttend < 0
+            ? `Can Bunk: ${Math.abs(item.needToAttend)} classes`
+            : "At required attendance"}
+        </ThemedText>
       </View>
       <View style={styles.attendanceActions}>
         <TouchableOpacity
@@ -171,9 +177,7 @@ export default function TodaysClassesScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Ionicons size={310} name="calendar-outline" style={styles.headerImage} />
-      }
+      headerImage={<Ionicons size={310} name="calendar-outline" style={styles.headerImage} />}
     >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Today's Classes</ThemedText>
@@ -217,16 +221,16 @@ const styles = StyleSheet.create({
   classCard: {
     borderRadius: 8,
     padding: 16,
-    gap: 12, // Space between info and actions
+    gap: 12,
   },
   classInfo: {
-    gap: 4, // Space between text lines
+    gap: 4,
   },
   attendanceActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
-    marginTop: 8, // Add some space above buttons
+    marginTop: 8,
   },
   actionButton: {
     flex: 1,
@@ -234,18 +238,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: 'center',
-    flexDirection: 'row', // Align icon and text horizontally
-    justifyContent: 'center', // Center content
-    gap: 6, // Space between icon and text
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
   },
   presentButton: {
-    backgroundColor: '#4CAF50', // Green
+    backgroundColor: '#4CAF50',
   },
   absentButton: {
-    backgroundColor: '#F44336', // Red
+    backgroundColor: '#F44336',
   },
   cancelledButton: {
-    backgroundColor: '#9E9E9E', // Grey
+    backgroundColor: '#9E9E9E',
   },
   actionButtonText: {
     color: 'white',
