@@ -317,6 +317,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    paddingTop: 16,
   },
   // Outer container for the card, with color-coded accent on the left.
   classCardContainer: {

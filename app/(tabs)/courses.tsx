@@ -41,36 +41,42 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = calculateAttendancePercentage(item);
 
-    // Determine the accent color based on attendance percentage
+    // Determine the accent color based on attendance percentage - theme aware
     const getAccentColor = () => {
-      if (attendancePercentage >= item.requiredAttendance) return '#4CAF50'; // Green for good attendance
-      if (attendancePercentage >= item.requiredAttendance - 10) return '#FFC107'; // Yellow for borderline
-      return '#F44336'; // Red for poor attendance
+      if (attendancePercentage >= item.requiredAttendance) 
+        return Colors[colorScheme || 'light'].success || '#4CAF50'; // Green for good attendance
+      if (attendancePercentage >= item.requiredAttendance - 10) 
+        return Colors[colorScheme || 'light'].warning || '#FFC107'; // Yellow for borderline
+      return Colors[colorScheme || 'light'].error || '#F44336'; // Red for poor attendance
     };
 
     const accentColor = getAccentColor();
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
-        <View style={[styles.courseCardContainer, { borderLeftColor: accentColor }]}>
+        <View style={[styles.courseCardContainer, { 
+          borderLeftColor: accentColor,
+          shadowColor: Colors[colorScheme || 'light'].shadow || '#000',
+        }]}>
           <ThemedView
             style={[
               styles.courseCard,
-              { backgroundColor: Colors[colorScheme ?? 'light'].background },
+              { 
+                backgroundColor: Colors[colorScheme || 'light'].foreground, },
             ]}
           >
             <ThemedView style={styles.courseHeader}>
               <View style={styles.courseInfo}>
                 <ThemedText
                   type="subtitle"
-                  style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}
+                  style={{ color: Colors[colorScheme || 'light'].text}}
                 >
                   {item.name} ({item.id})
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme || 'light'].text }}>
                   Attendance: {attendancePercentage}%
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme ? colorScheme : 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme || 'light'].text }}>
                   Required: {item.requiredAttendance}%
                 </ThemedText>
               </View>
@@ -78,7 +84,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={Colors[colorScheme ? colorScheme : 'light'].icon || '#808080'}
+                color={Colors[colorScheme || 'light'].icon || '#808080'}
               />
             </ThemedView>
           </ThemedView>
@@ -88,17 +94,32 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
   };
 
   return (
-    <View>
+    <View 
+    style={{
+      flex: 1,
+      backgroundColor: Colors[colorScheme || 'light'].background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      paddingTop: 16,
+    }}>
       <ThemedView style={[styles.titleContainer, { marginTop: 0 }]}>
         <ThemedText
           type="title"
-          style={{ color: Colors[colorScheme || 'light'].text }}
+          numberOfLines={1} // This ensures the text doesn't exceed one line
+          style={[{
+            color: Colors[colorScheme || 'light'].text,
+          }]}
         >
           My Courses
         </ThemedText>
         <Link href="/add-course" asChild>
           <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
+            <Ionicons 
+              name="add-circle-outline" 
+              size={28} 
+              color={Colors[colorScheme || 'light'].tint || '#007AFF'} 
+            />
           </TouchableOpacity>
         </Link>
       </ThemedView>
@@ -112,7 +133,9 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
         />
       ) : (
         <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>
+          <ThemedText style={[styles.emptyText, {
+            color: Colors[colorScheme || 'light'].text
+          }]}>
             No courses added yet
           </ThemedText>
         </ThemedView>
@@ -128,19 +151,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     marginTop: 16,
+    backgroundColor: 'transparent',
     alignItems: 'center',
   },
   coursesList: {
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    paddingTop: 16,
   },
   courseCardContainer: {
     borderLeftWidth: 4, // Accent thickness
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 0, // Reduced margin
     // Shadows for iOS:
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -148,14 +172,15 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   courseCard: {
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 0, // Removed marginBottom from here
   },
   courseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   courseInfo: {
     flex: 1,

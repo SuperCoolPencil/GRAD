@@ -1,57 +1,18 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Platform, Modal, Text, Switch } from 'react-native';
 import { ThemedText } from './ThemedText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useColorScheme } from 'react-native';
 import { ExternalLink } from './ExternalLink';
 import { AppContext } from '../context/AppContext';
-import { useThemeColor } from '../hooks/useThemeColor';
 
 const TopBar = () => {
   const colorScheme = useColorScheme();
   const [modalVisible, setModalVisible] = useState(false);
   const { theme, toggleTheme } = useContext(AppContext);
-  const textColor = useThemeColor({}, 'text');
-  const background = useThemeColor({}, 'background');
 
-  const stylesWithTheme = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 20,
-      backgroundColor: background,
-    },
-    sectionContainer: {
-      marginBottom: 20,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: textColor,
-      marginBottom: 10,
-    },
-    settingRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    settingLabel: {
-      fontSize: 16,
-      color: textColor,
-    },
-    modalContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-      backgroundColor: background,
-      padding: 20,
-      borderRadius: 10,
-      width: '80%',
-    },
-  });
+  const textColor = theme === 'dark' ? '#FFFFFF' : '#000000';
+  const background = theme === 'dark' ? '#1E1E1E' : '#F2F2F2';
 
   return (
     <View style={[styles.topBar, { backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#F2F2F2' }]}>
@@ -68,14 +29,44 @@ const TopBar = () => {
           setModalVisible(!modalVisible);
         }}
       >
-        <View style={stylesWithTheme.modalContainer}>
-          <View style={stylesWithTheme.modalContent}>
-            <Text style={stylesWithTheme.sectionTitle}>Settings</Text>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        }}>
+          <View style={{
+            backgroundColor: background,
+            padding: 20,
+            borderRadius: 10,
+            width: '80%',
+          }}>
+            <Text style={{
+              fontSize: 20,
+              fontWeight: 'bold',
+              color: textColor,
+              marginBottom: 10,
+            }}>Settings</Text>
 
-            <View style={stylesWithTheme.sectionContainer}>
-              <Text style={stylesWithTheme.sectionTitle}>Theme</Text>
-              <View style={stylesWithTheme.settingRow}>
-                <Text style={stylesWithTheme.settingLabel}>Dark Mode</Text>
+            <View style={{
+              marginBottom: 20,
+            }}>
+              <Text style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: textColor,
+                marginBottom: 10,
+              }}>Theme</Text>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}>
+                <Text style={{
+                  fontSize: 16,
+                  color: textColor,
+                }}>Dark Mode</Text>
                 <Switch
                   value={theme === 'dark'}
                   onValueChange={toggleTheme}
@@ -83,21 +74,41 @@ const TopBar = () => {
               </View>
             </View>
 
-            <View style={stylesWithTheme.sectionContainer}>
-              <Text style={stylesWithTheme.sectionTitle}>Contact Us</Text>
+            <View style={{
+              marginBottom: 20,
+            }}>
+              <Text style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: textColor,
+                marginBottom: 10,
+              }}>Contact Us</Text>
               <ExternalLink
                 href="mailto:contact@example.com"
-                style={stylesWithTheme.settingLabel}
+                style={{
+                  fontSize: 16,
+                  color: textColor,
+                }}
               >
                 contact@example.com
               </ExternalLink>
             </View>
 
-            <View style={stylesWithTheme.sectionContainer}>
-              <Text style={stylesWithTheme.sectionTitle}>Project</Text>
+            <View style={{
+              marginBottom: 20,
+            }}>
+              <Text style={{
+                fontSize: 20,
+                fontWeight: 'bold',
+                color: textColor,
+                marginBottom: 10,
+              }}>Project</Text>
               <ExternalLink
-                href="https://github.com/your-username/your-repo"
-                style={stylesWithTheme.settingLabel}
+                href="https://github.com/SuperCoolPencil/GRAD"
+                style={{
+                  fontSize: 16,
+                  color: textColor,
+                }}
               >
                 GitHub Repository
               </ExternalLink>
