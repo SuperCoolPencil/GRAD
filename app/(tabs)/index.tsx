@@ -16,6 +16,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DAYS_OF_WEEK = [
   "Sunday",
@@ -115,6 +116,35 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
 }) {
+  const [markedClasses, setMarkedClasses] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadMarkedClasses = async () => {
+      try {
+        const storedMarkedClasses = await AsyncStorage.getItem('markedClasses');
+        if (storedMarkedClasses) {
+          setMarkedClasses(JSON.parse(storedMarkedClasses));
+        }
+      } catch (error) {
+        console.error('Failed to load marked classes from AsyncStorage', error);
+      }
+    };
+
+    loadMarkedClasses();
+  }, []);
+
+  useEffect(() => {
+    const saveMarkedClasses = async () => {
+      try {
+        await AsyncStorage.setItem('markedClasses', JSON.stringify(markedClasses));
+      } catch (error) {
+        console.error('Failed to save marked classes to AsyncStorage', error);
+      }
+    };
+
+    saveMarkedClasses();
+  }, [markedClasses]);
+
   // Calculate attendance percentage for a course.
   const calculateAttendancePercentage = (course: Course): number => {
     const presents = course.presents || 0;
@@ -198,6 +228,10 @@ function TodaysClassesContent({
         text: 'OK',
         onPress: () => {
           markAttendance(courseId, status, isExtraClass, scheduleItemId);
+          setMarkedClasses((prevMarkedClasses) => {
+            const classId = scheduleItemId || `${courseId}-extra-${isExtraClass}`;
+            return [...prevMarkedClasses, classId];
+          });
         },
       },
     ]);
@@ -227,13 +261,16 @@ function TodaysClassesContent({
       >
         <ThemedView style={[styles.classCardContent, {backgroundColor: Colors[colorScheme || 'light'].foreground,}]}>
           <View style={styles.classInfo}>
-            <ThemedText type="subtitle" style={styles.courseName}>
-              {item.courseName}
-            </ThemedText>
-            <View style={styles.infoRow}>
-              <Ionicons
-                name="time-outline"
-                size={16}
+            <View style={{ position: 'relative' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ThemedText type="subtitle" style={styles.courseName}>
+                  {item.courseName}
+                </ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
                 color={colorScheme === 'dark' ? '#CCC' : '#888'}
                 style={{ marginRight: 4 }}
               />
@@ -263,6 +300,19 @@ function TodaysClassesContent({
               <ThemedText style={{ color: accentColor }}>
                 {attendanceNote}
               </ThemedText>
+              </View>
+              {markedClasses.includes(item.id) && (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color="#808080" // Neutral gray color
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                  }}
+                />
+              )}
             </View>
           </View>
 
