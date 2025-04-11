@@ -27,10 +27,34 @@ export default function TodaysClassesScreen() {
       // Check weekly schedule
       course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
         if (schedule.day === currentDayName) {
+          const presents = course.presents || 0;
+          const absents = course.absents || 0;
+          const totalClasses = presents + absents;
+          const requiredAttendance = course.requiredAttendance || 75;  // default if needed
+          const requiredFraction = requiredAttendance / 100;
           const attendancePercentage = calculateAttendancePercentage(course);
-          const totalClasses = (course.presents || 0) + (course.absents || 0);
-          const requiredTotal = Math.ceil(((course.presents || 0) + (course.absents || 0)) / (course.requiredAttendance / 100));
-          const needToAttend = Math.max(0, requiredTotal - totalClasses);
+
+          let needToAttend = 0;
+
+          if (totalClasses > 0) {
+            const currentFraction = presents / totalClasses;
+
+            // If already at or above required attendance, no more classes needed
+            if (currentFraction >= requiredFraction) {
+              needToAttend = 0;
+            } else {
+              needToAttend = Math.ceil(
+                ((requiredFraction * totalClasses) - presents) / (1 - requiredFraction)
+              );
+            }
+          } else {
+            // If no classes conducted yet and a non-zero requirement, you need at least 1 future class
+            // but in reality it’s an open-ended scenario—this might start at 1 or 0 depending on your logic
+            needToAttend = 1;
+          }
+
+          console.log(`Need to attend: ${needToAttend} more classes`);
+
 
           classesForToday.push({
             id: `${course.id}-${schedule.id}`,
@@ -49,10 +73,10 @@ export default function TodaysClassesScreen() {
       // Check extra classes
       course.extraClasses?.forEach((extra: ExtraClass) => {
         if (extra.date === currentDateString) {
-           const attendancePercentage = calculateAttendancePercentage(course);
-           const totalClasses = (course.presents || 0) + (course.absents || 0);
-           const requiredTotal = Math.ceil(((course.presents || 0) + (course.absents || 0)) / (course.requiredAttendance / 100));
-           const needToAttend = Math.max(0, requiredTotal - totalClasses);
+          const attendancePercentage = calculateAttendancePercentage(course);
+          const totalClasses = (course.presents || 0) + (course.absents || 0);
+          const requiredTotal = Math.ceil(((course.presents || 0) + (course.absents || 0)) / (course.requiredAttendance / 100));
+          const needToAttend = Math.max(0, requiredTotal - totalClasses);
 
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
@@ -156,9 +180,9 @@ export default function TodaysClassesScreen() {
       </ThemedView>
 
       {loading ? (
-         <ThemedView style={styles.emptyContainer}>
-            <ThemedText>Loading classes...</ThemedText>
-         </ThemedView>
+        <ThemedView style={styles.emptyContainer}>
+          <ThemedText>Loading classes...</ThemedText>
+        </ThemedView>
       ) : todaysClasses.length > 0 ? (
         <FlatList
           data={todaysClasses}
