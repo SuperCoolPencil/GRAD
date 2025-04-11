@@ -1,125 +1,265 @@
-import React, { useState, useContext } from 'react';
-import { View, TextInput, StyleSheet, Alert, useColorScheme, TouchableOpacity, Platform } from 'react-native'; // Added TouchableOpacity, Platform
-import Constants from 'expo-constants'; // Added Constants
-import { AppContext } from '@/context/AppContext'; // Updated path
-import { Colors } from '@/constants/Colors'; // Updated path
+import React, { useState, useContext, useMemo } from 'react';
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  Alert,
+  useColorScheme,
+  TouchableOpacity,
+  Platform,
+  ScrollView
+} from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { AppContext } from '@/context/AppContext';
+import { Course } from '@/types';
+import { Picker } from '@react-native-picker/picker';
+import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import Ionicons from '@expo/vector-icons/Ionicons'; // Added for potential icons if needed later
-import { useRouter } from 'expo-router'; // Added for potential navigation back
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 const AddExtraClassScreen = () => {
-  const router = useRouter(); // Added router
-  const { courses, addExtraClass } = useContext(AppContext);
-  const [courseId, setCourseId] = useState('');
-  const [date, setDate] = useState('');
-  const [timeStart, setTimeStart] = useState('');
-  const [timeEnd, setTimeEnd] = useState('');
+  const router = useRouter();
+  const { addExtraClass, courses } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const styles = getStyles(colorScheme); // Generate styles based on theme
 
-  const handleSubmit = async () => { // Made async for potential future async operations
-    if (!courseId || !date || !timeStart || !timeEnd) {
-      Alert.alert("Error", "Please fill in all fields.");
+  // State variables
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+
+  // Time picker state
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+  // Generate styles based on theme
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
+
+  // Helper functions
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const getTimeForStorage = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  // Date picker handler
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  // Time picker handlers
+  const handleStartTimeChange = (event: DateTimePickerEvent, selectedTime: Date | undefined) => {
+    setShowStartTimePicker(false);
+    if (selectedTime) {
+      setStartTime(selectedTime);
+    }
+  };
+
+  const handleEndTimeChange = (event: DateTimePickerEvent, selectedTime: Date | undefined) => {
+    setShowEndTimePicker(false);
+    if (selectedTime) {
+      setEndTime(selectedTime);
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Validate form
+    if (!selectedCourse) {
+      Alert.alert("Error", "Please select a course.");
+      return;
+    }
+
+    if (!startTime) {
+      Alert.alert("Error", "Please select a start time.");
+      return;
+    }
+
+    if (!endTime) {
+      Alert.alert("Error", "Please select an end time.");
+      return;
+    }
+
+    if (startTime >= endTime) {
+      Alert.alert("Error", "End time must be after start time.");
       return;
     }
 
     try {
-      await addExtraClass(courseId, date, timeStart, timeEnd); // Assuming addExtraClass might become async
-      Alert.alert("Success", "Extra class added!");
-      // Optionally navigate back or clear form
-      setCourseId("");
-      setDate("");
-      setTimeStart("");
-      setTimeEnd("");
-      // router.back(); // Example: navigate back after success
+      await addExtraClass(
+        selectedCourse,
+        date.toISOString().split('T')[0],  // date should be YYYY-MM-DD format
+        startTime ? getTimeForStorage(startTime) : '',
+        endTime ? getTimeForStorage(endTime) : ''
+      );
+
+      Alert.alert("Success", "Extra class added successfully!", [
+        {
+          text: "Add Another",
+          onPress: resetForm
+        },
+        {
+          text: "Done",
+          onPress: () => router.back()
+        }
+      ]);
     } catch (error) {
       console.error("Failed to add extra class:", error);
       Alert.alert("Error", "Failed to add extra class. Please try again.");
     }
   };
 
+  const resetForm = () => {
+    setDate(new Date());
+    setStartTime(null);
+    setEndTime(null);
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      {/* Consistent Title Container */}
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ color: Colors[colorScheme].text }}>
-          Add Extra Class
-        </ThemedText>
-        {/* Optional: Add a close/back button if needed */}
-        {/* <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close-circle-outline" size={28} color={Colors[colorScheme].text} />
-        </TouchableOpacity> */}
-      </ThemedView>
+    <ThemedView style={styles.container}>
+      <ScrollView style={styles.contentContainer}>
+        {/* Form Content */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Add Extra Class</ThemedText>
 
-      {/* Form Content */}
-      <ThemedView style={styles.contentContainer}>
-        <ThemedText style={styles.label}>Course ID:</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={courseId}
-          onChangeText={setCourseId}
-          placeholder="Enter Course ID (e.g., CS101)"
-          placeholderTextColor={Colors[colorScheme].placeholder}
-          keyboardType="default" // Adjust keyboard type if needed
-          autoCapitalize="characters"
-      />
+          {/* Course Selection */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Course:</ThemedText>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedCourse}
+                onValueChange={(itemValue) => {
+                  setSelectedCourse(itemValue);
+                }}
+                style={styles.picker}
+              >
+                {courses ? (
+                  courses.map((course: Course) => (
+                    <Picker.Item key={course.id} label={course.name} value={course.id} />
+                  ))
+                ) : (
+                  <Picker.Item label="No courses available" value={null} />
+                )}
+              </Picker>
+            </View>
+          </View>
 
-      <ThemedText style={styles.label}>Date (YYYY-MM-DD):</ThemedText>
-      <TextInput
-        style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={Colors[colorScheme].placeholder}
-          keyboardType="numeric" // Or default if slashes are needed
-      />
+          {/* Date Selection */}
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Date:</ThemedText>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <ThemedText style={styles.datePickerText}>
+                {formatDate(date)}
+              </ThemedText>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                onChange={handleDateChange}
+              />
+            )}
+          </View>
 
-      <ThemedText style={styles.label}>Start Time (HH:MM 24-hour):</ThemedText>
-      <TextInput
-        style={styles.input}
-          value={timeStart}
-          onChangeText={setTimeStart}
-          placeholder="HH:MM (e.g., 14:00)"
-          placeholderTextColor={Colors[colorScheme].placeholder}
-          keyboardType="numbers-and-punctuation" // Or default
-      />
+          {/* Time selection */}
+          <View style={styles.timeContainer}>
+            <View style={styles.timeSection}>
+              <ThemedText style={styles.label}>Start Time:</ThemedText>
+              <TouchableOpacity
+                style={styles.timePickerButton}
+                onPress={() => setShowStartTimePicker(true)}
+              >
+                <ThemedText style={styles.timePickerText}>
+                  {startTime ? formatTime(startTime) : 'Select Start Time'}
+                </ThemedText>
+              </TouchableOpacity>
+              {showStartTimePicker && (
+                <DateTimePicker
+                  value={startTime || new Date()}
+                  mode="time"
+                  is24Hour={false}
+                  onChange={handleStartTimeChange}
+                />
+              )}
+            </View>
 
-      <ThemedText style={styles.label}>End Time (HH:MM 24-hour):</ThemedText>
-      <TextInput
-        style={styles.input}
-          value={timeEnd}
-          onChangeText={setTimeEnd}
-          placeholder="HH:MM (e.g., 15:30)"
-          placeholderTextColor={Colors[colorScheme].placeholder}
-          keyboardType="numbers-and-punctuation" // Or default
-      />
-
-        {/* Themed Button */}
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <ThemedText style={styles.buttonText}>Add Extra Class</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </View>
+            <View style={styles.timeSection}>
+              <ThemedText style={styles.label}>End Time:</ThemedText>
+              <TouchableOpacity
+                style={styles.timePickerButton}
+                onPress={() => setShowEndTimePicker(true)}
+              >
+                <ThemedText style={styles.timePickerText}>
+                  {endTime ? formatTime(endTime) : 'Select End Time'}
+                </ThemedText>
+              </TouchableOpacity>
+              {showEndTimePicker && (
+                <DateTimePicker
+                  value={endTime || new Date()}
+                  mode="time"
+                  is24Hour={false}
+                  onChange={handleEndTimeChange}
+                />
+              )}
+            </View>
+          </View>
+          {/* Submit Button */}
+          <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+            <ThemedText style={styles.primaryButtonText}>Add Extra Class</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 };
 
 // Function to generate theme-aware styles
 const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', // Adjust as needed (e.g., 'flex-start' if no close button)
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16,
-    paddingBottom: 16, // Consistent padding
-    backgroundColor: 'transparent',
+  container: {
+    flex: 1,
+    backgroundColor: Colors[colorScheme].background,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
-    // Removed justifyContent: 'center'
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    marginTop: 20,
+    color: Colors[colorScheme].text,
+  },
+  inputGroup: {
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
@@ -129,31 +269,72 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors[colorScheme].border, // Themed border
-    backgroundColor: Colors[colorScheme].inputBackground, // Themed input background
-    borderRadius: 8,
+    borderColor: Colors[colorScheme].border,
+    backgroundColor: Colors[colorScheme].inputBackground,
+    borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
-    marginBottom: 20,
     fontSize: 16,
-    color: Colors[colorScheme].text, // Themed text color
+    color: Colors[colorScheme].text,
+    textAlignVertical: 'top',
   },
-  button: {
-    backgroundColor: Colors[colorScheme].tint, // Themed button background
-    paddingVertical: 15,
+  datePickerButton: {
+    backgroundColor: Colors[colorScheme].card,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10, // Add some margin top
+    borderWidth: 1,
+    borderColor: Colors[colorScheme].border,
   },
-  buttonText: {
-    color: Colors[colorScheme].buttonText || '#FFFFFF', // Themed button text (default white)
+  datePickerText: {
+    color: Colors[colorScheme].text,
     fontSize: 16,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  timeSection: {
+    flex: 1,
+    marginRight: 10,
+  },
+  timePickerButton: {
+    backgroundColor: Colors[colorScheme].card,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors[colorScheme].border,
+  },
+  timePickerText: {
+    color: Colors[colorScheme].text,
+    fontSize: 15,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors[colorScheme].border,
+    backgroundColor: Colors[colorScheme].card,
+    borderRadius: 10,
+  },
+  picker: {
+    color: Colors[colorScheme].text,
+    height: 50,
+  },
+  primaryButton: {
+    backgroundColor: Colors[colorScheme].tint,
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  // Optional: Style for a close button if added
-  // closeButton: {
-  //   padding: 4,
-  // },
 });
 
 export default AddExtraClassScreen;

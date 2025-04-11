@@ -65,8 +65,7 @@ export default function EditCourseScreen() {
       name: trimmedName,
       requiredAttendance: requiredAttendance,
     };
-
-    //console.log('Updated course data:', updatedCourse); // Add console log
+    
     updateCourse(updatedCourse);
     Keyboard.dismiss();
     router.back();

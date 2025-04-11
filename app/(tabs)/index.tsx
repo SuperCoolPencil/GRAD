@@ -88,6 +88,7 @@ export default function TodaysClassesScreen() {
         </TouchableOpacity>
       </View>
       <TodaysClassesContent
+        key={courses.length}
         courses={courses}
         markAttendance={markAttendance}
         loading={loading}
@@ -159,7 +160,7 @@ function TodaysClassesContent({
 
       // Process extra classes.
       course.extraClasses?.forEach((extra: ExtraClass) => {
-        if (extra.date === currentDateString) {
+          if (extra.date === currentDateString) {
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
             courseId: course.id,
@@ -187,7 +188,7 @@ function TodaysClassesContent({
 
   const handleMarkAttendance = (
     courseId: string,
-    status: 'present' | 'absent' | 'cancelled',
+    status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
     scheduleItemId?: string
   ) => {

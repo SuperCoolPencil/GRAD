@@ -166,14 +166,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
             updatedCourse.attendanceRecords?.filter((r) => r.Status === "cancelled")
               .length || 0;
 
-          console.log("markAttendance", {
-            courseId,
-            status,
-            isExtraClass,
-            scheduleItemId,
-            updatedCourse,
-          });
-
           return updatedCourse;
         }
         return course;
@@ -206,8 +198,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     timeStart: string,
     timeEnd: string
   ) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
+      setCourses((prevCourses) => {
+      return prevCourses.map((course) => {
         if (course.id === courseId) {
           const updatedCourse = { ...course };
           const newExtraClass: ExtraClass = {
@@ -223,7 +215,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           return updatedCourse;
         }
         return course;
-      })
+      });
+    }
     );
   };
 
