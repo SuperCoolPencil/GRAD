@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -7,23 +7,23 @@ import {
   View,
   useColorScheme,
   Animated,
-} from 'react-native';
-import { Colors } from '@/constants/Colors'; // Ensure this path matches your project structure
-import { AppContext } from '@/context/AppContext';
-import { ClassItem, Course, ScheduleItem, ExtraClass } from '@/types';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import TopBar from '@/components/TopBar';
+} from "react-native";
+import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
+import { AppContext } from "@/context/AppContext";
+import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 
 const DAYS_OF_WEEK = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
 ];
 
 // Helper to calculate attendance delta.
@@ -54,20 +54,38 @@ const getAttendanceDelta = (
 };
 
 // Assign a border color or accent color based on delta.
-const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
-  if (delta > 0) return Colors[colorScheme].error;   // Need to attend => red accent
+const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
+  if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].warning;               // Exactly at required => yellow accent
+  return Colors[colorScheme].warning; // Exactly at required => yellow accent
 };
 
 export default function TodaysClassesScreen() {
   const { courses, markAttendance, loading } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
-  const colorScheme: 'light' | 'dark' = useColorScheme() as 'light' | 'dark';
+  const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
+  const router = useRouter();
 
   return (
     <View style={{ flex: 1 }}>
-      <TopBar />
+      <View style={styles.titleContainer}>
+        <ThemedText
+          type="title"
+          style={{ color: Colors[colorScheme || "light"].text }}
+        >
+          Today's Classes
+        </ThemedText>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push("/add-extra-class")}
+        >
+          <Ionicons
+            name="add-circle-outline"
+            size={28}
+            color={Colors[colorScheme || "light"].tint || "#007AFF"}
+          />
+        </TouchableOpacity>
+      </View>
       <TodaysClassesContent
         courses={courses}
         markAttendance={markAttendance}
@@ -305,16 +323,20 @@ const styles = StyleSheet.create({
     color: '#808080',
     bottom: -90,
     left: -35,
-    position: 'absolute',
+    position: "absolute",
   },
   titleContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
     marginTop: 16,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
+    backgroundColor: "transparent",
+    alignItems: "center",
+  },
+  addButton: {
+    marginLeft: "auto", // Push the button to the right
+    padding: 4,
   },
   classesList: {
     gap: 8,

@@ -19,7 +19,6 @@ export default function CoursesScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <TopBar />
       <CoursesContent
         courses={courses}
         colorScheme={colorScheme}

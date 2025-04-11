@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
 import { View, Text, Switch, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { ExternalLink } from '../components/ExternalLink';
-import { AppContext } from '../context/AppContext';
-import { useThemeColor } from '../hooks/useThemeColor';
+import { ExternalLink } from '../../components/ExternalLink';
+import { AppContext } from '../../context/AppContext';
+import { useThemeColor } from '../../hooks/useThemeColor';
 
 const Settings = () => {
   const { theme, toggleTheme, clearData } = useContext(AppContext);
@@ -20,6 +20,13 @@ const Settings = () => {
       padding: 20,
       backgroundColor: background,
     }}>
+      <Text style={{
+        fontSize: 30,
+        fontWeight: 'bold',
+        color: textColor,
+        marginBottom: 20,
+        textAlign: 'center',
+      }}>Settings</Text>
       <View style={{
         marginBottom: 20,
       }}>
