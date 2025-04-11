@@ -8,8 +8,9 @@ import {
   TouchableOpacity, 
   Platform, 
   ScrollView,
-  FlatList 
+  FlatList,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
 import { Colors } from '@/constants/Colors';
@@ -27,6 +28,9 @@ const AddCourseScreen = () => {
   // Course details state
   const [courseName, setCourseName] = useState('');
   const [courseId, setCourseId] = useState('');
+
+  // Attendance state
+  const [requiredAttendance, setRequiredAttendance] = useState(75);
   
   // Weekly schedule state
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -165,7 +169,7 @@ const AddCourseScreen = () => {
         weeklySchedule: weeklySchedule,
         attendanceRecords: [],
         extraClasses: [],
-        requiredAttendance: 0,
+        requiredAttendance: requiredAttendance,
       });
       
       Alert.alert("Success", "Course added successfully!", [
@@ -259,6 +263,19 @@ const AddCourseScreen = () => {
             placeholderTextColor={Colors[colorScheme].placeholder}
             autoCapitalize="characters"
           />
+
+          <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
+          <Slider
+            style={{width: '100%', height: 40}}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={requiredAttendance}
+            onValueChange={(value) => setRequiredAttendance(value)}
+            minimumTrackTintColor={Colors[colorScheme].tint}
+            maximumTrackTintColor={Colors[colorScheme].border}
+          />
+
           <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
         </View>
         
