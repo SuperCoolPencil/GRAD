@@ -254,7 +254,7 @@ function TodaysClassesContent({
             </View>
             <View style={styles.infoRow}>
               <Ionicons
-                name="alert-circle-outline"
+                name={item.needToAttend <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
                 size={16}
                 color={accentColor}
                 style={{ marginRight: 4 }}
