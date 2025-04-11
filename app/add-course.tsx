@@ -1,403 +1,259 @@
 import React, { useState, useContext } from 'react';
-import { StyleSheet, View, Button, Alert, Keyboard, TextInput, FlatList, TouchableOpacity, ScrollView, useColorScheme as useRNColorScheme } from 'react-native'; // Added ScrollView
-import Slider from '@react-native-community/slider';
-import { Stack, useRouter } from 'expo-router';
-import { AppContext } from '@/context/AppContext';
+import { View, TextInput, StyleSheet, Alert, useColorScheme, TouchableOpacity, Platform, ScrollView } from 'react-native'; // Added TouchableOpacity, Platform
+import { Button, Provider } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Constants from 'expo-constants'; // Added Constants
+import { AppContext } from '@/context/AppContext'; // Updated path
+import { Colors } from '@/constants/Colors'; // Updated path
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Course, ScheduleItem } from '@/types';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons'; // Added for potential icons if needed later
+import { useRouter } from 'expo-router'; // Added for potential navigation back
+import { ScheduleItem } from '@/types';
 
-export default function AddCourseScreen() {
-  const router = useRouter();
-  const { addCourse, courses } = useContext(AppContext); // Get courses from context
-  const [courseCode, setCourseCode] = useState('');
+const AddCourseScreen = () => {
+  const router = useRouter(); // Added router
+  const { addCourse } = useContext(AppContext);
   const [courseName, setCourseName] = useState('');
-  const [requiredAttendance, setRequiredAttendance] = useState(75);
-  const [codeError, setCodeError] = useState<string | null>(null);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [scheduleError, setScheduleError] = useState<string | null>(null); // State for schedule input errors
-  const colorScheme = useColorScheme();
+  const [courseId, setCourseId] = useState('');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>([]);
+  const colorScheme = useColorScheme() ?? 'light';
+  const styles = getStyles(colorScheme); // Generate styles based on theme
 
-  // State for weekly schedule builder
-  const [currentScheduleItems, setCurrentScheduleItems] = useState<ScheduleItem[]>([]);
-  const [startTime, setStartTime] = useState(''); // Revert to string state
-  const [endTime, setEndTime] = useState(''); // Revert to string state
-
-  const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const [selectedDay, setSelectedDay] = useState('Monday');
-
-  // --- Schedule Management Functions ---
-  const handleAddScheduleItem = (selectedDay: string) => {
-    setScheduleError(null); // Reset error
-
-    // Basic time format validation (HH:MM)
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-      setScheduleError('Please enter valid start and end times in HH:MM format (e.g., 09:00).');
+  const handleSubmit = async () => { // Made async for potential future async operations
+    if (!courseName || !courseId) {
+      Alert.alert("Error", "Please fill in all fields.");
       return;
     }
 
-    // Check if start time is before end time
-    const start = startTime.split(':').map(Number);
-    const end = endTime.split(':').map(Number);
-    if (start[0] > end[0] || (start[0] === end[0] && start[1] >= end[1])) {
-      setScheduleError('Start time must be before end time.');
-      return;
+    try {
+      await addCourse({
+        id: courseId,
+        name: courseName,
+        presents: 0,
+        absents: 0,
+        cancelled: 0,
+        weeklySchedule: weeklySchedule,
+        attendanceRecords: [],
+        extraClasses: [],
+        requiredAttendance: 0,
+      });
+      Alert.alert("Success", "Course added!");
+      // Optionally navigate back or clear form
+      setCourseName("");
+      setCourseId("");
+      setWeeklySchedule([]);
+      setSelectedDay(null);
+      setStartTime(null);
+      setEndTime(null);
+      // router.back(); // Example: navigate back after success
+    } catch (error) {
+      console.error("Failed to add course:", error);
+      Alert.alert("Error", "Failed to add course. Please try again.");
     }
-
-    const newItem: ScheduleItem = {
-      id: `${selectedDay}-${startTime}-${endTime}-${Date.now()}`,
-      day: selectedDay,
-      timeStart: startTime,
-      timeEnd: endTime,
-    };
-
-    // Check for overlapping schedule items
-    const isOverlapping = currentScheduleItems.some(item => {
-      if (item.day === newItem.day) {
-        // Convert times to minutes to midnight for easier comparison
-        const itemStartMinutes = parseInt(item.timeStart.split(':')[0]) * 60 + parseInt(item.timeStart.split(':')[1]);
-        const itemEndMinutes = parseInt(item.timeEnd.split(':')[0]) * 60 + parseInt(item.timeEnd.split(':')[1]);
-        const newItemStartMinutes = parseInt(newItem.timeStart.split(':')[0]) * 60 + parseInt(newItem.timeStart.split(':')[1]);
-        const newItemEndMinutes = parseInt(newItem.timeEnd.split(':')[0]) * 60 + parseInt(newItem.timeEnd.split(':')[1]);
-
-        return (
-          (newItemStartMinutes < itemEndMinutes && newItemEndMinutes > itemStartMinutes) // New item starts before existing item ends AND new item ends after existing item starts
-        );
-      }
-      return false;
-    });
-
-    if (isOverlapping) {
-      setScheduleError('This schedule slot overlaps with an existing one.');
-      return;
-    }
-
-    setCurrentScheduleItems([...currentScheduleItems, newItem]);
-    setStartTime('');
-    setEndTime('');
-  };
-
-  const handleRemoveScheduleItem = (idToRemove: string) => {
-    setCurrentScheduleItems(currentScheduleItems.filter(item => item.id !== idToRemove));
-  };
-
-  const handleAddCourse = () => {
-    const trimmedCode = courseCode.trim();
-    const trimmedName = courseName.trim();
-    let isValid = true;
-
-    // Reset errors
-    setCodeError(null);
-    setNameError(null);
-
-    // Validation
-    if (!trimmedCode) {
-      setCodeError('Please enter a course code.');
-      isValid = false;
-    } else {
-      // Check for duplicate course code
-      const existingCourse = courses.find(course => course.id.toLowerCase() === trimmedCode.toLowerCase());
-      if (existingCourse) {
-        setCodeError('Course code already exists.');
-        isValid = false;
-      }
-    }
-
-    if (!trimmedName) {
-      setNameError('Please enter a course name.');
-      isValid = false;
-    }
-
-    if (!isValid) {
-      return; // Stop if validation fails
-    }
-
-    const newCourse: Course = {
-      id: trimmedCode,
-      name: trimmedName,
-      requiredAttendance: requiredAttendance,
-      presents: 0,
-      absents: 0,
-      cancelled: 0,
-      weeklySchedule: currentScheduleItems, // Add the collected schedule items
-      extraClasses: [],
-      attendanceRecords: [],
-    };
-
-    // Call the addCourse function from context
-    addCourse(newCourse);
-
-    Keyboard.dismiss();
-    router.back();
   };
 
   return (
-    <>
-      <Stack.Screen options={{ title: 'Add New Course' }} />
-      <ScrollView>
-        <ThemedView style={styles.container}>
-          <ThemedText type="subtitle">Course Details</ThemedText>
+    <ScrollView style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+      {/* Consistent Title Container */}
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title" style={{ color: Colors[colorScheme].text }}>
+          Add Course
+        </ThemedText>
+        {/* Optional: Add a close/back button if needed */}
+        {/* <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+          <Ionicons name="close-circle-outline" size={28} color={Colors[colorScheme].text} />
+        </TouchableOpacity> */}
+      </ThemedView>
 
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Course Code:</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: Colors[colorScheme ?? 'light'].icon,
-                  color: Colors[colorScheme ?? 'light'].text,
-                  backgroundColor: Colors[colorScheme ?? 'light'].background,
-                }
-              ]}
-              placeholder="e.g., MA102"
-              value={courseCode}
-              onChangeText={(text) => {
-                setCourseCode(text);
-                if (codeError) setCodeError(null); // Clear error on type
-              }}
-              placeholderTextColor="#999"
-              autoCapitalize="characters"
-              pointerEvents="auto"
-            />
-            {codeError && <ThemedText style={styles.errorText}>{codeError}</ThemedText>}
-          </View>
+      {/* Form Content */}
+      <ThemedView style={styles.contentContainer}>
+        
+      <ThemedText style={styles.label}>Course Name:</ThemedText>
+        <TextInput
+          style={styles.input}
+          value={courseName}
+          onChangeText={setCourseName}
+          placeholder="Enter Course Name (e.g., Calculus)"
+          placeholderTextColor={Colors[colorScheme].placeholder}
+          keyboardType="default" // Adjust keyboard type if needed
+          autoCapitalize="sentences"
+      />
 
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Course Name:</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: Colors[colorScheme ?? 'light'].icon, // Use theme color for border
-                  color: Colors[colorScheme ?? 'light'].text, // Use theme color for text
-                  backgroundColor: Colors[colorScheme ?? 'light'].background, // Use theme background
-                }
-              ]}
-              placeholder="e.g., Introduction to Programming"
-              value={courseName}
-              onChangeText={(text) => {
-                setCourseName(text);
-                if (nameError) setNameError(null); // Clear error on type
-              }}
-              placeholderTextColor="#999"
-              pointerEvents="auto"
-            />
-            {nameError && <ThemedText style={styles.errorText}>{nameError}</ThemedText>}
-          </View>
+      <ThemedText style={styles.label}>Course ID:</ThemedText>
+        <TextInput
+          style={styles.input}
+          value={courseId}
+          onChangeText={setCourseId}
+          placeholder="Enter Course ID (e.g., MA102)"
+          placeholderTextColor={Colors[colorScheme].placeholder}
+          keyboardType="default" // Adjust keyboard type if needed
+          autoCapitalize="characters"
+      />
 
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              step={5}
-              value={requiredAttendance}
-              // Use onSlidingComplete for final value, onValueChange for visual feedback (rounded)
-              onValueChange={(value) => setRequiredAttendance(value)} // Update visual state rounded to step
-              onSlidingComplete={(value) => setRequiredAttendance(value)} // Optionally use this for final state update if onValueChange is still problematic
-              minimumTrackTintColor={Colors[colorScheme ?? 'light'].tint}
-              maximumTrackTintColor={Colors[colorScheme ?? 'light'].icon}
-              thumbTintColor={Colors[colorScheme ?? 'light'].tint}
-            />
-          </View>
+      <ThemedText style={styles.label}>Select Day:</ThemedText>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 }}>
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+          <TouchableOpacity
+            key={day}
+            style={[
+              styles.dayButton,
+              selectedDay === day && styles.dayButtonSelected,
+            ]}
+            onPress={() => setSelectedDay(day)}
+          >
+            <ThemedText style={styles.dayButtonText}>{day}</ThemedText>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-          {/* --- Weekly Schedule Section --- */}
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Weekly Schedule</ThemedText>
-          <View style={styles.scheduleInputContainer}>
-            {/* Day Picker (Simplified) - Consider a proper Picker component later */}
-            <View style={styles.scheduleInputGroup}>
-              <ThemedText style={styles.label}>Day:</ThemedText>
-              {/* Basic buttons for day selection - Replace with Picker */}
-              <View style={styles.daySelector}>
-                {DAYS_OF_WEEK.map(day => {
-                  const isSelected = selectedDay === day;
-                  const themeColors = Colors[colorScheme ?? 'light'];
+      <ThemedText style={styles.label}>Start Time:</ThemedText>
+      <TouchableOpacity onPress={() => setShowStartTimePicker(true)}>
+        <ThemedText>
+          {startTime ? startTime.toLocaleTimeString() : 'Select Start Time'}
+        </ThemedText>
+      </TouchableOpacity>
+      {showStartTimePicker && (
+        <DateTimePicker
+          value={startTime || new Date()}
+          mode="time"
+          is24Hour={false}
+          display="default"
+          onChange={(event, selectedTime) => {
+            setShowStartTimePicker(false);
+            if (selectedTime) {
+              setStartTime(selectedTime);
+            }
+          }}
+        />
+      )}
 
-                  return (
-                    <TouchableOpacity
-                      key={day}
-                      style={[
-                        styles.dayButton,
-                        isSelected && styles.dayButtonSelected,
-                        { backgroundColor: isSelected ? themeColors.tint : themeColors.background }
-                      ]}
-                      onPress={() => setSelectedDay(day)}
-                    >
-                      <ThemedText style={
-                        { 
-                        fontWeight: 'bold',  
-                        color: isSelected ? 
-                        themeColors.background 
-                        : day === 'Sunday'
-                          ? 'red'
-                        : themeColors.text }}>
-                        {day[0]}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+      <ThemedText style={styles.label}>End Time:</ThemedText>
+      <TouchableOpacity onPress={() => setShowEndTimePicker(true)}>
+        <ThemedText>
+          {endTime ? endTime.toLocaleTimeString() : 'Select End Time'}
+        </ThemedText>
+      </TouchableOpacity>
+      {showEndTimePicker && (
+        <DateTimePicker
+          value={endTime || new Date()}
+          mode="time"
+          is24Hour={false}
+          display="default"
+          onChange={(event, selectedTime) => {
+            setShowEndTimePicker(false);
+            if (selectedTime) {
+              setEndTime(selectedTime);
+            }
+          }}
+        />
+      )}
 
-            </View>
-
-            <View style={styles.scheduleInputGroupRow}>
-              {/* Start Time Input */}
-              <View style={styles.timeInputGroup}>
-                <ThemedText style={styles.label}>Start Time:</ThemedText>
-                <TextInput
-                  style={[styles.input, styles.timeInput, { borderColor: Colors[colorScheme ?? 'light'].icon, color: Colors[colorScheme ?? 'light'].text, backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-                  placeholder="HH:MM"
-                  value={startTime}
-                  onChangeText={(text) => {
-                    setStartTime(text);
-                    if (scheduleError) setScheduleError(null); // Clear error on type
-                  }}
-                  maxLength={5}
-                  keyboardType="numbers-and-punctuation" // Allows ':'
-                  placeholderTextColor="#999"
-                />
-              </View>
-              {/* End Time Input */}
-              <View style={styles.timeInputGroup}>
-                <ThemedText style={styles.label}>End Time:</ThemedText>
-                <TextInput
-                  style={[styles.input, styles.timeInput, { borderColor: Colors[colorScheme ?? 'light'].icon, color: Colors[colorScheme ?? 'light'].text, backgroundColor: Colors[colorScheme ?? 'light'].background }]}
-                  placeholder="HH:MM"
-                  value={endTime}
-                  onChangeText={(text) => {
-                    setEndTime(text);
-                    if (scheduleError) setScheduleError(null); // Clear error on type
-                  }}
-                  maxLength={5}
-                  keyboardType="numbers-and-punctuation" // Allows ':'
-                  placeholderTextColor="#999"
-                />
-              </View>
-            </View>
-            {scheduleError && <ThemedText style={styles.errorText}>{scheduleError}</ThemedText>}
-            <Button title="Add Class Time" onPress={() => handleAddScheduleItem(selectedDay)} />
-          </View>
-
-          {/* Display Added Schedule Items */}
-          {currentScheduleItems.length > 0 && (
-            <View style={styles.scheduleListContainer}>
-              <ThemedText type="defaultSemiBold">Class Times:</ThemedText>
-              {currentScheduleItems.map((item) => (
-                <View style={styles.scheduleListItem} key={item.id}>
-                  <ThemedText>{item.day}, {item.timeStart} - {item.timeEnd}</ThemedText>
-                  <TouchableOpacity onPress={() => handleRemoveScheduleItem(item.id)}>
-                    <Ionicons name="trash-outline" size={20} color="red" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-          {/* --- End Weekly Schedule Section --- */}
-
-          <Button title="Save Course" onPress={handleAddCourse} />
-        </ThemedView>
-      </ScrollView>
-    </>
+        {/* Themed Button */}
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+          <ThemedText style={styles.buttonText}>Add Course</ThemedText>
+        </TouchableOpacity>
+         <TouchableOpacity style={styles.button} onPress={() => {
+           if (selectedDay && startTime && endTime) {
+             const newScheduleItem: ScheduleItem = {
+               id: Date.now().toString(),
+               day: selectedDay,
+               timeStart: startTime.toLocaleTimeString(),
+               timeEnd: endTime.toLocaleTimeString(),
+             };
+             setWeeklySchedule([...weeklySchedule, newScheduleItem]);
+             Alert.alert("Success", "Weekly class added!");
+           } else {
+             Alert.alert("Error", "Please select day, start time, and end time.");
+           }
+         }}>
+          <ThemedText style={styles.buttonText}>Add Weekly Class</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    </ScrollView>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexGrow: 1,
-    padding: 20,
-    gap: 20, // Add gap between elements
-    marginBottom: 200,
+// Function to generate theme-aware styles
+const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Adjust as needed (e.g., 'flex-start' if no close button)
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16,
+    paddingBottom: 16, // Consistent padding
+    backgroundColor: 'transparent',
   },
-  inputGroup: {
-    gap: 8, // Space between label and input
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+    // Removed justifyContent: 'center'
   },
   label: {
     fontSize: 16,
-    opacity: 0.8,
+    marginBottom: 8,
+    color: Colors[colorScheme].text,
+    fontWeight: '500',
   },
   input: {
     borderWidth: 1,
-    // borderColor: '#ccc', // Replaced by theme color
+    borderColor: Colors[colorScheme].border, // Themed border
+    backgroundColor: Colors[colorScheme].inputBackground, // Themed input background
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    marginBottom: 20,
     fontSize: 16,
-    // color: '#333', // Replaced by theme color
-    // backgroundColor: '#fff', // Replaced by theme color
+    color: Colors[colorScheme].text, // Themed text color
   },
-  slider: {
-    width: '100%',
-    height: 50,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    marginTop: 16,
-    marginBottom: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#eee', // Light separator
-    paddingTop: 16,
-  },
-  scheduleInputContainer: {
-    gap: 16,
-    marginBottom: 16,
-    padding: 10,
+  button: {
+    backgroundColor: Colors[colorScheme].tint, // Themed button background
+    paddingVertical: 15,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd', // Light border for the section
-  },
-  scheduleInputGroup: {
-    gap: 8,
-  },
-  scheduleInputGroupRow: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'flex-end', // Align items nicely if labels are different heights
-  },
-  timeInputGroup: {
-    flex: 1, // Each time input takes half the space
-    gap: 8,
-  },
-  timeInput: {
-    // Specific styles for time input if needed, inherits from styles.input
-  },
-  daySelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap', // Allow buttons to wrap
-    gap: 8,
-  },
-  dayButton: {
-    width: 40, // or any fixed size
-    height: 40,
-    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 999,
+    marginTop: 10, // Add some margin top
+  },
+  buttonText: {
+    color: Colors[colorScheme].buttonText || '#FFFFFF', // Themed button text (default white)
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  // Optional: Style for a close button if added
+  // closeButton: {
+  //   padding: 4,
+  // },
+  dayButton: {
+    padding: 10,
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors[colorScheme].border,
+    backgroundColor: Colors[colorScheme].background,
   },
   dayButtonSelected: {
-    borderColor: Colors.light.tint, // Use tint color for selected border
-    // Background color is set dynamically
+    backgroundColor: Colors[colorScheme].tint,
   },
-  scheduleListContainer: {
-    marginTop: 10,
-    gap: 8,
+  dayButtonText: {
+    color: Colors[colorScheme].text,
   },
-  scheduleListItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  timePickerButton: {
+    backgroundColor: Colors[colorScheme].tint,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
     alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 10,
+  },
+  timePickerText: {
+    color: Colors[colorScheme].buttonText || '#FFFFFF',
+    fontSize: 16,
   },
 });
+
+export default AddCourseScreen
