@@ -8,6 +8,7 @@ import {
   useColorScheme,
   Animated,
 } from 'react-native';
+import { Colors } from '@/constants/Colors'; // Ensure this path matches your project structure
 import { AppContext } from '@/context/AppContext';
 import { ClassItem, Course, ScheduleItem, ExtraClass } from '@/types';
 import { ThemedText } from '@/components/ThemedText';
@@ -53,16 +54,16 @@ const getAttendanceDelta = (
 };
 
 // Assign a border color or accent color based on delta.
-const getDeltaColor = (delta: number) => {
-  if (delta > 0) return '#F44336';   // Need to attend => red accent
-  if (delta < 0) return '#4CAF50';   // Can bunk => green accent
-  return '#FFC107';                  // Exactly at required => yellow accent
+const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
+  if (delta > 0) return Colors[colorScheme].error;   // Need to attend => red accent
+  if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
+  return Colors[colorScheme].warning;               // Exactly at required => yellow accent
 };
 
 export default function TodaysClassesScreen() {
   const { courses, markAttendance, loading } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
-  const colorScheme = useColorScheme();
+  const colorScheme: 'light' | 'dark' = useColorScheme() as 'light' | 'dark';
 
   return (
     <View style={{ flex: 1 }}>
@@ -92,7 +93,7 @@ function TodaysClassesContent({
   loading: any;
   todaysClasses: any;
   setTodaysClasses: any;
-  colorScheme: any;
+  colorScheme: 'light' | 'dark';
 }) {
   // Calculate attendance percentage for a course.
   const calculateAttendancePercentage = (course: Course): number => {
@@ -183,7 +184,7 @@ function TodaysClassesContent({
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
-    const accentColor = getDeltaColor(item.needToAttend);
+    const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
     const cardBackground =
       colorScheme === 'dark' ? '#262626' : '#FFFFFF';
     // We can color-code the text that indicates how many you must attend/bunk
@@ -204,7 +205,7 @@ function TodaysClassesContent({
           },
         ]}
       >
-        <ThemedView style={styles.classCardContent}>
+        <ThemedView style={[styles.classCardContent, {backgroundColor: Colors[colorScheme || 'light'].foreground,}]}>
           <View style={styles.classInfo}>
             <ThemedText type="subtitle" style={styles.courseName}>
               {item.courseName}
@@ -247,7 +248,7 @@ function TodaysClassesContent({
 
           <View style={styles.attendanceActions}>
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
+              style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id)
               }
@@ -257,7 +258,7 @@ function TodaysClassesContent({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#F44336' }]}
+              style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id)
               }
@@ -321,21 +322,20 @@ const styles = StyleSheet.create({
   },
   // Outer container for the card, with color-coded accent on the left.
   classCardContainer: {
-    borderLeftWidth: 6, // Thicker accent for emphasis
-    borderRadius: 8,
-    // Shadows for iOS
-    shadowColor: '#000',
+    borderLeftWidth: 4, // Accent thickness
+    borderRadius: 16,  
+    marginBottom: 0, // Reduced margin
+    // Shadows for iOS:
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-    // Elevation for Android
+    // Elevation for Android:
     elevation: 3,
-    marginBottom: 16,
   },
   // Inner content container so the left accent doesn't overlap text.
   classCardContent: {
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 16,
   },
   classInfo: {
     marginBottom: 16,

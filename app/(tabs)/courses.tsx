@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   courseCardContainer: {
     borderLeftWidth: 4, // Accent thickness
-    borderRadius: 16,
+    borderRadius: 16,  
     marginBottom: 0, // Reduced margin
     // Shadows for iOS:
     shadowOffset: { width: 0, height: 2 },

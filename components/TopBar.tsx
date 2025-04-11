@@ -18,7 +18,7 @@ const TopBar = () => {
     <View style={[styles.topBar, { backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#F2F2F2' }]}>
       <ThemedText style={styles.appName}>GRAD</ThemedText>
       <TouchableOpacity onPress={() => setModalVisible(true)}>
-        <Ionicons name="settings-outline" size={28} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
+        <Ionicons name="settings-outline" size={28} color='#8ec5ff'/>
       </TouchableOpacity>
 
       <Modal
@@ -84,13 +84,13 @@ const TopBar = () => {
                 marginBottom: 10,
               }}>Contact Us</Text>
               <ExternalLink
-                href="mailto:contact@example.com"
+                href="mailto:thesupercoolpencil@gmail.com"
                 style={{
                   fontSize: 16,
                   color: textColor,
                 }}
               >
-                contact@example.com
+                thesupercoolpencil@gmail.com
               </ExternalLink>
             </View>
 
@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#8ec5ff',
   },
 });
 

@@ -55,7 +55,7 @@ const Settings = () => {
           href="mailto:thesupercoolpencil@gmail.com"
           style={styles.settingLabel}
         >
-          contact@example.com
+          thesupercoolpencil@gmail.com
         </ExternalLink>
       </View>
 
