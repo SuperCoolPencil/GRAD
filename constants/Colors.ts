@@ -15,10 +15,14 @@ export const Colors = {
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
     foreground: '#F7F7F7',
-    success: '#00FF00',
-    error: '#FF0000',
+    success: '#4caf50',
+    error: '#c93d33',
     warning: '#FFA500',
     shadow: '#000000',
+    placeholder: '#A0A0A0', // Example placeholder color
+    border: '#CCCCCC', // Example border color
+    inputBackground: '#FFFFFF', // Example input background color
+    buttonText: '#FFFFFF', // Example button text color
   },
   dark: {
     text: '#ECEDEE',
@@ -32,5 +36,9 @@ export const Colors = {
     error: '#c93d33',
     warning: '#FFA500',
     shadow: '#000000',
+    placeholder: '#A0A0A0', // Example placeholder color
+    border: '#666666', // Example border color
+    inputBackground: '#333333', // Example input background color
+    buttonText: '#FFFFFF', // Example button text color
   },
 };
