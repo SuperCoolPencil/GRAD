@@ -309,7 +309,9 @@ function TodaysClassesContent({
       contentContainerStyle={styles.classesList}
       ListEmptyComponent={() => (
         <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>
+          <ThemedText style={[styles.emptyText, {
+            color: Colors[colorScheme || 'light'].text
+          }]}>
             No classes scheduled for today!
           </ThemedText>
         </ThemedView>
