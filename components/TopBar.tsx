@@ -1,128 +1,23 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, Platform, Modal, Text, Switch } from 'react-native';
+import React, { useContext } from 'react';
+import { StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
 import { ThemedText } from './ThemedText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useColorScheme } from 'react-native';
-import { ExternalLink } from './ExternalLink';
+import { useNavigation } from '@react-navigation/native';
+
 import { AppContext } from '../context/AppContext';
 
 const TopBar = () => {
+  const navigation = useNavigation();
   const colorScheme = useColorScheme();
-  const [modalVisible, setModalVisible] = useState(false);
-  const { theme, toggleTheme } = useContext(AppContext);
-
-  const textColor = theme === 'dark' ? '#FFFFFF' : '#000000';
-  const background = theme === 'dark' ? '#1E1E1E' : '#F2F2F2';
+  const { theme } = useContext(AppContext);
 
   return (
     <View style={[styles.topBar, { backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#F2F2F2' }]}>
       <ThemedText style={styles.appName}>GRAD</ThemedText>
-      <TouchableOpacity onPress={() => setModalVisible(true)}>
+      <TouchableOpacity onPress={() => navigation.navigate('Settings' as never)}>
         <Ionicons name="settings-outline" size={28} color='#8ec5ff'/>
       </TouchableOpacity>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(!modalVisible);
-        }}
-      >
-        <View style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        }}>
-          <View style={{
-            backgroundColor: background,
-            padding: 20,
-            borderRadius: 10,
-            width: '80%',
-          }}>
-            <Text style={{
-              fontSize: 20,
-              fontWeight: 'bold',
-              color: textColor,
-              marginBottom: 10,
-            }}>Settings</Text>
-
-            <View style={{
-              marginBottom: 20,
-            }}>
-              <Text style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: textColor,
-                marginBottom: 10,
-              }}>Theme</Text>
-              <View style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 10,
-              }}>
-                <Text style={{
-                  fontSize: 16,
-                  color: textColor,
-                }}>Dark Mode</Text>
-                <Switch
-                  value={theme === 'dark'}
-                  onValueChange={toggleTheme}
-                />
-              </View>
-            </View>
-
-            <View style={{
-              marginBottom: 20,
-            }}>
-              <Text style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: textColor,
-                marginBottom: 10,
-              }}>Contact Us</Text>
-              <ExternalLink
-                href="mailto:thesupercoolpencil@gmail.com"
-                style={{
-                  fontSize: 16,
-                  color: textColor,
-                }}
-              >
-                thesupercoolpencil@gmail.com
-              </ExternalLink>
-            </View>
-
-            <View style={{
-              marginBottom: 20,
-            }}>
-              <Text style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: textColor,
-                marginBottom: 10,
-              }}>Project</Text>
-              <ExternalLink
-                href="https://github.com/SuperCoolPencil/GRAD"
-                style={{
-                  fontSize: 16,
-                  color: textColor,
-                }}
-              >
-                GitHub Repository
-              </ExternalLink>
-            </View>
-
-            <TouchableOpacity
-              style={{ marginTop: 20 }}
-              onPress={() => setModalVisible(!modalVisible)}
-            >
-              <Text style={{ color: textColor, fontSize: 16, textAlign: 'center' }}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -142,5 +37,7 @@ const styles = StyleSheet.create({
     color: '#8ec5ff',
   },
 });
+
+
 
 export default TopBar;

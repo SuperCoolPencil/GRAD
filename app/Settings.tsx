@@ -1,11 +1,11 @@
 import React, { useContext } from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
+import { View, Text, Switch, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { ExternalLink } from '../components/ExternalLink';
 import { AppContext } from '../context/AppContext';
 import { useThemeColor } from '../hooks/useThemeColor';
 
 const Settings = () => {
-  const { theme, toggleTheme } = useContext(AppContext);
+  const { theme, toggleTheme, clearData } = useContext(AppContext);
   const textColor = useThemeColor({}, 'text');
   const background = useThemeColor({}, 'background');
 
@@ -35,6 +35,11 @@ const Settings = () => {
       color: textColor,
     },
   });
+
+  const clearAllData = async () => {
+    clearData();
+    Alert.alert("Data cleared");
+  };
 
   return (
     <View style={styles.container}>
@@ -67,6 +72,28 @@ const Settings = () => {
         >
           GitHub Repository
         </ExternalLink>
+      </View>
+
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Data</Text>
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Clear All Data</Text>
+          <TouchableOpacity onPress={() => {
+            Alert.alert(
+              "Clear All Data",
+              "Are you sure you want to clear all data?",
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel"
+                },
+                { text: "OK", onPress: () => clearAllData() }
+              ]
+            );
+          }}>
+            <Text>Clear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

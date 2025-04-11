@@ -313,9 +313,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     marginTop: 16,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
   },
   classesList: {
-    gap: 16,
+    gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 16,
     paddingTop: 16,
@@ -336,6 +338,7 @@ const styles = StyleSheet.create({
   classCardContent: {
     padding: 16,
     borderRadius: 16,
+    marginBottom: 0, // Removed marginBottom from here
   },
   classInfo: {
     marginBottom: 16,
@@ -359,7 +362,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 6,
     paddingVertical: 8,
-    marginHorizontal: 4,
+    marginHorizontal: 8,
     justifyContent: 'center',
   },
   actionButtonText: {

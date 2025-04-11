@@ -12,6 +12,7 @@ interface AppContextType {
     deleteCourse: (courseId: string) => void;
     markAttendance: (courseId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, scheduleItemId?: string) => void;
     addScheduleItem: (courseId: string, newScheduleItem: ScheduleItem) => void;
+    clearData: () => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -24,6 +25,7 @@ export const AppContext = createContext<AppContextType>({
     deleteCourse: () => { },
     markAttendance: () => { },
     addScheduleItem: () => { },
+    clearData: () => { },
 });
 
 interface AppProviderProps {
@@ -154,7 +156,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     };
 
     const addScheduleItem = (
-        courseId: string, 
+        courseId: string,
         newScheduleItem: ScheduleItem
     ) => {
         setCourses(prevCourses =>
@@ -171,6 +173,17 @@ export const AppProvider = ({ children }: AppProviderProps) => {
             })
         );
     }
+
+    const clearData = async () => {
+        try {
+            await AsyncStorage.removeItem('courses');
+            await AsyncStorage.removeItem('theme');
+            setCourses([]);
+            setTheme('light');
+        } catch (error) {
+            console.error("Failed to clear data", error);
+        }
+    };
 
     useEffect(() => {
         const saveTheme = async () => {
@@ -196,6 +209,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
                 deleteCourse,
                 markAttendance,
                 addScheduleItem: addScheduleItem,
+                clearData,
             }}
         >
             {children}
