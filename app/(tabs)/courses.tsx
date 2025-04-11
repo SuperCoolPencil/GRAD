@@ -16,12 +16,12 @@ export default function CoursesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
 
-  // Removed unused functions and state
-
- const calculateAttendancePercentage = (course: Course) => {
-    const totalClasses = (course.presents || 0) + (course.absents || 0) + (course.cancelled || 0);
+  // Calculate attendance percentage for each course.
+  const calculateAttendancePercentage = (course: Course) => {
+    const totalClasses =
+      (course.presents || 0) + (course.absents || 0) + (course.cancelled || 0);
     if (totalClasses === 0) return 100;
-    return Math.round((course.presents || 0) / totalClasses * 100);
+    return Math.round(((course.presents || 0) / totalClasses) * 100);
   };
 
   const renderCourseItem = ({ item }: { item: Course }) => {
@@ -29,21 +29,34 @@ export default function CoursesScreen() {
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
-        <ThemedView style={[styles.courseCard, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+        <ThemedView
+          style={[
+            styles.courseCard,
+            { backgroundColor: Colors[colorScheme ?? 'light'].background },
+          ]}
+        >
           <ThemedView style={styles.courseHeader}>
             <View style={styles.courseInfo}>
-              <ThemedText type="subtitle" style={{color: Colors[colorScheme ?? 'light'].text}}>{item.name} ({item.id})</ThemedText>
-              <ThemedText style={{color: Colors[colorScheme ?? 'light'].text}}>
+              <ThemedText
+                type="subtitle"
+                style={{ color: Colors[colorScheme ?? 'light'].text }}
+              >
+                {item.name} ({item.id})
+              </ThemedText>
+              <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
                 Attendance: {attendancePercentage}%
               </ThemedText>
-              <ThemedText style={{color: Colors[colorScheme ?? 'light'].text}}>
+              <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
                 Required: {item.requiredAttendance}%
               </ThemedText>
             </View>
             {/* Right Arrow Icon indicating navigation */}
-            <Ionicons name="chevron-forward" size={24} color="#808080" />
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={Colors[colorScheme ?? 'light'].icon || '#808080'}
+            />
           </ThemedView>
-          {/* Removed expanded content section */}
         </ThemedView>
       </TouchableOpacity>
     );
@@ -51,16 +64,25 @@ export default function CoursesScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      headerBackgroundColor={{
+        light: '#D0D0D0',
+        dark: '#353636',
+      }}
       headerImage={
         <Ionicons
           size={310}
           name="list-outline"
           style={styles.headerImage}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{color: Colors[colorScheme ?? 'light'].text}}>My Courses</ThemedText>
+        <ThemedText
+          type="title"
+          style={{ color: Colors[colorScheme ?? 'light'].text }}
+        >
+          My Courses
+        </ThemedText>
         <Link href="/add-course" asChild>
           <TouchableOpacity style={styles.addButton}>
             <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
@@ -77,7 +99,9 @@ export default function CoursesScreen() {
         />
       ) : (
         <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>No courses added yet</ThemedText>
+          <ThemedText style={styles.emptyText}>
+            No courses added yet
+          </ThemedText>
         </ThemedView>
       )}
     </ParallaxScrollView>
@@ -86,41 +110,47 @@ export default function CoursesScreen() {
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#808080', // Consider theme color
+    color: '#808080', // Adjust based on theme if needed
     bottom: -90,
     left: -35,
     position: 'absolute',
-  },
-  courseInfo: {
-    flex: 1, // Allow info to take available space
-    gap: 4,
   },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    alignItems: 'center',
   },
   coursesList: {
     gap: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   courseCard: {
     borderRadius: 8,
     padding: 16,
     marginBottom: 8,
-    backgroundColor: 'white', // Add white background
-    shadowColor: '#000', // Add shadow
+    // Shadows for iOS:
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5, // For Android shadow
+    // Elevation for Android:
+    elevation: 5,
   },
   courseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  courseInfo: {
+    flex: 1,
+    gap: 4,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -131,7 +161,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.6,
   },
-  // Removed duplicate emptyContainer/emptyText styles
   addButton: {
     marginLeft: 'auto', // Push the button to the right
     padding: 4,

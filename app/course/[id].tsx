@@ -1,5 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, View, ScrollView, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,9 +23,12 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   const colorScheme = useColorScheme();
 
+  // Define a local card background color.
+  const cardBackground = colorScheme === 'dark' ? '#2C2C2C' : '#FFFFFF';
+
   useEffect(() => {
     if (!loading && id) {
-      const foundCourse = courses.find(c => c.id === id);
+      const foundCourse = courses.find((c) => c.id === id);
       setCourse(foundCourse || null);
     }
   }, [loading, courses, id]);
@@ -26,25 +36,30 @@ export default function CourseDetailScreen() {
   const handleDelete = () => {
     if (!course) return;
     Alert.alert(
-      "Delete Course",
+      'Delete Course',
       `Are you sure you want to delete "${course.name}"? This action cannot be undone.`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: () => {
             deleteCourse(course.id);
             router.back();
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   if (loading) {
     return (
-      <ThemedView style={[styles.centered, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <ThemedView
+        style={[
+          styles.centered,
+          { backgroundColor: Colors[colorScheme ?? 'light'].background },
+        ]}
+      >
         <ActivityIndicator color={Colors[colorScheme ?? 'light'].tint} />
       </ThemedView>
     );
@@ -52,9 +67,16 @@ export default function CourseDetailScreen() {
 
   if (!course) {
     return (
-      <ThemedView style={[styles.centered, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <ThemedView
+        style={[
+          styles.centered,
+          { backgroundColor: Colors[colorScheme ?? 'light'].background },
+        ]}
+      >
         <Stack.Screen options={{ title: 'Not Found' }} />
-        <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>Course not found.</ThemedText>
+        <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+          Course not found.
+        </ThemedText>
       </ThemedView>
     );
   }
@@ -62,7 +84,7 @@ export default function CourseDetailScreen() {
   const calculateAttendancePercentage = (c: Course) => {
     const totalClasses = (c.presents || 0) + (c.absents || 0);
     if (totalClasses === 0) return 0;
-    return Math.round((c.presents || 0) / totalClasses * 100);
+    return Math.round(((c.presents || 0) / totalClasses) * 100);
   };
 
   const attendancePercentage = calculateAttendancePercentage(course);
@@ -74,15 +96,25 @@ export default function CourseDetailScreen() {
           title: course.name,
           headerRight: () => (
             <View style={styles.headerButtons}>
-              {/* Edit Button - Link to a future edit screen */}
+              {/* Edit Button */}
               <Link href={`/edit-course/${course.id}`} asChild>
                 <TouchableOpacity>
-                  <Ionicons name="create-outline" size={24} color={Colors[colorScheme ?? 'light'].tint} style={styles.headerIcon} />
+                  <Ionicons
+                    name="create-outline"
+                    size={24}
+                    color={Colors[colorScheme ?? 'light'].tint}
+                    style={styles.headerIcon}
+                  />
                 </TouchableOpacity>
               </Link>
               {/* Delete Button */}
               <TouchableOpacity onPress={handleDelete}>
-                <Ionicons name="trash-outline" size={24} color="red" style={styles.headerIcon} />
+                <Ionicons
+                  name="trash-outline"
+                  size={24}
+                  color="red"
+                  style={styles.headerIcon}
+                />
               </TouchableOpacity>
             </View>
           ),
@@ -92,35 +124,69 @@ export default function CourseDetailScreen() {
           headerTintColor: Colors[colorScheme ?? 'light'].text,
         }}
       />
-      <ScrollView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-        <ThemedView style={[styles.section, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-          <ThemedText type="title" style={{ color: Colors[colorScheme ?? 'light'].text }}>{course.name} ({course.id})</ThemedText>
-        </ThemedView>
-
-        <ThemedView style={[styles.section, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-          <ThemedText type="subtitle" style={{ color: Colors[colorScheme ?? 'light'].text }}>Attendance</ThemedText>
-          <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>Required: {course.requiredAttendance}%</ThemedText>
-          <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
-            Current: {attendancePercentage}% ({course.presents || 0} Present / {course.absents || 0} Absent / {course.cancelled || 0} Cancelled)
+      <ScrollView
+        style={[
+          styles.container,
+          { backgroundColor: Colors[colorScheme ?? 'light'].background },
+        ]}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* Course Header Card */}
+        <ThemedView
+          style={[
+            styles.card,
+            styles.courseHeaderCard,
+            { backgroundColor: cardBackground },
+          ]}
+        >
+          <ThemedText
+            type="title"
+            style={{ color: Colors[colorScheme ?? 'light'].text }}
+          >
+            {course.name} ({course.id})
           </ThemedText>
-          {/* Add Progress Bar or more detailed stats here if needed */}
         </ThemedView>
 
-        <ThemedView style={[styles.section, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-          <ThemedText type="subtitle" style={{ color: Colors[colorScheme ?? 'light'].text }}>Weekly Schedule</ThemedText>
+        {/* Attendance Card */}
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground }]}>
+          <ThemedText
+            type="subtitle"
+            style={[styles.cardTitle, { color: Colors[colorScheme ?? 'light'].text }]}
+          >
+            Attendance
+          </ThemedText>
+          <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+            Required: {course.requiredAttendance}%
+          </ThemedText>
+          <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+            Current: {attendancePercentage}% ({course.presents || 0} Present /{' '}
+            {course.absents || 0} Absent / {course.cancelled || 0} Cancelled)
+          </ThemedText>
+        </ThemedView>
+
+        {/* Weekly Schedule Card */}
+        <ThemedView style={[styles.card, { backgroundColor: cardBackground }]}>
+          <ThemedText
+            type="subtitle"
+            style={[styles.cardTitle, { color: Colors[colorScheme ?? 'light'].text }]}
+          >
+            Weekly Schedule
+          </ThemedText>
           {course.weeklySchedule && course.weeklySchedule.length > 0 ? (
             course.weeklySchedule.map((item: ScheduleItem) => (
-              <ThemedText key={item.id} style={[styles.scheduleItem, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <ThemedText
+                key={item.id}
+                style={[styles.scheduleItem, { color: Colors[colorScheme ?? 'light'].text }]}
+              >
                 {item.day}: {item.timeStart} - {item.timeEnd}
               </ThemedText>
             ))
           ) : (
-            <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>No weekly schedule set.</ThemedText>
+            <ThemedText style={{ color: Colors[colorScheme ?? 'light'].text }}>
+              No weekly schedule set.
+            </ThemedText>
           )}
         </ThemedView>
-
-        {/* Add sections for Extra Classes and Attendance History if needed */}
-
       </ScrollView>
     </>
   );
@@ -135,14 +201,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  section: {
+  contentContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    gap: 8,
+  },
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    // Shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    // Elevation for Android
+    elevation: 3,
+  },
+  courseHeaderCard: {
+    marginBottom: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   scheduleItem: {
     marginLeft: 8,
+    marginVertical: 4,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -150,9 +236,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   headerIcon: {
-    color: '#007AFF',
-  },
-  deleteIcon: {
-    color: 'red',
+    marginHorizontal: 4,
   },
 });
