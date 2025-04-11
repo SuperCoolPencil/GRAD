@@ -1,26 +1,167 @@
 import React, { useState, useContext } from 'react';
-import { StyleSheet, View, Button, Alert, Keyboard, TextInput, FlatList, TouchableOpacity, ScrollView, useColorScheme as useRNColorScheme } from 'react-native'; // Added ScrollView
+import {
+  StyleSheet,
+  View,
+  Alert,
+  Keyboard,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  ScrollView,
+  useColorScheme,
+  Platform,
+} from 'react-native';
+import Constants from 'expo-constants';
 import Slider from '@react-native-community/slider';
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Course, ScheduleItem } from '@/types';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import Ionicons from '@expo/vector-icons/Ionicons';
+
+// Function to generate theme-aware styles
+const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16,
+    paddingBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  container: {
+    flex: 1,
+    flexGrow: 1,
+    padding: 20,
+    gap: 20, // Add gap between elements
+    marginBottom: 200,
+  },
+  inputGroup: {
+    gap: 8, // Space between label and input
+  },
+  label: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  input: {
+    borderWidth: 1,
+    // borderColor: '#ccc', // Replaced by theme color
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    // color: '#333', // Replaced by theme color
+    // backgroundColor: '#fff', // Replaced by theme color
+  },
+  slider: {
+    width: '100%',
+    height: 50,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee', // Light separator
+    paddingTop: 16,
+  },
+  scheduleInputContainer: {
+    gap: 16,
+    marginBottom: 16,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd', // Light border for the section
+  },
+  scheduleInputGroup: {
+    gap: 8,
+  },
+  scheduleInputGroupRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'flex-end', // Align items nicely if labels are different heights
+  },
+  timeInputGroup: {
+    flex: 1, // Each time input takes half the space
+    gap: 8,
+  },
+  timeInput: {
+    // Specific styles for time input if needed, inherits from styles.input
+  },
+  daySelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap', // Allow buttons to wrap
+    gap: 8,
+  },
+  dayButton: {
+    width: 40, // or any fixed size
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  dayButtonSelected: {
+    borderColor: Colors.light.tint, // Use tint color for selected border
+    // Background color is set dynamically
+  },
+  scheduleListContainer: {
+    marginTop: 10,
+    gap: 8,
+  },
+  scheduleListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  addButton: {
+    backgroundColor: Colors[colorScheme as 'light' | 'dark'].tint,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: Colors[colorScheme].success,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  }
+});
 
 export default function AddCourseScreen() {
   const router = useRouter();
-  const { addCourse, courses } = useContext(AppContext); // Get courses from context
+  const { addCourse, courses } = useContext(AppContext);
   const [courseCode, setCourseCode] = useState('');
   const [courseName, setCourseName] = useState('');
   const [requiredAttendance, setRequiredAttendance] = useState(75);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
-  const [scheduleError, setScheduleError] = useState<string | null>(null); // State for schedule input errors
-  const colorScheme = useColorScheme();
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const colorScheme = useColorScheme() ?? 'light';
 
+  const styles = getStyles(colorScheme);
   // State for weekly schedule builder
   const [currentScheduleItems, setCurrentScheduleItems] = useState<ScheduleItem[]>([]);
   const [startTime, setStartTime] = useState(''); // Revert to string state
@@ -136,8 +277,13 @@ export default function AddCourseScreen() {
   };
 
   return (
-    <>
-      <Stack.Screen options={{ title: 'Add New Course' }} />
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+      {/* Consistent Title Container */}
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title" style={{ color: Colors[colorScheme].text }}>
+          Add New Course
+        </ThemedText>
+      </ThemedView>
       <ScrollView>
         <ThemedView style={styles.container}>
           <ThemedText type="subtitle">Course Details</ThemedText>
@@ -229,13 +375,14 @@ export default function AddCourseScreen() {
                       onPress={() => setSelectedDay(day)}
                     >
                       <ThemedText style={
-                        { 
-                        fontWeight: 'bold',  
-                        color: isSelected ? 
-                        themeColors.background 
-                        : day === 'Sunday'
-                          ? 'red'
-                        : themeColors.text }}>
+                        {
+                          fontWeight: 'bold',
+                          color: isSelected ?
+                            themeColors.background
+                            : day === 'Sunday'
+                              ? 'red'
+                              : themeColors.text
+                        }}>
                         {day[0]}
                       </ThemedText>
                     </TouchableOpacity>
@@ -280,7 +427,9 @@ export default function AddCourseScreen() {
               </View>
             </View>
             {scheduleError && <ThemedText style={styles.errorText}>{scheduleError}</ThemedText>}
-            <Button title="Add Class Time" onPress={() => handleAddScheduleItem(selectedDay)} />
+            <TouchableOpacity style={styles.addButton} onPress={() => handleAddScheduleItem(selectedDay)}>
+              <ThemedText style={styles.addButtonText}>Add Class Time</ThemedText>
+            </TouchableOpacity>
           </View>
 
           {/* Display Added Schedule Items */}
@@ -299,10 +448,12 @@ export default function AddCourseScreen() {
           )}
           {/* --- End Weekly Schedule Section --- */}
 
-          <Button title="Save Course" onPress={handleAddCourse} />
+          <TouchableOpacity style={styles.saveButton} onPress={handleAddCourse}>
+            <ThemedText style={styles.saveButtonText}>Save Course</ThemedText>
+          </TouchableOpacity>
         </ThemedView>
       </ScrollView>
-    </>
+    </View>
   );
 }
 
@@ -400,4 +551,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  addButton: {
+    backgroundColor: Colors[colorScheme || 'light'].foreground,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: Colors[colorScheme || 'light'].success,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  }
 });
