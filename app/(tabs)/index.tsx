@@ -58,7 +58,7 @@ const getAttendanceDelta = (
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].warning; // Exactly at required => yellow accent
+  return Colors[colorScheme].tint; // Exactly at required => tint color
 };
 
 export default function TodaysClassesScreen() {
@@ -253,12 +253,30 @@ function TodaysClassesContent({
               </ThemedText>
             </View>
             <View style={styles.infoRow}>
-              <Ionicons
-                name="alert-circle-outline"
-                size={16}
-                color={accentColor}
-                style={{ marginRight: 4 }}
-              />
+              {attendanceNote === 'At required attendance' && (
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={16}
+                  color={accentColor}
+                  style={{ marginRight: 4 }}
+                />
+              )}
+              {attendanceNote.startsWith('Can Bunk') && (
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={16}
+                  color={accentColor}
+                  style={{ marginRight: 4 }}
+                />
+              )}
+              {attendanceNote.startsWith('Need to Attend') && (
+                <Ionicons
+                  name="close-circle-outline"
+                  size={16}
+                  color={accentColor}
+                  style={{ marginRight: 4 }}
+                />
+              )}
               <ThemedText style={{ color: accentColor }}>
                 {attendanceNote}
               </ThemedText>
