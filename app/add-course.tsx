@@ -2,12 +2,10 @@ import React, { useState, useContext } from 'react';
 import { View, TextInput, StyleSheet, Alert, useColorScheme, TouchableOpacity, Platform, ScrollView } from 'react-native'; // Added TouchableOpacity, Platform
 import { Button, Provider } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Constants from 'expo-constants'; // Added Constants
 import { AppContext } from '@/context/AppContext'; // Updated path
 import { Colors } from '@/constants/Colors'; // Updated path
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import Ionicons from '@expo/vector-icons/Ionicons'; // Added for potential icons if needed later
 import { useRouter } from 'expo-router'; // Added for potential navigation back
 import { ScheduleItem } from '@/types';
 
@@ -65,10 +63,6 @@ const AddCourseScreen = () => {
         <ThemedText type="title" style={{ color: Colors[colorScheme].text }}>
           Add Course
         </ThemedText>
-        {/* Optional: Add a close/back button if needed */}
-        {/* <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close-circle-outline" size={28} color={Colors[colorScheme].text} />
-        </TouchableOpacity> */}
       </ThemedView>
 
       {/* Form Content */}
@@ -187,14 +181,13 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     justifyContent: 'space-between', // Adjust as needed (e.g., 'flex-start' if no close button)
     gap: 8,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 16,
+    paddingTop: Platform.OS === 'android' ? 24 + 16 : 16,
     paddingBottom: 16, // Consistent padding
     backgroundColor: 'transparent',
   },
   contentContainer: {
     flex: 1,
     padding: 20,
-    // Removed justifyContent: 'center'
   },
   label: {
     fontSize: 16,
@@ -225,10 +218,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // Optional: Style for a close button if added
-  // closeButton: {
-  //   padding: 4,
-  // },
   dayButton: {
     padding: 10,
     borderRadius: 5,
