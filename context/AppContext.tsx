@@ -67,6 +67,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         const saveData = async () => {
             try {
                 await AsyncStorage.setItem('courses', JSON.stringify(courses));
+                await AsyncStorage.setItem('theme', theme);
             } catch (error) {
                 console.error("Failed to save data", error);
             }
@@ -75,7 +76,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         if (!loading) {
             saveData();
         }
-    }, [courses, loading]);
+    }, [courses, loading, theme]);
 
     const addCourse = (newCourse: Course) => {
         setCourses(prevCourses => [...prevCourses, newCourse]);
