@@ -19,11 +19,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { useRouter } from 'expo-router';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 
 const AddCourseScreen = () => {
   const router = useRouter();
   const { addCourse } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
+    const { colors } = useTheme();
+
   
   // Course details state
   const [courseName, setCourseName] = useState('');
@@ -43,7 +46,7 @@ const AddCourseScreen = () => {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   // Generate styles based on theme
-  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
+  const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
 
   // Helper functions
   const formatTime = (date: Date) => {
@@ -54,7 +57,7 @@ const AddCourseScreen = () => {
     });
   };
   
-  const getTimeForStorage = (date: Date) => {
+ const getTimeForStorage = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit', 
@@ -413,14 +416,14 @@ const AddCourseScreen = () => {
 };
 
 // Function to generate theme-aware styles
-const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors[colorScheme].background,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
+    backgroundColor: colors.background,
   },
   section: {
     marginBottom: 20,

@@ -17,11 +17,13 @@ import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useTheme } from '@react-navigation/native';
 
 const AddExtraClassScreen = () => {
   const router = useRouter();
   const { addExtraClass, courses } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
+  const { colors } = useTheme();
 
   // State variables
   const [date, setDate] = useState(new Date());
@@ -35,7 +37,7 @@ const AddExtraClassScreen = () => {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
   // Generate styles based on theme
-  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
+  const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
 
   // Helper functions
   const formatDate = (date: Date) => {
@@ -139,7 +141,7 @@ const AddExtraClassScreen = () => {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, {backgroundColor: colors.background}]}>
       <ScrollView style={styles.contentContainer}>
         {/* Form Content */}
         <View style={styles.section}>
@@ -148,27 +150,27 @@ const AddExtraClassScreen = () => {
           {/* Course Selection */}
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Course:</ThemedText>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={selectedCourse}
-                onValueChange={(itemValue) => {
-                  setSelectedCourse(itemValue);
-                }}
-                style={styles.picker}
-                itemStyle={styles.pickerItem} // Added for potential styling consistency
-              >
-                {/* Add placeholder item */}
-                <Picker.Item label="Select a course..." value={null} enabled={false} style={{ color: Colors[colorScheme].placeholder }}/> 
-                
-                {courses && courses.length > 0 ? (
-                  courses.map((course: Course) => (
-                    <Picker.Item key={course.id} label={`${course.name} (${course.id})`} value={course.id} />
-                  ))
-                ) : (
-                  <Picker.Item label="No courses available" value={null} enabled={false} />
-                )}
-              </Picker>
-            </View>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={selectedCourse}
+                  onValueChange={(itemValue) => {
+                    setSelectedCourse(itemValue);
+                  }}
+                  style={styles.picker}
+                  itemStyle={styles.pickerItem} // Added for potential styling consistency
+                >
+                  {/* Add placeholder item */}
+                  <Picker.Item label="Select a course..." value={null} enabled={false} style={{ color: Colors[colorScheme].placeholder }}/> 
+                  
+                  {courses && courses.length > 0 ? (
+                    courses.map((course: Course) => (
+                      <Picker.Item key={course.id} label={`${course.name} (${course.id})`} value={course.id} />
+                    ))
+                  ) : (
+                    <Picker.Item label="No courses available" value={null} enabled={false} />
+                  )}
+                </Picker>
+              </View>
           </View>
 
           {/* Date Selection */}
@@ -244,14 +246,14 @@ const AddExtraClassScreen = () => {
 };
 
 // Function to generate theme-aware styles
-const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors[colorScheme].background,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
+    backgroundColor: colors.background,
   },
   section: {
     marginBottom: 20,

@@ -6,9 +6,11 @@ import { AppContext } from '@/context/AppContext'; // Adjusted path
 import { ThemedText } from '@/components/ThemedText'; // Added for consistency
 import { ThemedView } from '@/components/ThemedView'; // Added for consistency
 import { Colors } from '@/constants/Colors'; // Added for consistency
+import { useTheme } from '@react-navigation/native';
 
 export default function SettingsScreen() {
   const { clearData } = useContext(AppContext);
+  const { colors } = useTheme();
 
   const handleClearData = async () => {
     Alert.alert(
@@ -29,13 +31,13 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ThemedView style={{ flex: 1 }}>
+    <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">
           Settings
         </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.contentContainer}>
+      <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
         {/* Contact Us Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>

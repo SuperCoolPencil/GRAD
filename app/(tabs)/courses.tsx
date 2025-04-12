@@ -12,15 +12,17 @@ import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import TopBar from '@/components/TopBar';
+import { useTheme } from '@react-navigation/native';
 
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
+  const { colors } = useTheme();
 
   return (
     // Add background color to the main container, consistent with settings.tsx
-    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Move Title Container Here */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText
