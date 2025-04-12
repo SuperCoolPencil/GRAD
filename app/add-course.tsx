@@ -23,7 +23,7 @@ import { useTheme } from '@react-navigation/native';
 
 const AddCourseScreen = () => {
   const router = useRouter();
-  const { addCourse } = useContext(AppContext);
+  const { addCourse, isValidCourseId } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
     const { colors } = useTheme();
 
@@ -141,6 +141,11 @@ const AddCourseScreen = () => {
     
     if (!courseId.trim()) {
       Alert.alert("Error", "Please enter a course ID.");
+      return;
+    }
+
+    if (!isValidCourseId(courseId.trim())) {
+      Alert.alert("Error", "Course ID must contain only numbers and alphabets.");
       return;
     }
     
@@ -289,10 +294,14 @@ const AddCourseScreen = () => {
             <TextInput
               style={styles.input}
               value={item.courseId}
-              onChangeText={item.setCourseId}
               placeholder="Enter Course ID (e.g., MA102)"
               placeholderTextColor={Colors[colorScheme].placeholder}
               autoCapitalize="characters"
+              onChangeText={(text) => {
+                // Allow only alphanumeric characters
+                const formattedText = text.replace(/[^a-zA-Z0-9]/g, '');
+                item.setCourseId(formattedText);
+              }}
             />
 
             <ThemedText style={styles.label}>Required Attendance: {item.requiredAttendance}%</ThemedText>

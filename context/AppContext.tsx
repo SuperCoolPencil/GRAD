@@ -8,6 +8,11 @@ import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 
+const isValidCourseId = (courseId: string) => {
+  const regex = /^[a-zA-Z0-9]*$/;
+  return regex.test(courseId);
+};
+
 interface AppContextType {
   courses: Course[];
   loading: boolean;
@@ -17,6 +22,7 @@ interface AppContextType {
   editCourse: (updatedCourse: Course) => void;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
+  isValidCourseId: (courseId: string) => boolean;
   markAttendance: (
     courseId: string,
     status: "present" | "absent" | "cancelled",
@@ -42,6 +48,7 @@ export const AppContext = createContext<AppContextType>({
   editCourse: () => {},
   updateCourse: () => {},
   deleteCourse: () => {},
+  isValidCourseId: (courseId: string) => isValidCourseId(courseId),
   markAttendance: () => {},
   addScheduleItem: () => {},
   addExtraClass: () => {},
@@ -98,8 +105,16 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   }, [courses, loading, theme]);
 
   const addCourse = (newCourse: Course) => {
+    const courseId = newCourse.id.trim();
+    if (!isValidCourseId(courseId)) {
+      Alert.alert(
+        "Error",
+        "Course ID must contain only numbers and alphabets."
+      );
+      return;
+    }
     const existingCourse = courses.find(
-      (course) => course.id.toLowerCase() === newCourse.id.toLowerCase()
+      (course) => course.id.toLowerCase() === courseId.toLowerCase()
     );
     if (existingCourse) {
       Alert.alert(
@@ -113,6 +128,24 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   };
 
   const updateCourse = (updatedCourse: Course) => {
+    const courseId = updatedCourse.id.trim();
+    if (!isValidCourseId(courseId)) {
+      Alert.alert(
+        "Error",
+        "Course ID must contain only numbers and alphabets."
+      );
+      return;
+    }
+    const existingCourse = courses.find(
+      (course) => course.id.toLowerCase() === courseId.toLowerCase() && course.id.toLowerCase() !== updatedCourse.id.toLowerCase()
+    );
+    if (existingCourse) {
+      Alert.alert(
+        "Error",
+        "A course with this ID already exists. Please use a different ID."
+      );
+      return;
+    }
     setCourses((prevCourses) =>
       prevCourses.map((course) =>
         course.id.toLowerCase() === updatedCourse.id.toLowerCase() ? updatedCourse : course
@@ -268,6 +301,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         editCourse: updateCourse,
         updateCourse,
         deleteCourse,
+        isValidCourseId,
         markAttendance,
         addScheduleItem: addScheduleItem,
         addExtraClass: addExtraClass,

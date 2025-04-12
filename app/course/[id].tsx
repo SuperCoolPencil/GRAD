@@ -93,14 +93,14 @@ export default function CourseDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: course.name,
+          title: "My Courses",
           headerRight: () => (
             <View style={styles.headerButtons}>
               {/* Edit Button */}
               <Link href={`/edit-course/${course.id}`} asChild>
                 <TouchableOpacity>
                   <Ionicons
-                    name="create-outline"
+                    name="pencil-outline"
                     size={24}
                     color={Colors[colorScheme ?? 'light'].tint}
                     style={styles.headerIcon}
@@ -110,7 +110,7 @@ export default function CourseDetailScreen() {
               {/* Delete Button */}
               <TouchableOpacity onPress={handleDelete}>
                 <Ionicons
-                  name="trash-outline"
+                  name="close-circle-outline"
                   size={24}
                   color="red"
                   style={styles.headerIcon}

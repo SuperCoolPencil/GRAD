@@ -222,7 +222,7 @@ function TodaysClassesContent({
     isExtraClass: boolean,
     scheduleItemId?: string
   ) => {
-    Alert.alert('Mark Attendance', `Mark this class as ${status}?`, [
+    Alert.alert('Mark Attendance', `Mark attendance as ${status}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'OK',
@@ -337,7 +337,7 @@ function TodaysClassesContent({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#A0A0A0' }]}
+              style={[styles.actionButton, { backgroundColor: '#e89005' }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
