@@ -1,65 +1,53 @@
 import React, { useState, useContext, useMemo } from 'react';
-import { 
-  TextInput, 
-  StyleSheet, 
-  useColorScheme, 
-  TouchableOpacity, 
-  Platform, 
-  FlatList,
-  SectionList,
+import {
   View,
+  TextInput,
+  StyleSheet,
+  useColorScheme,
+  TouchableOpacity,
+  Platform,
+  FlatList,
+  TextInputProps,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
-import { CustomAlert } from '@/components/CustomAlert';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
+import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const EditCourseScreen = () => {
   const router = useRouter();
-  const { editCourse, courses } = useContext(AppContext);
+  const { editCourse, isValidCourseId } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const { id } = useLocalSearchParams();
+  const { colors } = useTheme();
+  const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
-  const course = useMemo(() => {
-    return courses.find((course) => course.id.toLowerCase() === (typeof id === 'string' ? id.toLowerCase() : id[0].toLowerCase()));
-  }, [id, courses]);
 
   // Course details state
-  const [courseName, setCourseName] = useState(course?.name || '');
-  // Removed courseId state, will use id from params or course.id directly
+  const [courseName, setCourseName] = useState('');
+  const [courseId, setCourseId] = useState('');
 
   // Attendance state
-  const [requiredAttendance, setRequiredAttendance] = useState(course?.requiredAttendance || 75);
+  const [requiredAttendance, setRequiredAttendance] = useState(75);
   
   // Weekly schedule state
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
-  const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>(course?.weeklySchedule || []);
+  const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>([]);
   
   // UI control state
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-
-  const [isSelectDayAlertVisible, setIsSelectDayAlertVisible] = useState(false);
-  const [isSelectStartTimeAlertVisible, setIsSelectStartTimeAlertVisible] = useState(false);
-  const [isSelectEndTimeAlertVisible, setIsSelectEndTimeAlertVisible] = useState(false);
-  const [isEndTimeAfterStartTimeAlertVisible, setIsEndTimeAfterStartTimeAlertVisible] = useState(false);
-  const [isScheduleOverlapAlertVisible, setIsScheduleOverlapAlertVisible] = useState(false);
-  const [isEnterCourseNameAlertVisible, setIsEnterCourseNameAlertVisible] = useState(false);
-  const [isNoWeeklyClassesAlertVisible, setIsNoWeeklyClassesAlertVisible] = useState(false);
-  const [isCourseDataNotFoundAlertVisible, setIsCourseDataNotFoundAlertVisible] = useState(false);
-  const [isCourseUpdatedSuccessfullyAlertVisible, setIsCourseUpdatedSuccessfullyAlertVisible] = useState(false);
-  const [isFailedToUpdateCourseAlertVisible, setIsFailedToUpdateCourseAlertVisible] = useState(false);
   
   // Generate styles based on theme
-  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
+  const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
 
   // Helper functions
   const formatTime = (date: Date) => {
@@ -70,7 +58,7 @@ const EditCourseScreen = () => {
     });
   };
   
-  const getTimeForStorage = (date: Date) => {
+ const getTimeForStorage = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit', 
@@ -80,171 +68,143 @@ const EditCourseScreen = () => {
   
   const validateScheduleItem = () => {
     if (!selectedDay) {
-      <CustomAlert
-        title="Error"
-        message="Please select a day."
-        isVisible={isSelectDayAlertVisible}
-        onClose={() => setIsSelectDayAlertVisible(false)}
-      />
+      showAlert("Error", "Please select a day.");
       return false;
     }
-    
+
     if (!startTime) {
-      <CustomAlert
-        title="Error"
-        message="Please select a start time."
-        isVisible={isSelectStartTimeAlertVisible}
-        onClose={() => setIsSelectStartTimeAlertVisible(false)}
-      />
+      showAlert("Error", "Please select a start time.");
       return false;
     }
-    
+
     if (!endTime) {
-      <CustomAlert
-        title="Error"
-        message="Please select an end time."
-        isVisible={isSelectEndTimeAlertVisible}
-        onClose={() => setIsSelectEndTimeAlertVisible(false)}
-      />
+      showAlert("Error", "Please select an end time.");
       return false;
     }
-    
+
     if (startTime >= endTime) {
-      <CustomAlert
-        title="Error"
-        message="End time must be after start time."
-        isVisible={isEndTimeAfterStartTimeAlertVisible}
-        onClose={() => setIsEndTimeAfterStartTimeAlertVisible(false)}
-      />
+      showAlert("Error", "End time must be after start time.");
       return false;
     }
-    
+
     // Check for overlapping schedule items
     const hasOverlap = weeklySchedule.some(item => {
       if (item.day !== selectedDay) return false;
-      
+
       const itemStart = new Date(`2000-01-01T${item.timeStart}`);
       const itemEnd = new Date(`2000-01-01T${item.timeEnd}`);
       const newStart = new Date(`2000-01-01T${getTimeForStorage(startTime)}`);
       const newEnd = new Date(`2000-01-01T${getTimeForStorage(endTime)}`);
-      
+
       return (
         (newStart >= itemStart && newStart < itemEnd) ||
         (newEnd > itemStart && newEnd <= itemEnd) ||
         (newStart <= itemStart && newEnd >= itemEnd)
       );
     });
-    
+
     if (hasOverlap) {
-      <CustomAlert
-        title="Error"
-        message="This schedule overlaps with an existing class time."
-        isVisible={isScheduleOverlapAlertVisible}
-        onClose={() => setIsScheduleOverlapAlertVisible(false)}
-      />
+      showAlert("Error", "This schedule overlaps with an existing class time.");
       return false;
     }
-    
+
     return true;
   };
-  
+
   const addWeeklyClass = () => {
     if (!validateScheduleItem()) return;
-    
+
     const newScheduleItem = {
       id: Date.now().toString(),
       day: selectedDay || '', // Ensure day is a string
       timeStart: startTime ? getTimeForStorage(startTime) : '',
       timeEnd: endTime ? getTimeForStorage(endTime) : '',
     };
-    
+
     setWeeklySchedule([...weeklySchedule, newScheduleItem]);
-    
+
     // Reset selection for next entry
     setSelectedDay(null);
     setStartTime(null);
     setEndTime(null);
   };
-  
+
   const removeScheduleItem = (id: string) => {
     setWeeklySchedule(weeklySchedule.filter(item => item.id !== id));
   };
-  
+
   const handleSubmit = async () => {
     // Validate form
     if (!courseName.trim()) {
-      <CustomAlert
-        title="Error"
-        message="Please enter a course name."
-        isVisible={isEnterCourseNameAlertVisible}
-        onClose={() => setIsEnterCourseNameAlertVisible(false)}
-      />
+      showAlert("Error", "Please enter a course name.");
       return;
     }
-    
-    // Removed validation for courseId as it's not user-editable and was removed
-    
+
+    if (!courseId.trim()) {
+      showAlert("Error", "Please enter a course ID.");
+      return;
+    }
+
+    if (!isValidCourseId(courseId.trim())) {
+      showAlert("Error", "Course ID must contain only numbers and alphabets.");
+      return;
+    }
+
     if (weeklySchedule.length === 0) {
-      <CustomAlert
-        title="Warning"
-        message="You haven't added any weekly classes. Continue anyway?"
-        isVisible={isNoWeeklyClassesAlertVisible}
-        onClose={() => setIsNoWeeklyClassesAlertVisible(false)}
-      />
+      showAlert("Warning", "You haven't added any weekly classes. Continue anyway?", [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Continue",
+          onPress: submitCourse
+        }
+      ]);
       return;
     }
-    
+
     submitCourse();
   };
-  
+
   const submitCourse = async () => {
-    // Ensure course exists before proceeding
-    if (!course) {
-      <CustomAlert
-        title="Error"
-        message="Course data not found. Cannot save changes."
-        isVisible={isCourseDataNotFoundAlertVisible}
-        onClose={() => setIsCourseDataNotFoundAlertVisible(false)}
-      />
-      return;
-    }
-
     try {
-      // Construct the full Course object for the update
-      const updatedCourseData = {
-        ...course, // Spread the original course data
-        id: course.id, // Ensure ID remains the same
-        name: courseName.trim(), // Updated name
-        requiredAttendance: requiredAttendance, // Updated attendance requirement
-        weeklySchedule: weeklySchedule, // Updated schedule
-        // Keep existing presents, absents, cancelled, attendanceRecords, extraClasses
-        presents: course.presents,
-        absents: course.absents,
-        cancelled: course.cancelled,
-        attendanceRecords: course.attendanceRecords,
-        extraClasses: course.extraClasses,
-      };
+      await editCourse({
+        id: courseId.trim(),
+        name: courseName.trim(),
+        presents: 0,
+        absents: 0,
+        cancelled: 0,
+        weeklySchedule: weeklySchedule,
+        attendanceRecords: [],
+        extraClasses: [],
+        requiredAttendance: requiredAttendance,
+      });
 
-      await editCourse(updatedCourseData);
-      
-      <CustomAlert
-        title="Success"
-        message="Course updated successfully!"
-        isVisible={isCourseUpdatedSuccessfullyAlertVisible}
-        onClose={() => router.back()}
-      />
+      showAlert("Success", "Course added successfully!", [
+        {
+          text: "Add Another",
+          onPress: resetForm
+        },
+        {
+          text: "Done",
+          onPress: () => router.back()
+        }
+      ]);
     } catch (error) {
-      console.error("Failed to update course:", error);
-      <CustomAlert
-        title="Error"
-        message="Failed to update course. Please try again."
-        isVisible={isFailedToUpdateCourseAlertVisible}
-        onClose={() => setIsFailedToUpdateCourseAlertVisible(false)}
-      />
+      console.error("Failed to add course:", error);
+      showAlert("Error", "Failed to add course. Please try again.");
     }
   };
-  
-  // Removed resetForm function as it's not needed for editing
+
+  const resetForm = () => {
+    setCourseName("");
+    setCourseId("");
+    setWeeklySchedule([]);
+    setSelectedDay(null);
+    setStartTime(null);
+    setEndTime(null);
+  };
 
   // Time picker handlers
   const handleStartTimeChange = (event: DateTimePickerEvent, selectedTime: Date | undefined) => {
@@ -286,11 +246,37 @@ const EditCourseScreen = () => {
     );
   };
 
-  const sections = [
-    {
-      title: 'Course Details',
-      data: [{ key: 'courseDetails' }],
-      renderItem: () => (
+  const formData = {
+    courseName,
+    courseId,
+    requiredAttendance,
+    selectedDay,
+    startTime,
+    endTime,
+    weeklySchedule,
+    showStartTimePicker,
+    showEndTimePicker,
+    setCourseName,
+    setCourseId,
+    setRequiredAttendance,
+    setSelectedDay,
+    setStartTime,
+    setEndTime,
+    setWeeklySchedule,
+    setShowStartTimePicker,
+    setShowEndTimePicker,
+    handleStartTimeChange,
+    handleEndTimeChange,
+    addWeeklyClass,
+    removeScheduleItem,
+    handleSubmit,
+  };
+
+  return (
+    <FlatList
+      data={[formData]}
+      keyExtractor={() => 'form'}
+      renderItem={({ item }) => (
         <ThemedView style={styles.contentContainer}>
           {/* Course Details Section */}
           <View style={styles.section}>
@@ -299,44 +285,28 @@ const EditCourseScreen = () => {
             <ThemedText style={styles.label}>Course Name:</ThemedText>
             <TextInput
               style={styles.input}
-              value={courseName}
-              onChangeText={setCourseName}
+              value={item.courseName}
+              onChangeText={item.setCourseName}
               placeholder="Enter Course Name (e.g., Calculus)"
               placeholderTextColor={Colors[colorScheme].placeholder}
               autoCapitalize="sentences"
             />
-            <ThemedText style={styles.label}>Course ID:</ThemedText>
-            {/* Display Course ID directly, non-editable */}
-            <TextInput
-              style={[styles.input, styles.inputDisabled]} // Add disabled style
-              value={course?.id || 'Loading...'} // Display course ID directly
-              placeholderTextColor={Colors[colorScheme].placeholder}
-              autoCapitalize="characters"
-              editable={false} // Keep non-editable
-            />
 
-            <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
+            <ThemedText style={styles.label}>Required Attendance: {item.requiredAttendance}%</ThemedText>
             <Slider
               style={{width: '100%', height: 40}}
               minimumValue={0}
               maximumValue={100}
               step={1}
-              value={requiredAttendance}
-              onValueChange={(value) => setRequiredAttendance(value)}
+              value={item.requiredAttendance}
+              onValueChange={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}
               maximumTrackTintColor={Colors[colorScheme].border}
             />
 
             <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
           </View>
-        </ThemedView>
-      ),
-    },
-    {
-      title: 'Weekly Schedule',
-      data: [{ key: 'weeklySchedule' }],
-      renderItem: () => (
-        <ThemedView style={styles.contentContainer}>
+          
           {/* Weekly Schedule Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
@@ -351,14 +321,14 @@ const EditCourseScreen = () => {
                     key={day}
                     style={[
                       styles.dayButton,
-                      selectedDay === fullDayName && styles.dayButtonSelected,
+                      item.selectedDay === fullDayName && styles.dayButtonSelected,
                       { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
                     ]}
-                    onPress={() => setSelectedDay(fullDayName)}
+                    onPress={() => item.setSelectedDay(fullDayName)}
                   >
                     <ThemedText style={[
                       styles.dayButtonText,
-                      selectedDay === fullDayName && styles.dayButtonTextSelected
+                      item.selectedDay === fullDayName && styles.dayButtonTextSelected
                     ]}>
                       {day}
                     </ThemedText>
@@ -372,19 +342,19 @@ const EditCourseScreen = () => {
               <View style={styles.timeSection}>
                 <TouchableOpacity 
                   style={styles.timePickerButton} 
-                  onPress={() => setShowStartTimePicker(true)}
+                  onPress={() => item.setShowStartTimePicker(true)}
                 >
                   <ThemedText style={styles.timePickerText}>
-                    {startTime ? formatTime(startTime) : 'Select Start Time'}
+                    {item.startTime ? formatTime(item.startTime) : 'Select Start Time'}
                   </ThemedText>
                 </TouchableOpacity>
-                {showStartTimePicker && (
+                {item.showStartTimePicker && (
                   <DateTimePicker
-                    value={startTime || new Date()}
+                    value={item.startTime || new Date()}
                     mode="time"
                     is24Hour={false}
                     display="default"
-                    onChange={handleStartTimeChange}
+                    onChange={item.handleStartTimeChange}
                   />
                 )}
               </View>
@@ -392,37 +362,37 @@ const EditCourseScreen = () => {
               <View style={styles.timeSection}>
                 <TouchableOpacity 
                   style={styles.timePickerButton} 
-                  onPress={() => setShowEndTimePicker(true)}
+                  onPress={() => item.setShowEndTimePicker(true)}
                 >
                   <ThemedText style={styles.timePickerText}>
-                    {endTime ? formatTime(endTime) : 'Select End Time'}
+                    {item.endTime ? formatTime(item.endTime) : 'Select End Time'}
                   </ThemedText>
                 </TouchableOpacity>
-                {showEndTimePicker && (
+                {item.showEndTimePicker && (
                   <DateTimePicker
-                    value={endTime || new Date()}
+                    value={item.endTime || new Date()}
                     mode="time"
                     is24Hour={false}
                     display="default"
-                    onChange={handleEndTimeChange}
+                    onChange={item.handleEndTimeChange}
                   />
                 )}
               </View>
             </View>
 
             {/* Add class button */}
-            <TouchableOpacity style={styles.secondaryButton} onPress={addWeeklyClass}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={item.addWeeklyClass}>
               <ThemedText style={styles.secondaryButtonText}>
                 Add Weekly Class
               </ThemedText>
             </TouchableOpacity>
             
             {/* Display current schedule */}
-            {weeklySchedule.length > 0 && (
+            {item.weeklySchedule.length > 0 && (
               <View style={styles.scheduleContainer}>
                 <ThemedText style={styles.label}>Current Schedule:</ThemedText>
                 <FlatList
-                  data={weeklySchedule}
+                  data={item.weeklySchedule}
                   renderItem={renderScheduleItem}
                   keyExtractor={item => item.id}
                   style={styles.scheduleList}
@@ -430,41 +400,27 @@ const EditCourseScreen = () => {
               </View>
             )}
           </View>
-        </ThemedView>
-      ),
-    },
-    {
-      title: 'Submit',
-      data: [{ key: 'submit' }],
-      renderItem: () => (
-        <ThemedView style={styles.contentContainer}>
+          
           {/* Submit Button */}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+          <TouchableOpacity style={styles.primaryButton} onPress={item.handleSubmit}>
             <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
           </TouchableOpacity>
         </ThemedView>
-      ),
-    },
-  ];
-
-  return (
-    <SectionList
+      )}
       style={styles.container}
-      sections={sections}
-      keyExtractor={(item, index) => index.toString()}
     />
   );
 };
 
 // Function to generate theme-aware styles
-const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors[colorScheme].background,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
+    backgroundColor: colors.background,
   },
   section: {
     marginBottom: 20,
@@ -491,10 +447,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
     color: Colors[colorScheme].text,
-  },
-  inputDisabled: { // Style for non-editable inputs
-    backgroundColor: Colors[colorScheme].disabledBackground,
-    color: Colors[colorScheme].disabledText,
   },
   dayButtonContainer: {
     flexDirection: 'row',
