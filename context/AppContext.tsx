@@ -123,7 +123,17 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       );
       return;
     }
-    setCourses((prevCourses) => [...prevCourses, newCourse]);
+    // Ensure counters are initialized when adding a course
+    const courseWithInitializedCounters = {
+      ...newCourse,
+      presents: newCourse.presents || 0,
+      absents: newCourse.absents || 0,
+      cancelled: newCourse.cancelled || 0,
+      attendanceRecords: newCourse.attendanceRecords || [],
+      weeklySchedule: newCourse.weeklySchedule || [],
+      extraClasses: newCourse.extraClasses || [],
+    };
+    setCourses((prevCourses) => [...prevCourses, courseWithInitializedCounters]);
     return;
   };
 
@@ -168,50 +178,78 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) => {
         if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
+          // Ensure counters exist, default to 0 if not
+          const currentPresents = course.presents || 0;
+          const currentAbsents = course.absents || 0;
+          const currentCancelled = course.cancelled || 0;
+          const currentAttendanceRecords = course.attendanceRecords || [];
+
+          const updatedCourse = {
+             ...course,
+             presents: currentPresents,
+             absents: currentAbsents,
+             cancelled: currentCancelled,
+             attendanceRecords: [...currentAttendanceRecords] // Clone to avoid direct mutation
+           };
 
           // Find if an attendance record exists for the current day and schedule item
+          const todayDateString = new Date().toISOString().slice(0, 10);
           const existingRecordIndex =
-            updatedCourse.attendanceRecords?.findIndex(
+            updatedCourse.attendanceRecords.findIndex(
               (record) =>
-                new Date(record.data).toISOString().slice(0, 10) ===
-                  new Date().toISOString().slice(0, 10) &&
+                new Date(record.data).toISOString().slice(0, 10) === todayDateString &&
                 record.isExtraClass === isExtraClass &&
-                record.scheduleItemId === scheduleItemId
-            ) ?? -1;
+                record.scheduleItemId === scheduleItemId // scheduleItemId identifies the specific class instance
+            );
 
-          if (existingRecordIndex > -1 && updatedCourse.attendanceRecords) {
-            // Update the existing record
-            updatedCourse.attendanceRecords[existingRecordIndex] = {
-              ...updatedCourse.attendanceRecords[existingRecordIndex],
-              Status: status,
-            };
+          let oldStatus: AttendanceRecord['Status'] | undefined = undefined;
+
+          if (existingRecordIndex > -1) {
+            // Record exists, update it
+            oldStatus = updatedCourse.attendanceRecords[existingRecordIndex].Status;
+            // Only update if the status is actually different
+            if (oldStatus !== status) {
+              updatedCourse.attendanceRecords[existingRecordIndex] = {
+                ...updatedCourse.attendanceRecords[existingRecordIndex],
+                Status: status,
+              };
+            } else {
+              // Status is the same, no change needed in counters or record
+              return course; // Return original course object if no change
+            }
           } else {
-            // Create a new attendance record
+            // No existing record, create a new one
             const newRecord: AttendanceRecord = {
-              id: Date.now().toString(),
+              id: Date.now().toString(), // Consider a more robust unique ID if needed
               data: new Date().toISOString(),
               Status: status,
-              isExtraClass,
+              isExtraClass: isExtraClass,
               scheduleItemId: scheduleItemId,
             };
-
-            // Add the new record to the attendance records
-            updatedCourse.attendanceRecords = updatedCourse.attendanceRecords
-              ? [...updatedCourse.attendanceRecords, newRecord]
-              : [newRecord];
+            updatedCourse.attendanceRecords.push(newRecord);
+            // oldStatus remains undefined
           }
 
-          // Recalculate counters
-          updatedCourse.presents =
-            updatedCourse.attendanceRecords?.filter((r) => r.Status === "present")
-              .length || 0;
-          updatedCourse.absents =
-            updatedCourse.attendanceRecords?.filter((r) => r.Status === "absent")
-              .length || 0;
-          updatedCourse.cancelled =
-            updatedCourse.attendanceRecords?.filter((r) => r.Status === "cancelled")
-              .length || 0;
+          // --- Incremental Counter Update Logic ---
+          // Decrement count for the old status (if it existed and changed)
+          if (oldStatus && oldStatus !== status) {
+            if (oldStatus === 'present') updatedCourse.presents--;
+            else if (oldStatus === 'absent') updatedCourse.absents--;
+            else if (oldStatus === 'cancelled') updatedCourse.cancelled--;
+          }
+
+          // Increment count for the new status (if it changed or is new)
+          if (oldStatus !== status) {
+             if (status === 'present') updatedCourse.presents++;
+             else if (status === 'absent') updatedCourse.absents++;
+             else if (status === 'cancelled') updatedCourse.cancelled++;
+          }
+          // --- End Incremental Counter Update ---
+
+          // Ensure counters don't go below zero (safety check)
+          updatedCourse.presents = Math.max(0, updatedCourse.presents);
+          updatedCourse.absents = Math.max(0, updatedCourse.absents);
+          updatedCourse.cancelled = Math.max(0, updatedCourse.cancelled);
 
           return updatedCourse;
         }

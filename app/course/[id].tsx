@@ -243,6 +243,64 @@ export default function CourseDetailScreen() {
         )}
 
         {/* Optional: Add a spacer at the bottom */}
+         {/* --- Attendance History Card --- */}
+         {(course.attendanceRecords && course.attendanceRecords.length > 0) ? (
+           <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+             <ThemedText type="subtitle" style={styles.cardTitle}>
+               Attendance History
+             </ThemedText>
+             {/* Sort records newest first */}
+             {[...course.attendanceRecords]
+               .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+               .map((record) => {
+                 const recordDate = new Date(record.data);
+                 const formattedDate = recordDate.toLocaleDateString(undefined, {
+                   year: 'numeric', month: 'long', day: 'numeric'
+                 });
+                 let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
+                 let statusColor = Colors[colorScheme].text;
+                 let displayStatusText = 'Unknown'; // Use a separate variable for display
+
+                 switch (record.Status) {
+                   case 'present':
+                     statusIcon = 'checkmark-circle-outline';
+                     statusColor = Colors[colorScheme].success;
+                     displayStatusText = 'Present';
+                     break;
+                   case 'absent':
+                     statusIcon = 'close-circle-outline';
+                     statusColor = Colors[colorScheme].error;
+                     displayStatusText = 'Absent';
+                     break;
+                   case 'cancelled':
+                     statusIcon = 'remove-circle-outline';
+                     statusColor = Colors[colorScheme].warning; // Or use a neutral color
+                     displayStatusText = 'Cancelled';
+                     break;
+                 }
+
+                 return (
+                   <View key={record.id} style={styles.historyItem}>
+                     <Ionicons name={statusIcon} size={18} color={statusColor} />
+                     <ThemedText style={[styles.historyText, { color: statusColor }]}>
+                        {displayStatusText} {/* Use the display variable here */}
+                      </ThemedText>
+                      <ThemedText style={styles.historyDateText}>
+                        on {formattedDate} {record.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
+                      </ThemedText>
+                    </View>
+                  );
+               })}
+           </ThemedView>
+         ) : (
+           <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card, borderLeftWidth: 0 }]}>
+             <ThemedText type="subtitle" style={styles.cardTitle}>
+               Attendance History
+             </ThemedText>
+             <ThemedText style={{ opacity: 0.7 }}>No attendance recorded yet.</ThemedText>
+           </ThemedView>
+         )}
+
          <View style={{ height: 20 }} />
 
       </ScrollView>
@@ -331,4 +389,32 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 15,
   },
-});
+  // Attendance History Card Specific Styles
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.1)', // Subtle separator
+    // Use theme color for border if available: Colors[colorScheme].border
+  },
+  historyText: {
+    marginLeft: 8,
+    fontSize: 15,
+    fontWeight: '500', // Medium weight for status
+  },
+  historyDateText: {
+    marginLeft: 'auto', // Push date to the right
+    fontSize: 14,
+     opacity: 0.8,
+   },
+   extraClassTag: {
+     fontSize: 12, // Smaller font size for the tag
+     fontWeight: '600', // Slightly bolder
+     marginLeft: 4, // Space before the tag
+     // Optional: Add a subtle background or color if desired
+     // color: Colors[colorScheme].tint,
+   },
+ });
+
+// Removed the duplicate styles declaration that was here
