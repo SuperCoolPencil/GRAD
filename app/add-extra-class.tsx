@@ -7,14 +7,17 @@ import {
   useColorScheme,
   TouchableOpacity,
   Platform,
-  ScrollView
+  ScrollView,
+  Modal, // Import Modal
+  FlatList // Import FlatList for options
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
-import { Picker } from '@react-native-picker/picker';
+// Removed Picker import
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@react-navigation/native';
@@ -29,6 +32,7 @@ const AddExtraClassScreen = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null); // Initialize to null for placeholder
+  const [isPickerVisible, setIsPickerVisible] = useState(false); // State for modal visibility
 
   // Time picker state
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -147,31 +151,65 @@ const AddExtraClassScreen = () => {
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Add Extra Class</ThemedText>
 
-          {/* Course Selection */}
+          {/* Course Selection - Replaced Picker with TouchableOpacity + Modal */}
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Course:</ThemedText>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedCourse}
-                  onValueChange={(itemValue) => {
-                    setSelectedCourse(itemValue);
-                  }}
-                  style={styles.picker}
-                  itemStyle={styles.pickerItem} // Added for potential styling consistency
-                >
-                  {/* Add placeholder item */}
-                  <Picker.Item label="Select a course..." value={null} enabled={false} style={{ color: Colors[colorScheme].placeholder }}/> 
-                  
-                  {courses && courses.length > 0 ? (
-                    courses.map((course: Course) => (
-                      <Picker.Item key={course.id} label={`${course.name} (${course.id})`} value={course.id} />
-                    ))
-                  ) : (
-                    <Picker.Item label="No courses available" value={null} enabled={false} />
-                  )}
-                </Picker>
-              </View>
+            <TouchableOpacity
+              style={styles.pickerTrigger} // Use a new style for the trigger
+              onPress={() => setIsPickerVisible(true)}
+            >
+              <ThemedText style={styles.pickerTriggerText}>
+                {selectedCourse 
+                  ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...' // Show selected course name
+                  : 'Select a course...'} 
+              </ThemedText>
+              {/* Add a dropdown icon */}
+              <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].text} />
+            </TouchableOpacity>
+
+            {/* Course Selection Modal */}
+            <Modal
+              transparent={true}
+              visible={isPickerVisible}
+              animationType="fade"
+              onRequestClose={() => setIsPickerVisible(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalContainer} 
+                activeOpacity={1} 
+                onPressOut={() => setIsPickerVisible(false)} // Close on outside click
+              >
+                <View style={styles.modalContent} onStartShouldSetResponder={() => true}> 
+                  <FlatList
+                    data={courses}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.modalItem}
+                        onPress={() => {
+                          setSelectedCourse(item.id);
+                          setIsPickerVisible(false);
+                        }}
+                      >
+                        <ThemedText style={styles.modalItemText}>
+                          {`${item.name} (${item.id})`}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
+                    ListEmptyComponent={<ThemedText style={styles.modalItemText}>No courses available</ThemedText>}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setIsPickerVisible(false)}
+                  >
+                    <ThemedText style={styles.modalCloseButtonText}>Close</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+            {/* End Course Selection Modal */}
           </View>
+          {/* End Course Selection */}
 
           {/* Date Selection */}
           <View style={styles.inputGroup}>
@@ -320,13 +358,14 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     color: Colors[colorScheme].text,
     fontSize: 15,
   },
-  pickerContainer: {
+  // pickerContainer style definition removed as it's merged into picker
+  picker: {
+    // Styles previously in pickerContainer merged here:
     borderWidth: 1,
     borderColor: Colors[colorScheme].border,
     backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
-  },
-  picker: {
+    // Original picker styles:
     color: Colors[colorScheme].text,
     height: 50, 
     // Note: Direct styling of Picker items can be inconsistent across platforms.
@@ -347,6 +386,55 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // Styles for the custom picker trigger
+  pickerTrigger: {
+    flexDirection: 'row', // Align text and icon horizontally
+    justifyContent: 'space-between', // Space between text and icon
+    alignItems: 'center', // Align items vertically
+    borderWidth: 1,
+    borderColor: Colors[colorScheme].border,
+    backgroundColor: Colors[colorScheme].card,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    height: 50, // Match previous picker height
+  },
+  pickerTriggerText: {
+    color: Colors[colorScheme].text,
+    fontSize: 16, // Match input text size
+  },
+  // Styles for the Modal (to be added in the next step)
+  modalContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0,0,0,0.5)' // Semi-transparent background
+  },
+  modalContent: {
+    backgroundColor: Colors[colorScheme].background,
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxHeight: '60%',
+  },
+  modalItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors[colorScheme].border,
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: Colors[colorScheme].text,
+  },
+  modalCloseButton: {
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: 16,
+    color: Colors[colorScheme].tint,
+    fontWeight: '600',
   },
 });
 
