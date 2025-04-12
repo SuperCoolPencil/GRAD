@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AppProvider } from '../context/AppContext';
+import { AlertProvider } from '../context/AlertContext'; // Import AlertProvider
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -30,13 +31,15 @@ export default function RootLayout() {
 
   return (
     <AppProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <AlertProvider> {/* Wrap with AlertProvider */}
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AlertProvider> {/* Close AlertProvider */}
     </AppProvider>
   );
 }

@@ -4,7 +4,6 @@ import {
   View,
   ScrollView,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   useColorScheme as useNativeColorScheme, // Rename to avoid conflict
 } from 'react-native';
@@ -16,8 +15,7 @@ import { Course, ScheduleItem, ExtraClass } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
 // Assuming useColorScheme hook provides 'light' | 'dark'
-// If your hook is different, adjust accordingly.
-// import { useColorScheme } from '@/hooks/useColorScheme';
+import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 // --- Helper functions copied/adapted from index.tsx ---
 
@@ -60,6 +58,7 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   // Use the hook correctly
   const colorScheme = useNativeColorScheme() ?? 'light'; // Default to light if null
+  const { showAlert } = useCustomAlert();
 
   useEffect(() => {
     if (!loading && id) {
@@ -71,7 +70,7 @@ export default function CourseDetailScreen() {
 
   const handleDelete = () => {
     if (!course) return;
-    Alert.alert(
+    showAlert(
       'Delete Course',
       `Are you sure you want to delete "${course.name}"? This action cannot be undone.`,
       [
@@ -416,5 +415,3 @@ const styles = StyleSheet.create({
      // color: Colors[colorScheme].tint,
    },
  });
-
-// Removed the duplicate styles declaration that was here

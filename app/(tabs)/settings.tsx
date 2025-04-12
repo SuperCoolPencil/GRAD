@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native'; // Import Platform, removed useColorScheme
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'; // Import Platform, removed useColorScheme
 import Constants from 'expo-constants'; // Import Constants
 import { ExternalLink } from '@/components/ExternalLink'; // Adjusted path
 import { AppContext } from '@/context/AppContext'; // Adjusted path
@@ -7,13 +7,15 @@ import { ThemedText } from '@/components/ThemedText'; // Added for consistency
 import { ThemedView } from '@/components/ThemedView'; // Added for consistency
 import { Colors } from '@/constants/Colors'; // Added for consistency
 import { useTheme } from '@react-navigation/native';
+import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 export default function SettingsScreen() {
   const { clearData } = useContext(AppContext);
   const { colors } = useTheme();
+  const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   const handleClearData = async () => {
-    Alert.alert(
+    showAlert(
       "Clear All Data",
       "Are you sure you want to clear all data? This action cannot be undone.",
       [
@@ -23,7 +25,7 @@ export default function SettingsScreen() {
         },
         { text: "OK", onPress: async () => {
             await clearData();
-            Alert.alert("Data Cleared", "All application data has been removed.");
+            showAlert("Data Cleared", "All application data has been removed.");
           }
         }
       ]

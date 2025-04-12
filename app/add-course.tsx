@@ -1,12 +1,11 @@
 import React, { useState, useContext, useMemo } from 'react';
-import { 
-  View, 
-  TextInput, 
-  StyleSheet, 
-  Alert, 
-  useColorScheme, 
-  TouchableOpacity, 
-  Platform, 
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  useColorScheme,
+  TouchableOpacity,
+  Platform,
   FlatList,
   TextInputProps,
 } from 'react-native';
@@ -20,14 +19,16 @@ import { useRouter } from 'expo-router';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
+import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const AddCourseScreen = () => {
   const router = useRouter();
   const { addCourse, isValidCourseId } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
-    const { colors } = useTheme();
+  const { colors } = useTheme();
+  const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
-  
+
   // Course details state
   const [courseName, setCourseName] = useState('');
   const [courseId, setCourseId] = useState('');
@@ -67,90 +68,90 @@ const AddCourseScreen = () => {
   
   const validateScheduleItem = () => {
     if (!selectedDay) {
-      Alert.alert("Error", "Please select a day.");
+      showAlert("Error", "Please select a day.");
       return false;
     }
-    
+
     if (!startTime) {
-      Alert.alert("Error", "Please select a start time.");
+      showAlert("Error", "Please select a start time.");
       return false;
     }
-    
+
     if (!endTime) {
-      Alert.alert("Error", "Please select an end time.");
+      showAlert("Error", "Please select an end time.");
       return false;
     }
-    
+
     if (startTime >= endTime) {
-      Alert.alert("Error", "End time must be after start time.");
+      showAlert("Error", "End time must be after start time.");
       return false;
     }
-    
+
     // Check for overlapping schedule items
     const hasOverlap = weeklySchedule.some(item => {
       if (item.day !== selectedDay) return false;
-      
+
       const itemStart = new Date(`2000-01-01T${item.timeStart}`);
       const itemEnd = new Date(`2000-01-01T${item.timeEnd}`);
       const newStart = new Date(`2000-01-01T${getTimeForStorage(startTime)}`);
       const newEnd = new Date(`2000-01-01T${getTimeForStorage(endTime)}`);
-      
+
       return (
         (newStart >= itemStart && newStart < itemEnd) ||
         (newEnd > itemStart && newEnd <= itemEnd) ||
         (newStart <= itemStart && newEnd >= itemEnd)
       );
     });
-    
+
     if (hasOverlap) {
-      Alert.alert("Error", "This schedule overlaps with an existing class time.");
+      showAlert("Error", "This schedule overlaps with an existing class time.");
       return false;
     }
-    
+
     return true;
   };
-  
+
   const addWeeklyClass = () => {
     if (!validateScheduleItem()) return;
-    
+
     const newScheduleItem = {
       id: Date.now().toString(),
       day: selectedDay || '', // Ensure day is a string
       timeStart: startTime ? getTimeForStorage(startTime) : '',
       timeEnd: endTime ? getTimeForStorage(endTime) : '',
     };
-    
+
     setWeeklySchedule([...weeklySchedule, newScheduleItem]);
-    
+
     // Reset selection for next entry
     setSelectedDay(null);
     setStartTime(null);
     setEndTime(null);
   };
-  
+
   const removeScheduleItem = (id: string) => {
     setWeeklySchedule(weeklySchedule.filter(item => item.id !== id));
   };
-  
+
   const handleSubmit = async () => {
     // Validate form
     if (!courseName.trim()) {
-      Alert.alert("Error", "Please enter a course name.");
+      showAlert("Error", "Please enter a course name.");
       return;
     }
-    
+
     if (!courseId.trim()) {
-      Alert.alert("Error", "Please enter a course ID.");
+      showAlert("Error", "Please enter a course ID.");
       return;
     }
 
     if (!isValidCourseId(courseId.trim())) {
-      Alert.alert("Error", "Course ID must contain only numbers and alphabets.");
+      showAlert("Error", "Course ID must contain only numbers and alphabets.");
       return;
     }
-    
+
     if (weeklySchedule.length === 0) {
-      Alert.alert("Warning", "You haven't added any weekly classes. Continue anyway?", [
+      showAlert("Warning", "You haven't added any weekly classes. Continue anyway?", [
         {
           text: "Cancel",
           style: "cancel"
@@ -162,10 +163,10 @@ const AddCourseScreen = () => {
       ]);
       return;
     }
-    
+
     submitCourse();
   };
-  
+
   const submitCourse = async () => {
     try {
       await addCourse({
@@ -179,8 +180,8 @@ const AddCourseScreen = () => {
         extraClasses: [],
         requiredAttendance: requiredAttendance,
       });
-      
-      Alert.alert("Success", "Course added successfully!", [
+
+      showAlert("Success", "Course added successfully!", [
         {
           text: "Add Another",
           onPress: resetForm
@@ -192,10 +193,10 @@ const AddCourseScreen = () => {
       ]);
     } catch (error) {
       console.error("Failed to add course:", error);
-      Alert.alert("Error", "Failed to add course. Please try again.");
+      showAlert("Error", "Failed to add course. Please try again.");
     }
   };
-  
+
   const resetForm = () => {
     setCourseName("");
     setCourseId("");

@@ -2,7 +2,6 @@ import React, { useState, useContext, useMemo } from 'react';
 import { 
   TextInput, 
   StyleSheet, 
-  Alert, 
   useColorScheme, 
   TouchableOpacity, 
   Platform, 
@@ -13,6 +12,7 @@ import {
 import Slider from '@react-native-community/slider';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
+import { CustomAlert } from '@/components/CustomAlert';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -46,6 +46,17 @@ const EditCourseScreen = () => {
   // UI control state
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+  const [isSelectDayAlertVisible, setIsSelectDayAlertVisible] = useState(false);
+  const [isSelectStartTimeAlertVisible, setIsSelectStartTimeAlertVisible] = useState(false);
+  const [isSelectEndTimeAlertVisible, setIsSelectEndTimeAlertVisible] = useState(false);
+  const [isEndTimeAfterStartTimeAlertVisible, setIsEndTimeAfterStartTimeAlertVisible] = useState(false);
+  const [isScheduleOverlapAlertVisible, setIsScheduleOverlapAlertVisible] = useState(false);
+  const [isEnterCourseNameAlertVisible, setIsEnterCourseNameAlertVisible] = useState(false);
+  const [isNoWeeklyClassesAlertVisible, setIsNoWeeklyClassesAlertVisible] = useState(false);
+  const [isCourseDataNotFoundAlertVisible, setIsCourseDataNotFoundAlertVisible] = useState(false);
+  const [isCourseUpdatedSuccessfullyAlertVisible, setIsCourseUpdatedSuccessfullyAlertVisible] = useState(false);
+  const [isFailedToUpdateCourseAlertVisible, setIsFailedToUpdateCourseAlertVisible] = useState(false);
   
   // Generate styles based on theme
   const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
@@ -69,22 +80,42 @@ const EditCourseScreen = () => {
   
   const validateScheduleItem = () => {
     if (!selectedDay) {
-      Alert.alert("Error", "Please select a day.");
+      <CustomAlert
+        title="Error"
+        message="Please select a day."
+        isVisible={isSelectDayAlertVisible}
+        onClose={() => setIsSelectDayAlertVisible(false)}
+      />
       return false;
     }
     
     if (!startTime) {
-      Alert.alert("Error", "Please select a start time.");
+      <CustomAlert
+        title="Error"
+        message="Please select a start time."
+        isVisible={isSelectStartTimeAlertVisible}
+        onClose={() => setIsSelectStartTimeAlertVisible(false)}
+      />
       return false;
     }
     
     if (!endTime) {
-      Alert.alert("Error", "Please select an end time.");
+      <CustomAlert
+        title="Error"
+        message="Please select an end time."
+        isVisible={isSelectEndTimeAlertVisible}
+        onClose={() => setIsSelectEndTimeAlertVisible(false)}
+      />
       return false;
     }
     
     if (startTime >= endTime) {
-      Alert.alert("Error", "End time must be after start time.");
+      <CustomAlert
+        title="Error"
+        message="End time must be after start time."
+        isVisible={isEndTimeAfterStartTimeAlertVisible}
+        onClose={() => setIsEndTimeAfterStartTimeAlertVisible(false)}
+      />
       return false;
     }
     
@@ -105,7 +136,12 @@ const EditCourseScreen = () => {
     });
     
     if (hasOverlap) {
-      Alert.alert("Error", "This schedule overlaps with an existing class time.");
+      <CustomAlert
+        title="Error"
+        message="This schedule overlaps with an existing class time."
+        isVisible={isScheduleOverlapAlertVisible}
+        onClose={() => setIsScheduleOverlapAlertVisible(false)}
+      />
       return false;
     }
     
@@ -137,23 +173,24 @@ const EditCourseScreen = () => {
   const handleSubmit = async () => {
     // Validate form
     if (!courseName.trim()) {
-      Alert.alert("Error", "Please enter a course name.");
+      <CustomAlert
+        title="Error"
+        message="Please enter a course name."
+        isVisible={isEnterCourseNameAlertVisible}
+        onClose={() => setIsEnterCourseNameAlertVisible(false)}
+      />
       return;
     }
     
     // Removed validation for courseId as it's not user-editable and was removed
     
     if (weeklySchedule.length === 0) {
-      Alert.alert("Warning", "You haven't added any weekly classes. Continue anyway?", [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Continue",
-          onPress: submitCourse
-        }
-      ]);
+      <CustomAlert
+        title="Warning"
+        message="You haven't added any weekly classes. Continue anyway?"
+        isVisible={isNoWeeklyClassesAlertVisible}
+        onClose={() => setIsNoWeeklyClassesAlertVisible(false)}
+      />
       return;
     }
     
@@ -163,7 +200,12 @@ const EditCourseScreen = () => {
   const submitCourse = async () => {
     // Ensure course exists before proceeding
     if (!course) {
-      Alert.alert("Error", "Course data not found. Cannot save changes.");
+      <CustomAlert
+        title="Error"
+        message="Course data not found. Cannot save changes."
+        isVisible={isCourseDataNotFoundAlertVisible}
+        onClose={() => setIsCourseDataNotFoundAlertVisible(false)}
+      />
       return;
     }
 
@@ -185,15 +227,20 @@ const EditCourseScreen = () => {
 
       await editCourse(updatedCourseData);
       
-      Alert.alert("Success", "Course updated successfully!", [
-        {
-          text: "Done",
-          onPress: () => router.back() 
-        }
-      ]);
+      <CustomAlert
+        title="Success"
+        message="Course updated successfully!"
+        isVisible={isCourseUpdatedSuccessfullyAlertVisible}
+        onClose={() => router.back()}
+      />
     } catch (error) {
       console.error("Failed to update course:", error);
-      Alert.alert("Error", "Failed to update course. Please try again.");
+      <CustomAlert
+        title="Error"
+        message="Failed to update course. Please try again."
+        isVisible={isFailedToUpdateCourseAlertVisible}
+        onClose={() => setIsFailedToUpdateCourseAlertVisible(false)}
+      />
     }
   };
   

@@ -3,7 +3,6 @@ import {
   View,
   TextInput,
   StyleSheet,
-  Alert,
   useColorScheme,
   TouchableOpacity,
   Platform,
@@ -21,12 +20,14 @@ import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@react-navigation/native';
+import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const AddExtraClassScreen = () => {
   const router = useRouter();
   const { addExtraClass, courses } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
+  const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   // State variables
   const [date, setDate] = useState(new Date());
@@ -94,22 +95,22 @@ const AddExtraClassScreen = () => {
   const handleSubmit = async () => {
     // Validate form
     if (selectedCourse === null) { // Check against null explicitly
-      Alert.alert("Error", "Please select a course.");
+      showAlert("Error", "Please select a course.");
       return;
     }
 
     if (!startTime) {
-      Alert.alert("Error", "Please select a start time.");
+      showAlert("Error", "Please select a start time.");
       return;
     }
 
     if (!endTime) {
-      Alert.alert("Error", "Please select an end time.");
+      showAlert("Error", "Please select an end time.");
       return;
     }
 
     if (startTime >= endTime) {
-      Alert.alert("Error", "End time must be after start time.");
+      showAlert("Error", "End time must be after start time.");
       return;
     }
 
@@ -121,7 +122,7 @@ const AddExtraClassScreen = () => {
         endTime ? getTimeForStorage(endTime) : ''
       );
 
-      Alert.alert("Success", "Extra class added successfully!", [
+      showAlert("Success", "Extra class added successfully!", [
         {
           text: "Add Another",
           onPress: resetForm
@@ -133,7 +134,7 @@ const AddExtraClassScreen = () => {
       ]);
     } catch (error) {
       console.error("Failed to add extra class:", error);
-      Alert.alert("Error", "Failed to add extra class. Please try again.");
+      showAlert("Error", "Failed to add extra class. Please try again.");
     }
   };
 

@@ -44,3 +44,9 @@ export interface ClassItem {
     needToAttend: number;
     workMarked?: string;
   }
+
+export interface AlertButton {
+  text: string;
+  onPress?: () => void;
+  style?: 'default' | 'cancel' | 'destructive';
+}

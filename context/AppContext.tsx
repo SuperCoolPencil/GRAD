@@ -4,8 +4,8 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 
 const isValidCourseId = (courseId: string) => {
@@ -104,23 +104,29 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   }, [courses, loading, theme]);
 
+  const [isAddCourseAlertVisible, setIsAddCourseAlertVisible] = useState(false);
+
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
     if (!isValidCourseId(courseId)) {
-      Alert.alert(
-        "Error",
-        "Course ID must contain only numbers and alphabets."
-      );
+      <CustomAlert
+        title="Error"
+        message="Course ID must contain only numbers and alphabets."
+        isVisible={true}
+        onClose={() => {}}
+      />
       return;
     }
     const existingCourse = courses.find(
       (course) => course.id.toLowerCase() === courseId.toLowerCase()
     );
     if (existingCourse) {
-      Alert.alert(
-        "Error",
-        "A course with this ID already exists. Please use a different ID."
-      );
+      <CustomAlert
+        title="Error"
+        message="A course with this ID already exists. Please use a different ID."
+        isVisible={true}
+        onClose={() => {}}
+      />
       return;
     }
     // Ensure counters are initialized when adding a course
@@ -137,23 +143,29 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     return;
   };
 
+  const [isUpdateCourseAlertVisible, setIsUpdateCourseAlertVisible] = useState(false);
+
   const updateCourse = (updatedCourse: Course) => {
     const courseId = updatedCourse.id.trim();
     if (!isValidCourseId(courseId)) {
-      Alert.alert(
-        "Error",
-        "Course ID must contain only numbers and alphabets."
-      );
+      <CustomAlert
+        title="Error"
+        message="Course ID must contain only numbers and alphabets."
+        isVisible={isUpdateCourseAlertVisible}
+        onClose={() => setIsUpdateCourseAlertVisible(false)}
+      />
       return;
     }
     const existingCourse = courses.find(
       (course) => course.id.toLowerCase() === courseId.toLowerCase() && course.id.toLowerCase() !== updatedCourse.id.toLowerCase()
     );
     if (existingCourse) {
-      Alert.alert(
-        "Error",
-        "A course with this ID already exists. Please use a different ID."
-      );
+      <CustomAlert
+        title="Error"
+        message="A course with this ID already exists. Please use a different ID."
+        isVisible={isUpdateCourseAlertVisible}
+        onClose={() => setIsUpdateCourseAlertVisible(false)}
+      />
       return;
     }
     setCourses((prevCourses) =>
@@ -168,6 +180,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       prevCourses.filter((course) => course.id.toLowerCase() !== courseId.toLowerCase())
     );
   };
+
+  const [isMarkAttendanceAlertVisible, setIsMarkAttendanceAlertVisible] = useState(false);
 
   const markAttendance = (
     courseId: string,
