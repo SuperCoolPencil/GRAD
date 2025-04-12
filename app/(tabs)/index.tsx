@@ -450,6 +450,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
     marginTop: 20,
+    backgroundColor: 'transparent',
   },
   emptyText: {
     textAlign: 'center',
