@@ -211,12 +211,14 @@ const EditCourseScreen = () => {
       showAlert("Success", "Course edited successfully!", [
         {
           text: "Done",
-          onPress: () => router.back()
+          onPress: () => {
+            router.back();
+          }
         }
       ]);
     } catch (error) {
-      console.error("Failed to add course:", error);
-      showAlert("Error", "Failed to add course. Please try again.");
+      console.error("Failed to edit course:", error);
+      showAlert("Error", "Failed to edit course. Please try again.");
     }
   };
 
