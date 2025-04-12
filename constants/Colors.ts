@@ -29,7 +29,7 @@ export const Colors = {
   },
   dark: {
     text: '#ECEDEE',
-    background: '#17181c',
+    background: '#010101',
     tint: '#8ec5ff',
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
@@ -43,7 +43,7 @@ export const Colors = {
     border: '#666666', // Example border color
     inputBackground: '#333333', // Example input background color
     buttonText: '#FFFFFF', // Example button text color
-    card: '#1A1A1A',
+    card: '#101010',
     disabledBackground: '#404040', // Background for disabled elements
     disabledText: '#808080', // Text color for disabled elements
   },
