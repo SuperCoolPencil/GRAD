@@ -16,8 +16,8 @@ export const Colors = {
     tabIconSelected: '#0096FF', // Match brighter tint
     foreground: '#F7F7F7', // Keeping foreground as is for now
     success: '#4caf50',
-    error: '#c93d33',
-    warning: '#FFA500',
+    error: '#fb1e08',
+    warning: '#f8ba01',
     shadow: '#000000',
     placeholder: '#A0A0A0', 
     border: '#E0E0E0', // Lighter border color

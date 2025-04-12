@@ -138,7 +138,7 @@ export default function CourseDetailScreen() {
               <Link href={`/edit-course/${course.id}`} asChild>
                 <TouchableOpacity>
                   <Ionicons
-                    name="pencil-outline"
+                    name="pencil"
                     size={24}
                     color={Colors[colorScheme].tint}
                     style={styles.headerIcon}

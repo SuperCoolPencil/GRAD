@@ -337,7 +337,7 @@ function TodaysClassesContent({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: '#e89005' }]}
+              style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
               onPress={() =>
                 handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
