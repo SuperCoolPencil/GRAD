@@ -1,38 +1,14 @@
 import React, { useContext } from 'react';
-import { View, Text, Switch, StyleSheet, TouchableOpacity, Alert, useColorScheme, Platform } from 'react-native'; // Import Platform
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native'; // Import Platform, removed useColorScheme
 import Constants from 'expo-constants'; // Import Constants
 import { ExternalLink } from '@/components/ExternalLink'; // Adjusted path
 import { AppContext } from '@/context/AppContext'; // Adjusted path
-import { useThemeColor } from '@/hooks/useThemeColor'; // Adjusted path
 import { ThemedText } from '@/components/ThemedText'; // Added for consistency
 import { ThemedView } from '@/components/ThemedView'; // Added for consistency
 import { Colors } from '@/constants/Colors'; // Added for consistency
 
 export default function SettingsScreen() {
-  const { theme, toggleTheme, clearData } = useContext(AppContext);
-  const colorScheme = useColorScheme() ?? 'light';
-
-  return (
-    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ color: Colors[colorScheme].text }}>
-          Settings
-        </ThemedText>
-      </ThemedView>
-      <SettingsContent
-        theme={theme as 'light' | 'dark'} // Cast theme to the expected type
-        toggleTheme={toggleTheme}
-        clearData={clearData as () => Promise<void>}
-        colorScheme={colorScheme}
-      />
-    </View>
-  );
-}
-
-function SettingsContent({ theme, toggleTheme, clearData, colorScheme }: { theme: 'light' | 'dark'; toggleTheme: () => void; clearData: () => Promise<void>; colorScheme: 'light' | 'dark' }) {
-  const textColor = Colors[colorScheme].text;
-  const tintColor = Colors[colorScheme].tint;
-  const errorColor = Colors[colorScheme].error;
+  const { clearData } = useContext(AppContext);
 
   const handleClearData = async () => {
     Alert.alert(
@@ -53,54 +29,46 @@ function SettingsContent({ theme, toggleTheme, clearData, colorScheme }: { theme
   };
 
   return (
-    <ThemedView style={styles.contentContainer}>
-      {/* Theme Section */}
-      <View style={styles.sectionContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Theme</ThemedText>
-        <View style={styles.settingRow}>
-          <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
-          <Switch
-            value={theme === 'dark'}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#767577', true: tintColor }}
-            thumbColor={theme === 'dark' ? Colors.dark.tint : '#f4f3f4'}
-            ios_backgroundColor="#3e3e3e"
-          />
+    <ThemedView style={{ flex: 1 }}>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">
+          Settings
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.contentContainer}>
+        {/* Contact Us Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>
+          <ExternalLink
+            href="mailto:thesupercoolpencil@gmail.com"
+            style={styles.linkText}
+          >
+            <ThemedText style={styles.linkText}>thesupercoolpencil@gmail.com</ThemedText>
+          </ExternalLink>
         </View>
-      </View>
 
-      {/* Contact Us Section */}
-      <View style={styles.sectionContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>
-        <ExternalLink
-          href="mailto:thesupercoolpencil@gmail.com"
-          style={styles.linkText}
-        >
-          <ThemedText style={[styles.linkText, { color: tintColor }]}>thesupercoolpencil@gmail.com</ThemedText>
-        </ExternalLink>
-      </View>
+        {/* Project Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Project</ThemedText>
+          <ExternalLink
+            href="https://github.com/SuperCoolPencil/GRAD"
+            style={styles.linkText}
+          >
+            <ThemedText style={styles.linkText}>GitHub Repository</ThemedText>
+          </ExternalLink>
+        </View>
 
-      {/* Project Section */}
-      <View style={styles.sectionContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Project</ThemedText>
-        <ExternalLink
-          href="https://github.com/SuperCoolPencil/GRAD"
-          style={styles.linkText}
-        >
-          <ThemedText style={[styles.linkText, { color: tintColor }]}>GitHub Repository</ThemedText>
-        </ExternalLink>
-      </View>
-
-      {/* Data Section */}
-      <View style={styles.sectionContainer}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
-        <TouchableOpacity
-          style={[styles.clearButton, { backgroundColor: errorColor }]}
-          onPress={handleClearData}
-        >
-          <Text style={styles.clearButtonText}>Clear All Data</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Data Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
+          <TouchableOpacity
+            style={[styles.clearButton, { backgroundColor: Colors.light.error }]}
+            onPress={handleClearData}
+          >
+            <Text style={styles.clearButtonText}>Clear All Data</Text>
+          </TouchableOpacity>
+        </View>
+      </ThemedView>
     </ThemedView>
   );
 }

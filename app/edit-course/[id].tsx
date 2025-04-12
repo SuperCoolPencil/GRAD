@@ -532,7 +532,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     marginTop: 20,
   },
   scheduleList: {
-    // Removed maxHeight: 200 to allow the list to grow
   },
   scheduleItem: {
     flexDirection: 'row',

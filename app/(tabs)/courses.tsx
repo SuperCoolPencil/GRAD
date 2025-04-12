@@ -156,11 +156,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 0, // Reduced margin
     // Shadows for iOS:
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    // Elevation for Android:
-    elevation: 3,
   },
   courseCard: {
     borderRadius: 16,

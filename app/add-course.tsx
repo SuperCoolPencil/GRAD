@@ -7,8 +7,8 @@ import {
   useColorScheme, 
   TouchableOpacity, 
   Platform, 
-  ScrollView,
   FlatList,
+  TextInputProps,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -237,148 +237,178 @@ const AddCourseScreen = () => {
     );
   };
 
+  const formData = {
+    courseName,
+    courseId,
+    requiredAttendance,
+    selectedDay,
+    startTime,
+    endTime,
+    weeklySchedule,
+    showStartTimePicker,
+    showEndTimePicker,
+    setCourseName,
+    setCourseId,
+    setRequiredAttendance,
+    setSelectedDay,
+    setStartTime,
+    setEndTime,
+    setWeeklySchedule,
+    setShowStartTimePicker,
+    setShowEndTimePicker,
+    handleStartTimeChange,
+    handleEndTimeChange,
+    addWeeklyClass,
+    removeScheduleItem,
+    handleSubmit,
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Form Content */}
-      <ThemedView style={styles.contentContainer}>
-        {/* Course Details Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Course Details</ThemedText>
-          
-          <ThemedText style={styles.label}>Course Name:</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={courseName}
-            onChangeText={setCourseName}
-            placeholder="Enter Course Name (e.g., Calculus)"
-            placeholderTextColor={Colors[colorScheme].placeholder}
-            autoCapitalize="sentences"
-          />
-          <ThemedText style={styles.label}>Course ID:</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={courseId}
-            onChangeText={setCourseId}
-            placeholder="Enter Course ID (e.g., MA102)"
-            placeholderTextColor={Colors[colorScheme].placeholder}
-            autoCapitalize="characters"
-          />
+    <FlatList
+      data={[formData]}
+      keyExtractor={() => 'form'}
+      renderItem={({ item }) => (
+        <ThemedView style={styles.contentContainer}>
+          {/* Course Details Section */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Course Details</ThemedText>
+            
+            <ThemedText style={styles.label}>Course Name:</ThemedText>
+            <TextInput
+              style={styles.input}
+              value={item.courseName}
+              onChangeText={item.setCourseName}
+              placeholder="Enter Course Name (e.g., Calculus)"
+              placeholderTextColor={Colors[colorScheme].placeholder}
+              autoCapitalize="sentences"
+            />
+            <ThemedText style={styles.label}>Course ID:</ThemedText>
+            <TextInput
+              style={styles.input}
+              value={item.courseId}
+              onChangeText={item.setCourseId}
+              placeholder="Enter Course ID (e.g., MA102)"
+              placeholderTextColor={Colors[colorScheme].placeholder}
+              autoCapitalize="characters"
+            />
 
-          <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
-          <Slider
-            style={{width: '100%', height: 40}}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
-            value={requiredAttendance}
-            onValueChange={(value) => setRequiredAttendance(value)}
-            minimumTrackTintColor={Colors[colorScheme].tint}
-            maximumTrackTintColor={Colors[colorScheme].border}
-          />
+            <ThemedText style={styles.label}>Required Attendance: {item.requiredAttendance}%</ThemedText>
+            <Slider
+              style={{width: '100%', height: 40}}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={item.requiredAttendance}
+              onValueChange={(value) => item.setRequiredAttendance(value)}
+              minimumTrackTintColor={Colors[colorScheme].tint}
+              maximumTrackTintColor={Colors[colorScheme].border}
+            />
 
-          <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
-        </View>
-        
-        {/* Weekly Schedule Section */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
+            <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
+          </View>
           
-          {/* Day selection */}
-          <ThemedText style={styles.label}>Select Day:</ThemedText>
-          <View style={styles.dayButtonContainer}>
-            {['M', 'T', 'W', 'Th', 'F', 'Sat', 'Sun'].map((day, index) => {
-              const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
-              return (
-                <TouchableOpacity
-                  key={day}
-                  style={[
-                    styles.dayButton,
-                    selectedDay === fullDayName && styles.dayButtonSelected,
-                    { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
-                  ]}
-                  onPress={() => setSelectedDay(fullDayName)}
+          {/* Weekly Schedule Section */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
+            
+            {/* Day selection */}
+            <ThemedText style={styles.label}>Select Day:</ThemedText>
+            <View style={styles.dayButtonContainer}>
+              {['M', 'T', 'W', 'Th', 'F', 'Sat', 'Sun'].map((day, index) => {
+                const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.dayButton,
+                      item.selectedDay === fullDayName && styles.dayButtonSelected,
+                      { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
+                    ]}
+                    onPress={() => item.setSelectedDay(fullDayName)}
+                  >
+                    <ThemedText style={[
+                      styles.dayButtonText,
+                      item.selectedDay === fullDayName && styles.dayButtonTextSelected
+                    ]}>
+                      {day}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Time selection */}
+            <View style={styles.timeContainer}>
+              <View style={styles.timeSection}>
+                <TouchableOpacity 
+                  style={styles.timePickerButton} 
+                  onPress={() => item.setShowStartTimePicker(true)}
                 >
-                  <ThemedText style={[
-                    styles.dayButtonText,
-                    selectedDay === fullDayName && styles.dayButtonTextSelected
-                  ]}>
-                    {day}
+                  <ThemedText style={styles.timePickerText}>
+                    {item.startTime ? formatTime(item.startTime) : 'Select Start Time'}
                   </ThemedText>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Time selection */}
-          <View style={styles.timeContainer}>
-            <View style={styles.timeSection}>
-              <TouchableOpacity 
-                style={styles.timePickerButton} 
-                onPress={() => setShowStartTimePicker(true)}
-              >
-                <ThemedText style={styles.timePickerText}>
-                  {startTime ? formatTime(startTime) : 'Select Start Time'}
-                </ThemedText>
-              </TouchableOpacity>
-              {showStartTimePicker && (
-                <DateTimePicker
-                  value={startTime || new Date()}
-                  mode="time"
-                  is24Hour={false}
-                  display="default"
-                  onChange={handleStartTimeChange}
-                />
-              )}
+                {item.showStartTimePicker && (
+                  <DateTimePicker
+                    value={item.startTime || new Date()}
+                    mode="time"
+                    is24Hour={false}
+                    display="default"
+                    onChange={item.handleStartTimeChange}
+                  />
+                )}
+              </View>
+              
+              <View style={styles.timeSection}>
+                <TouchableOpacity 
+                  style={styles.timePickerButton} 
+                  onPress={() => item.setShowEndTimePicker(true)}
+                >
+                  <ThemedText style={styles.timePickerText}>
+                    {item.endTime ? formatTime(item.endTime) : 'Select End Time'}
+                  </ThemedText>
+                </TouchableOpacity>
+                {item.showEndTimePicker && (
+                  <DateTimePicker
+                    value={item.endTime || new Date()}
+                    mode="time"
+                    is24Hour={false}
+                    display="default"
+                    onChange={item.handleEndTimeChange}
+                  />
+                )}
+              </View>
             </View>
+
+            {/* Add class button */}
+            <TouchableOpacity style={styles.secondaryButton} onPress={item.addWeeklyClass}>
+              <ThemedText style={styles.secondaryButtonText}>
+                Add Weekly Class
+              </ThemedText>
+            </TouchableOpacity>
             
-            <View style={styles.timeSection}>
-              <TouchableOpacity 
-                style={styles.timePickerButton} 
-                onPress={() => setShowEndTimePicker(true)}
-              >
-                <ThemedText style={styles.timePickerText}>
-                  {endTime ? formatTime(endTime) : 'Select End Time'}
-                </ThemedText>
-              </TouchableOpacity>
-              {showEndTimePicker && (
-                <DateTimePicker
-                  value={endTime || new Date()}
-                  mode="time"
-                  is24Hour={false}
-                  display="default"
-                  onChange={handleEndTimeChange}
+            {/* Display current schedule */}
+            {item.weeklySchedule.length > 0 && (
+              <View style={styles.scheduleContainer}>
+                <ThemedText style={styles.label}>Current Schedule:</ThemedText>
+                <FlatList
+                  data={item.weeklySchedule}
+                  renderItem={renderScheduleItem}
+                  keyExtractor={item => item.id}
+                  style={styles.scheduleList}
                 />
-              )}
-            </View>
+              </View>
+            )}
           </View>
-
-          {/* Add class button */}
-          <TouchableOpacity style={styles.secondaryButton} onPress={addWeeklyClass}>
-            <ThemedText style={styles.secondaryButtonText}>
-              Add Weekly Class
-            </ThemedText>
-          </TouchableOpacity>
           
-          {/* Display current schedule */}
-          {weeklySchedule.length > 0 && (
-            <View style={styles.scheduleContainer}>
-              <ThemedText style={styles.label}>Current Schedule:</ThemedText>
-              <FlatList
-                data={weeklySchedule}
-                renderItem={renderScheduleItem}
-                keyExtractor={item => item.id}
-                style={styles.scheduleList}
-              />
-            </View>
-          )}
-        </View>
-        
-        {/* Submit Button */}
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
-          <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </ScrollView>
+          {/* Submit Button */}
+          <TouchableOpacity style={styles.primaryButton} onPress={item.handleSubmit}>
+            <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      )}
+      style={styles.container}
+    />
   );
 };
 
@@ -501,7 +531,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     marginTop: 20,
   },
   scheduleList: {
-    maxHeight: 200,
   },
   scheduleItem: {
     flexDirection: 'row',

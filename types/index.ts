@@ -42,4 +42,5 @@ export interface ClassItem {
     requiredAttendance: number;
     currentAttendance: number;
     needToAttend: number;
+    workMarked?: string;
   }
