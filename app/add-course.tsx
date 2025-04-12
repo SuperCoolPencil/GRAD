@@ -451,9 +451,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontWeight: '500',
   },
   input: {
-    borderWidth: 1,
-    borderColor: Colors[colorScheme].border,
-    backgroundColor: Colors[colorScheme].inputBackground,
+    backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
@@ -471,9 +469,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors[colorScheme].border,
-    backgroundColor: Colors[colorScheme].background,
+    backgroundColor: Colors[colorScheme].card,
     marginBottom: 8,
     minWidth: 45,
     alignItems: 'center',
@@ -508,8 +504,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors[colorScheme].border,
   },
   timePickerText: {
     color: Colors[colorScheme].text,
@@ -553,7 +547,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
-    borderWidth: 1,
     borderColor: Colors[colorScheme].border,
   },
   scheduleDay: {

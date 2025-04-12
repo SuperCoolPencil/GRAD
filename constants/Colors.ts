@@ -43,7 +43,7 @@ export const Colors = {
     border: '#666666', // Example border color
     inputBackground: '#333333', // Example input background color
     buttonText: '#FFFFFF', // Example button text color
-    card: '#101010',
+    card: '#1c1c1e',
     disabledBackground: '#404040', // Background for disabled elements
     disabledText: '#808080', // Text color for disabled elements
   },

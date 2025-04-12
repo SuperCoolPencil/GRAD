@@ -314,9 +314,8 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontWeight: '500',
   },
   input: {
-    borderWidth: 1,
     borderColor: Colors[colorScheme].border,
-    backgroundColor: Colors[colorScheme].inputBackground,
+    backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
@@ -330,7 +329,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 1,
     borderColor: Colors[colorScheme].border,
   },
   datePickerText: {
@@ -352,7 +350,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: 'center',
-    borderWidth: 1,
     borderColor: Colors[colorScheme].border,
   },
   timePickerText: {
@@ -393,7 +390,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     flexDirection: 'row', // Align text and icon horizontally
     justifyContent: 'space-between', // Space between text and icon
     alignItems: 'center', // Align items vertically
-    borderWidth: 1,
     borderColor: Colors[colorScheme].border,
     backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
@@ -413,7 +409,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     backgroundColor: 'rgba(0,0,0,0.5)' // Semi-transparent background
   },
   modalContent: {
-    backgroundColor: Colors[colorScheme].background,
+    backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
     padding: 20,
     width: '80%',
