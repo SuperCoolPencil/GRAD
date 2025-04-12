@@ -143,7 +143,9 @@ const EditCourseScreen = () => {
           if (course) {
             setCourseName(course.name);
             setCourseId(course.id);
-            setRequiredAttendance(course.requiredAttendance);
+            if (course.requiredAttendance !== undefined) {
+              setRequiredAttendance(course.requiredAttendance);
+            }
             setWeeklySchedule(course.weeklySchedule || []);
           } else {
             showAlert("Error", "Course not found.");
@@ -206,11 +208,7 @@ const EditCourseScreen = () => {
         requiredAttendance: requiredAttendance,
       });
 
-      showAlert("Success", "Course added successfully!", [
-        {
-          text: "Add Another",
-          onPress: resetForm
-        },
+      showAlert("Success", "Course edited successfully!", [
         {
           text: "Done",
           onPress: () => router.back()
@@ -322,7 +320,7 @@ const EditCourseScreen = () => {
               style={{width: '100%', height: 40}}
               minimumValue={0}
               maximumValue={100}
-              step={1}
+              step={5}
               value={item.requiredAttendance}
               onValueChange={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}

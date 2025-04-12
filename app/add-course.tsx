@@ -310,7 +310,7 @@ const AddCourseScreen = () => {
               style={{width: '100%', height: 40}}
               minimumValue={0}
               maximumValue={100}
-              step={1}
+              step={5}
               value={item.requiredAttendance}
               onValueChange={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}
