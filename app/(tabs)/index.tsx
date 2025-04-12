@@ -305,7 +305,7 @@ function TodaysClassesContent({
                 <View style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center' }}>
                   <ThemedText style={{ marginLeft: 4, fontSize: 12}}>Marked </ThemedText>
                   <Ionicons
-                    name="checkmark-circle"
+                    name="checkmark-done-circle-outline"
                     size={20}
                     color="#808080" // Neutral gray color
                   />
