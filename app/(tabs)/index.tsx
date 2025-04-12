@@ -260,7 +260,7 @@ function TodaysClassesContent({
           },
         ]}
       >
-        <ThemedView style={[styles.classCardContent, {backgroundColor: Colors[colorScheme || 'light'].foreground,}]}>
+        <ThemedView style={[styles.classCardContent, {backgroundColor: Colors[colorScheme || 'light'].card,}]}>
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>

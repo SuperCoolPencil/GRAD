@@ -80,12 +80,13 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
         <View style={[styles.courseCardContainer, {
           borderLeftColor: accentColor,
           shadowColor: Colors[colorScheme || 'light'].shadow || '#000',
+          backgroundColor: Colors[colorScheme || 'light'].card,
         }]}>
           <ThemedView
             style={[
               styles.courseCard,
               {
-                backgroundColor: Colors[colorScheme || 'light'].foreground,
+                backgroundColor: Colors[colorScheme || 'light'].card,
               },
             ]}
           >

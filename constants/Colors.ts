@@ -14,7 +14,6 @@ export const Colors = {
     icon: '#687076', // Keeping icons standard gray
     tabIconDefault: '#687076',
     tabIconSelected: '#0096FF', // Match brighter tint
-    foreground: '#F7F7F7', // Keeping foreground as is for now
     success: '#4caf50',
     error: '#fb1e08',
     warning: '#f8ba01',
@@ -24,8 +23,6 @@ export const Colors = {
     inputBackground: '#FFFFFF', // Already white
     buttonText: '#FFFFFF', 
     card: '#FFFFFF', // Making cards pure white for brighter feel
-    disabledBackground: '#EEEEEE', // Lighter disabled background
-    disabledText: '#BDBDBD', // Lighter disabled text
   },
   dark: {
     text: '#ECEDEE',
@@ -34,17 +31,12 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
-    foreground: '#101010',
     success: '#4caf50',
     error: '#c93d33',
     warning: '#FFA500',
     shadow: '#000000',
-    placeholder: '#A0A0A0', // Example placeholder color
-    border: '#666666', // Example border color
-    inputBackground: '#333333', // Example input background color
-    buttonText: '#FFFFFF', // Example button text color
-    card: '#1c1c1e',
-    disabledBackground: '#404040', // Background for disabled elements
-    disabledText: '#808080', // Text color for disabled elements
+    placeholder: '#A0A0A0', 
+    border: '#666666', 
+    card: '#1c1c1e'
   },
 };
