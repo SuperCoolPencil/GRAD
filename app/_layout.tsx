@@ -4,17 +4,18 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { View } from 'react-native'; // Import View
 import 'react-native-reanimated';
 import { AppProvider } from '../context/AppContext';
 import { AlertProvider } from '../context/AlertContext'; // Import AlertProvider
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '../constants/Colors'; // Import Colors
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -32,14 +33,30 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <AlertProvider> {/* Wrap with AlertProvider */}
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
+        <ThemeProvider value={useColorScheme() === 'dark' ? DarkTheme : DefaultTheme}>
+          <RootLayoutShell>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </RootLayoutShell>
         </ThemeProvider>
       </AlertProvider> {/* Close AlertProvider */}
     </AppProvider>
+  );
+}
+
+function RootLayoutShell({ children }: { children: React.ReactNode }) {
+  const colorScheme = useColorScheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: Colors[colorScheme ?? 'light'].background,
+      }}
+    >
+      <StatusBar style="auto" />
+      {children}
+    </View>
   );
 }
