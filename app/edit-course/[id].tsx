@@ -15,23 +15,25 @@ import { AppContext } from '@/context/AppContext';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
-import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
+import { useCustomAlert } from '@/context/AlertContext';
+import { useEffect } from 'react'; // Import the custom alert hook
 
 const EditCourseScreen = () => {
   const router = useRouter();
-  const { editCourse, isValidCourseId } = useContext(AppContext);
+  const { editCourse, isValidCourseId, getCourse } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
-  const { showAlert } = useCustomAlert(); // Use the custom alert hook
+  const { showAlert } = useCustomAlert();
+  const { id } = useLocalSearchParams();
 
 
-  // Course details state
+   // Course details state
   const [courseName, setCourseName] = useState('');
-  const [courseId, setCourseId] = useState('');
+  const [courseId, setCourseId] = useState(id as string || '');
 
   // Attendance state
   const [requiredAttendance, setRequiredAttendance] = useState(75);
@@ -132,6 +134,29 @@ const EditCourseScreen = () => {
   const removeScheduleItem = (id: string) => {
     setWeeklySchedule(weeklySchedule.filter(item => item.id !== id));
   };
+
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (id) {
+        try {
+          const course = await getCourse(id as string);
+          if (course) {
+            setCourseName(course.name);
+            setCourseId(course.id);
+            setRequiredAttendance(course.requiredAttendance);
+            setWeeklySchedule(course.weeklySchedule || []);
+          } else {
+            showAlert("Error", "Course not found.");
+          }
+        }   catch (error) {
+          console.error("Failed to fetch course:", error);
+          showAlert("Error", "Failed to fetch course. Please try again.");
+        }
+      }
+    };
+
+    fetchCourseData();
+  }, [id, getCourse, showAlert]);
 
   const handleSubmit = async () => {
     // Validate form

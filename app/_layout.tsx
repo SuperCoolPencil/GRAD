@@ -4,13 +4,13 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native'; // Import View
+import { View } from 'react-native';
 import 'react-native-reanimated';
 import { AppProvider } from '../context/AppContext';
-import { AlertProvider } from '../context/AlertContext'; // Import AlertProvider
+import { AlertProvider } from '../context/AlertContext';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '../constants/Colors'; // Import Colors
+import { Colors } from '../constants/Colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -26,28 +26,29 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
-
   return (
     <AppProvider>
-      <AlertProvider> {/* Wrap with AlertProvider */}
+      <AlertProvider>
         <ThemeProvider value={useColorScheme() === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootLayoutShell>
+          <RootLayoutShell loaded={loaded}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
           </RootLayoutShell>
         </ThemeProvider>
-      </AlertProvider> {/* Close AlertProvider */}
+      </AlertProvider>
     </AppProvider>
   );
 }
 
-function RootLayoutShell({ children }: { children: React.ReactNode }) {
+function RootLayoutShell({ children, loaded }: { children: React.ReactNode; loaded: boolean }) {
   const colorScheme = useColorScheme();
+
+  if (!loaded) {
+    return null;
+  }
+
   return (
     <View
       style={{

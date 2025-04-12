@@ -20,6 +20,7 @@ interface AppContextType {
   toggleTheme: () => void;
   addCourse: (newCourse: Course) => void;
   editCourse: (updatedCourse: Course) => void;
+  getCourse: (courseId: string) => Promise<Course | undefined>;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
   isValidCourseId: (courseId: string) => boolean;
@@ -46,6 +47,7 @@ export const AppContext = createContext<AppContextType>({
   toggleTheme: () => {},
   addCourse: () => {},
   editCourse: () => {},
+   getCourse: () => Promise.resolve(undefined),
   updateCourse: () => {},
   deleteCourse: () => {},
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
@@ -350,14 +352,17 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         theme,
         toggleTheme,
         addCourse,
-        editCourse: updateCourse,
-        updateCourse,
-        deleteCourse,
-        isValidCourseId,
-        markAttendance,
-        addScheduleItem: addScheduleItem,
-        addExtraClass: addExtraClass,
-        clearData,
+  editCourse: updateCourse,
+  getCourse: (courseId: string) => {
+    return Promise.resolve(courses.find((course) => course.id === courseId));
+  },
+  updateCourse,
+  deleteCourse,
+  isValidCourseId,
+  markAttendance,
+  addScheduleItem: addScheduleItem,
+  addExtraClass: addExtraClass,
+  clearData,
       }}
     >
       {children}
