@@ -8,22 +8,24 @@ const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
+    text: '#11181C', // Keeping text dark for contrast
+    background: '#fff', // Already brightest
+    tint: '#0096FF', // Brighter blue tint
+    icon: '#687076', // Keeping icons standard gray
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-    foreground: '#F7F7F7',
+    tabIconSelected: '#0096FF', // Match brighter tint
+    foreground: '#F7F7F7', // Keeping foreground as is for now
     success: '#4caf50',
     error: '#c93d33',
     warning: '#FFA500',
     shadow: '#000000',
-    placeholder: '#A0A0A0', // Example placeholder color
-    border: '#CCCCCC', // Example border color
-    inputBackground: '#FFFFFF', // Example input background color
-    buttonText: '#FFFFFF', // Example button text color
-    card: '#F7F7F7',
+    placeholder: '#A0A0A0', 
+    border: '#E0E0E0', // Lighter border color
+    inputBackground: '#FFFFFF', // Already white
+    buttonText: '#FFFFFF', 
+    card: '#FFFFFF', // Making cards pure white for brighter feel
+    disabledBackground: '#EEEEEE', // Lighter disabled background
+    disabledText: '#BDBDBD', // Lighter disabled text
   },
   dark: {
     text: '#ECEDEE',
@@ -42,5 +44,7 @@ export const Colors = {
     inputBackground: '#333333', // Example input background color
     buttonText: '#FFFFFF', // Example button text color
     card: '#1A1A1A',
+    disabledBackground: '#404040', // Background for disabled elements
+    disabledText: '#808080', // Text color for disabled elements
   },
 };

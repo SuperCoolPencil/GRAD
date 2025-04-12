@@ -26,7 +26,7 @@ const AddExtraClassScreen = () => {
   // State variables
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null); // Initialize to null for placeholder
 
   // Time picker state
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -87,7 +87,7 @@ const AddExtraClassScreen = () => {
 
   const handleSubmit = async () => {
     // Validate form
-    if (!selectedCourse) {
+    if (selectedCourse === null) { // Check against null explicitly
       Alert.alert("Error", "Please select a course.");
       return;
     }
@@ -135,6 +135,7 @@ const AddExtraClassScreen = () => {
     setDate(new Date());
     setStartTime(null);
     setEndTime(null);
+    setSelectedCourse(null); // Reset selected course
   };
 
   return (
@@ -154,13 +155,17 @@ const AddExtraClassScreen = () => {
                   setSelectedCourse(itemValue);
                 }}
                 style={styles.picker}
+                itemStyle={styles.pickerItem} // Added for potential styling consistency
               >
-                {courses ? (
+                {/* Add placeholder item */}
+                <Picker.Item label="Select a course..." value={null} enabled={false} style={{ color: Colors[colorScheme].placeholder }}/> 
+                
+                {courses && courses.length > 0 ? (
                   courses.map((course: Course) => (
-                    <Picker.Item key={course.id} label={course.name} value={course.id} />
+                    <Picker.Item key={course.id} label={`${course.name} (${course.id})`} value={course.id} />
                   ))
                 ) : (
-                  <Picker.Item label="No courses available" value={null} />
+                  <Picker.Item label="No courses available" value={null} enabled={false} />
                 )}
               </Picker>
             </View>
@@ -321,6 +326,12 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   },
   picker: {
     color: Colors[colorScheme].text,
+    height: 50, 
+    // Note: Direct styling of Picker items can be inconsistent across platforms.
+    // Consider a custom dropdown component for better control if needed.
+  },
+  pickerItem: { // Basic item style (might need platform-specific adjustments)
+    color: Colors[colorScheme].text, 
     height: 50,
   },
   primaryButton: {

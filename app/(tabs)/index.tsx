@@ -344,7 +344,7 @@ function TodaysClassesContent({
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Cancelled</ThemedText>
+              <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
