@@ -39,7 +39,7 @@ export function CustomAlert({
       backdropTransitionOutTiming={0}
       style={styles.modal}
     >
-      <ThemedView style={[styles.container, { backgroundColor, borderColor }]} lightColor="#fff" darkColor="#1c1c1e">
+      <ThemedView style={[styles.container, { borderColor }]} lightColor="#fff" darkColor="#1f1e1e">
         {title && (
           <ThemedText type="subtitle" style={styles.title}>
             {title}
@@ -99,7 +99,6 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     borderRadius: 14,
     padding: 20,
-    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
