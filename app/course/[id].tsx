@@ -28,7 +28,7 @@ export default function CourseDetailScreen() {
 
   useEffect(() => {
     if (!loading && id) {
-      const foundCourse = courses.find((c) => c.id === id);
+      const foundCourse = courses.find((c) => c.id.toLowerCase() === id.toLowerCase());
       setCourse(foundCourse || null);
     }
   }, [loading, courses, id]);

@@ -4,6 +4,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 
@@ -97,20 +98,31 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   }, [courses, loading, theme]);
 
   const addCourse = (newCourse: Course) => {
+    const existingCourse = courses.find(
+      (course) => course.id.toLowerCase() === newCourse.id.toLowerCase()
+    );
+    if (existingCourse) {
+      Alert.alert(
+        "Error",
+        "A course with this ID already exists. Please use a different ID."
+      );
+      return;
+    }
     setCourses((prevCourses) => [...prevCourses, newCourse]);
+    return;
   };
 
   const updateCourse = (updatedCourse: Course) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) =>
-        course.id === updatedCourse.id ? updatedCourse : course
+        course.id.toLowerCase() === updatedCourse.id.toLowerCase() ? updatedCourse : course
       )
     );
   };
 
   const deleteCourse = (courseId: string) => {
     setCourses((prevCourses) =>
-      prevCourses.filter((course) => course.id !== courseId)
+      prevCourses.filter((course) => course.id.toLowerCase() !== courseId.toLowerCase())
     );
   };
 
@@ -122,7 +134,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   ) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) => {
-        if (course.id === courseId) {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
           const updatedCourse = { ...course };
 
           // Find if an attendance record exists for the current day and schedule item
@@ -181,7 +193,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   ) => {
     setCourses((prevCourses) =>
       prevCourses.map((course) => {
-        if (course.id === courseId) {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
           const updatedCourse = { ...course };
           updatedCourse.weeklySchedule = [
             ...(course.weeklySchedule || []),
@@ -202,7 +214,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   ) => {
       setCourses((prevCourses) => {
       return prevCourses.map((course) => {
-        if (course.id === courseId) {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
           const updatedCourse = { ...course };
           const newExtraClass: ExtraClass = {
             id: Date.now().toString(),

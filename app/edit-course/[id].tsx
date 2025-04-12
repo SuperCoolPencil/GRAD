@@ -27,7 +27,7 @@ const EditCourseScreen = () => {
   const { id } = useLocalSearchParams();
 
   const course = useMemo(() => {
-    return courses.find((course) => course.id === id);
+    return courses.find((course) => course.id.toLowerCase() === (typeof id === 'string' ? id.toLowerCase() : id[0].toLowerCase()));
   }, [id, courses]);
 
   // Course details state
