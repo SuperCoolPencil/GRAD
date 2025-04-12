@@ -17,12 +17,6 @@ npm install
 npx expo start
 ```
 
-## 🐞 Known Bugs to Fix in v0.3.0
-
-- Add a distinctive app logo and name to address branding inconsistencies.
-- Improve the design of the course information page to resolve usability issues.
-- Fix daily attendance logging and ensure it displays correctly on the course information page.
-
 ## 📸 Demo Screenshots
 <img src="./demo-screens/demo01.png" width="300" alt="Demo Screenshot 1"/>
 <img src="./demo-screens/demo02.png" width="300" alt="Demo Screenshot 2"/>
