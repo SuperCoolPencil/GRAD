@@ -114,7 +114,7 @@ export default function CourseDetailScreen() {
   const absents = course.absents || 0;
   const cancelled = course.cancelled || 0;
   const totalAttended = presents + absents;
-  const attendancePercentage = totalAttended === 0 ? 0 : Math.round((presents / totalAttended) * 100);
+  const attendancePercentage = totalAttended === 0 ? 100 : Math.round((presents / totalAttended) * 100);
   const requiredAttendance = course.requiredAttendance || 75; // Default if not set
   const delta = getAttendanceDelta(presents, absents, requiredAttendance);
   const deltaColor = getDeltaColor(delta, colorScheme);
@@ -146,7 +146,7 @@ export default function CourseDetailScreen() {
               </Link>
               <TouchableOpacity onPress={handleDelete}>
                 <Ionicons
-                  name="trash-outline" // Use trash icon for delete
+                  name="close-circle-outline"
                   size={24}
                   color={Colors[colorScheme].error} // Use error color for delete
                   style={styles.headerIcon}

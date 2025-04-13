@@ -21,9 +21,11 @@ export default function SettingsScreen() {
       [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
-        { text: "OK", onPress: async () => {
+        { text: "OK", 
+          style: "destructive",
+          onPress: async () => {
             await clearData();
             showAlert("Data Cleared", "All application data has been removed.");
           }

@@ -272,7 +272,7 @@ const EditCourseScreen = () => {
         </View>
         <TouchableOpacity onPress={() => removeScheduleItem(item.id)}>
           <Ionicons 
-            name="trash-outline" 
+            name="close-circle-outline" 
             size={20} 
             color={Colors[colorScheme].tint} 
           />
