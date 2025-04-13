@@ -275,6 +275,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
               ? 100
               : Math.round((updatedCourse.presents / totalClasses) * 100);
 
+          // Ensure attendancePercentage is not NaN
+          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
+
           return updatedCourse;
         }
         return course;

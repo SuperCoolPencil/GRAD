@@ -206,16 +206,18 @@ const EditCourseScreen = () => {
 
   const submitCourse = async () => {
     try {
+      const existingCourse = await getCourse(courseId.trim());
       await editCourse({
         id: courseId.trim(),
         name: courseName.trim(),
-        presents: 0,
-        absents: 0,
-        cancelled: 0,
+        presents: existingCourse?.presents || 0,
+        absents: existingCourse?.absents || 0,
+        cancelled: existingCourse?.cancelled || 0,
         weeklySchedule: weeklySchedule,
-        attendanceRecords: [],
-        extraClasses: [],
-        requiredAttendance: requiredAttendance,
+        attendanceRecords: existingCourse?.attendanceRecords || [],
+        extraClasses: existingCourse?.extraClasses || [],
+        requiredAttendance: requiredAttendance || 0,
+        attendancePercentage: existingCourse?.attendancePercentage || 100,
       });
 
       showAlert("Success", "Course edited successfully!", [
