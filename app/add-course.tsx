@@ -315,6 +315,7 @@ const AddCourseScreen = () => {
               onSlidingComplete={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}
               maximumTrackTintColor={Colors[colorScheme].border}
+              thumbTintColor='#fff'
             />
 
             <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
@@ -458,6 +459,8 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     marginBottom: 20,
     fontSize: 16,
     color: Colors[colorScheme].text,
+    borderWidth: 1,
+    borderColor: Colors[colorScheme].placeholder,
   },
   dayButtonContainer: {
     flexDirection: 'row',

@@ -18,7 +18,7 @@ export const Colors = {
     error: '#fb1e08',
     warning: '#f8ba01',
     shadow: '#000000',
-    placeholder: '#A0A0A0', 
+    placeholder: '#b2b2b6', 
     border: '#9C9C9C', // Lighter border color
     inputBackground: '#FFFFFF', // Already white
     buttonText: '#FFFFFF', 
@@ -35,7 +35,7 @@ export const Colors = {
     error: '#c93d33',
     warning: '#FFA500',
     shadow: '#000000',
-    placeholder: '#A0A0A0', 
+    placeholder: '#47474C', 
     border: '#666666', 
     card: '#1c1c1e'
   },
