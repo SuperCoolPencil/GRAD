@@ -113,8 +113,7 @@ export default function CourseDetailScreen() {
   const presents = course.presents || 0;
   const absents = course.absents || 0;
   const cancelled = course.cancelled || 0;
-  const totalAttended = presents + absents;
-  const attendancePercentage = totalAttended === 0 ? 100 : Math.round((presents / totalAttended) * 100);
+  const attendancePercentage = course.attendancePercentage || 0;
   const requiredAttendance = course.requiredAttendance || 75; // Default if not set
   const delta = getAttendanceDelta(presents, absents, requiredAttendance);
   const deltaColor = getDeltaColor(delta, colorScheme);

@@ -140,6 +140,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       attendanceRecords: newCourse.attendanceRecords || [],
       weeklySchedule: newCourse.weeklySchedule || [],
       extraClasses: newCourse.extraClasses || [],
+      attendancePercentage: 100,
     };
     setCourses((prevCourses) => [...prevCourses, courseWithInitializedCounters]);
     return;
@@ -266,6 +267,13 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           updatedCourse.presents = Math.max(0, updatedCourse.presents);
           updatedCourse.absents = Math.max(0, updatedCourse.absents);
           updatedCourse.cancelled = Math.max(0, updatedCourse.cancelled);
+
+          // Calculate attendance percentage
+          const totalClasses = updatedCourse.presents + updatedCourse.absents;
+          updatedCourse.attendancePercentage =
+            totalClasses === 0
+              ? 100
+              : Math.round((updatedCourse.presents / totalClasses) * 100);
 
           return updatedCourse;
         }

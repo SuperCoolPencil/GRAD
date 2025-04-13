@@ -146,15 +146,6 @@ function TodaysClassesContent({
     saveMarkedClasses();
   }, [markedClasses]);
 
-  // Calculate attendance percentage for a course.
-  const calculateAttendancePercentage = (course: Course): number => {
-    const presents = course.presents || 0;
-    const absents = course.absents || 0;
-    const totalClasses = presents + absents;
-    return totalClasses === 0
-      ? 0
-      : Math.round((presents / totalClasses) * 100);
-  };
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
@@ -169,7 +160,7 @@ function TodaysClassesContent({
       const presents = course.presents || 0;
       const absents = course.absents || 0;
       const required = course.requiredAttendance || 75;
-      const attendancePercentage = calculateAttendancePercentage(course);
+      const attendancePercentage = course.attendancePercentage || 0;
       const delta = getAttendanceDelta(presents, absents, required);
 
       // Process weekly scheduled classes.

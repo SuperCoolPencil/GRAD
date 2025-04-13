@@ -53,16 +53,9 @@ export default function CoursesScreen() {
 }
 
 function CoursesContent({ courses, colorScheme, router }: { courses: any; colorScheme: 'light' | 'dark'; router: any }) {
-  // Calculate attendance percentage for each course.
-  const calculateAttendancePercentage = (course: Course) => {
-    const totalClasses =
-      (course.presents || 0) + (course.absents || 0);
-    if (totalClasses === 0) return 100;
-    return Math.round(((course.presents || 0) / totalClasses) * 100);
-  };
 
   const renderCourseItem = ({ item }: { item: Course }) => {
-    const attendancePercentage = calculateAttendancePercentage(item);
+    const attendancePercentage = item.attendancePercentage || 0;
 
     // Determine the accent color based on attendance percentage - theme aware
     const getAccentColor = () => {
@@ -74,6 +67,23 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
     };
 
     const accentColor = getAccentColor();
+
+    // Calculate the counts for present, absent, and cancelled classes for each course
+    let presentCount = 0;
+    let absentCount = 0;
+    let cancelledCount = 0;
+
+    if (item.classes) {
+      item.classes.forEach((cls: any) => {
+        if (cls.status === 'present') {
+          presentCount++;
+        } else if (cls.status === 'absent') {
+          absentCount++;
+        } else if (cls.status === 'cancelled') {
+          cancelledCount++;
+        }
+      });
+    }
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>

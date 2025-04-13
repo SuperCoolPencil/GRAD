@@ -30,6 +30,8 @@ export interface Course {
     weeklySchedule?: ScheduleItem[];
     extraClasses?: ExtraClass[];
     attendanceRecords?: AttendanceRecord[];
+    attendancePercentage?: number;
+    classes?: { status: 'present' | 'absent' | 'cancelled' }[];
 }
 
 export interface ClassItem {
