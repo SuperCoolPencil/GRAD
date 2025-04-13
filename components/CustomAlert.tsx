@@ -57,7 +57,7 @@ export function CustomAlert({
               style={({ pressed }) => [
                 styles.button,
                 {
-                  backgroundColor: button.style === 'cancel' || button.style === 'destructive' ? 'transparent' : primaryColor,
+                  backgroundColor: button.style === 'destructive' ? 'red' : (button.style === 'cancel' ? 'transparent' : primaryColor),
                   opacity: pressed ? 0.7 : 1,
                   marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
                 },
@@ -73,7 +73,7 @@ export function CustomAlert({
                 style={[
                   styles.buttonText,
                   {
-                    color: button.style === 'cancel' || button.style === 'destructive' ? (button.style === 'destructive' ? 'red' : primaryColor) : '#fff',
+                    color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? primaryColor : '#fff'),
                     fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
                   },
                 ]}
