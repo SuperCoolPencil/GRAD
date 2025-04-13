@@ -324,7 +324,7 @@ const EditCourseScreen = () => {
               maximumValue={100}
               step={5}
               value={item.requiredAttendance}
-              onValueChange={(value) => item.setRequiredAttendance(value)}
+              onSlidingComplete={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}
               maximumTrackTintColor={Colors[colorScheme].border}
             />
