@@ -130,16 +130,29 @@ export default function CourseDetailScreen() {
     <>
       <Stack.Screen
         options={{
-          title: course.name, // Use course name for the title
+          title: course.id, // Use course name for the title
           headerStyle: {
             backgroundColor: Colors[colorScheme].card,
           },
           headerTintColor: Colors[colorScheme].text,
           headerTitleStyle: {
-             // fontWeight: 'bold', // Optional: make title bold
+          fontWeight: 'bold', // Optional: make title bold
           },
         }}
       />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32 }}>
+        <ThemedText type="title">{course.name}</ThemedText>
+        <View style={{ flexDirection: 'row' }}>
+          <Link href={`/edit-course/${course.id}`} asChild>
+            <TouchableOpacity style={{ marginRight: 10 }}>
+              <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
+            </TouchableOpacity>
+          </Link>
+          <TouchableOpacity onPress={handleDelete}>
+            <Ionicons name="close-circle-outline" size={24} color={Colors[colorScheme].error} />
+          </TouchableOpacity>
+        </View>
+      </View>
       <ScrollView
         style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
         contentContainerStyle={styles.contentContainer}
@@ -278,26 +291,6 @@ export default function CourseDetailScreen() {
          )}
 
          <View style={{ height: 20 }} />
-          <View style={StyleSheet.flatten(bottomButtons(colorScheme).container)}>
-            <Link href={`/edit-course/${course.id}`} asChild>
-              <TouchableOpacity style={StyleSheet.flatten(editButton(colorScheme).container)}>
-                <Ionicons
-                  name="pencil"
-                  size={24}
-                  color={Colors[colorScheme].tint}
-                />
-                <ThemedText style={{ color: Colors[colorScheme].tint }}>Edit</ThemedText>
-              </TouchableOpacity>
-            </Link>
-            <TouchableOpacity onPress={handleDelete} style={StyleSheet.flatten(deleteButton(colorScheme).container)}>
-              <Ionicons
-                name="close-circle-outline"
-                size={24}
-                color={Colors[colorScheme].error}
-              />
-              <ThemedText style={{ color: Colors[colorScheme].error }}>Delete</ThemedText>
-            </TouchableOpacity>
-          </View>
       </ScrollView>
     </>
   );
