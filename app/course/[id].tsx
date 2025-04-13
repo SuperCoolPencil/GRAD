@@ -155,7 +155,7 @@ export default function CourseDetailScreen() {
             </View>
           ),
           headerStyle: {
-            backgroundColor: Colors[colorScheme].background,
+            backgroundColor: Colors[colorScheme].card,
           },
           headerTintColor: Colors[colorScheme].text,
           headerTitleStyle: {

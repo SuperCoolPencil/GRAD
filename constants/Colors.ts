@@ -10,7 +10,7 @@ export const Colors = {
   light: {
     text: '#11181C', // Keeping text dark for contrast
     background: '#fff', // Already brightest
-    tint: '#0096FF', // Brighter blue tint
+    tint: '#0196FF', // Brighter blue tint
     icon: '#687076', // Keeping icons standard gray
     tabIconDefault: '#687076',
     tabIconSelected: '#0096FF', // Match brighter tint
@@ -19,7 +19,7 @@ export const Colors = {
     warning: '#f8ba01',
     shadow: '#000000',
     placeholder: '#A0A0A0', 
-    border: '#E0E0E0', // Lighter border color
+    border: '#9C9C9C', // Lighter border color
     inputBackground: '#FFFFFF', // Already white
     buttonText: '#FFFFFF', 
     card: '#FFFFFF', // Making cards pure white for brighter feel
