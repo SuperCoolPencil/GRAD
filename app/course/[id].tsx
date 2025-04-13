@@ -131,28 +131,6 @@ export default function CourseDetailScreen() {
       <Stack.Screen
         options={{
           title: course.name, // Use course name for the title
-          headerRight: () => (
-            <View style={styles.headerButtons}>
-              <Link href={`/edit-course/${course.id}`} asChild>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="pencil"
-                    size={24}
-                    color={Colors[colorScheme].tint}
-                    style={styles.headerIcon}
-                  />
-                </TouchableOpacity>
-              </Link>
-              <TouchableOpacity onPress={handleDelete}>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={24}
-                  color={Colors[colorScheme].error} // Use error color for delete
-                  style={styles.headerIcon}
-                />
-              </TouchableOpacity>
-            </View>
-          ),
           headerStyle: {
             backgroundColor: Colors[colorScheme].card,
           },
@@ -300,7 +278,26 @@ export default function CourseDetailScreen() {
          )}
 
          <View style={{ height: 20 }} />
-
+          <View style={StyleSheet.flatten(bottomButtons(colorScheme).container)}>
+            <Link href={`/edit-course/${course.id}`} asChild>
+              <TouchableOpacity style={StyleSheet.flatten(editButton(colorScheme).container)}>
+                <Ionicons
+                  name="pencil"
+                  size={24}
+                  color={Colors[colorScheme].tint}
+                />
+                <ThemedText style={{ color: Colors[colorScheme].tint }}>Edit</ThemedText>
+              </TouchableOpacity>
+            </Link>
+            <TouchableOpacity onPress={handleDelete} style={StyleSheet.flatten(deleteButton(colorScheme).container)}>
+              <Ionicons
+                name="close-circle-outline"
+                size={24}
+                color={Colors[colorScheme].error}
+              />
+              <ThemedText style={{ color: Colors[colorScheme].error }}>Delete</ThemedText>
+            </TouchableOpacity>
+          </View>
       </ScrollView>
     </>
   );
@@ -414,3 +411,32 @@ const styles = StyleSheet.create({
      // color: Colors[colorScheme].tint,
    },
  });
+
+const bottomButtons = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+  container: {
+    flexDirection: 'row' as 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+});
+
+const editButton = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+  container: {
+    flexDirection: 'row' as 'row',
+    alignItems: 'center' as 'center',
+    backgroundColor: Colors[colorScheme].card,
+    padding: 10,
+    borderRadius: 8,
+  },
+});
+
+const deleteButton = (colorScheme: 'light' | 'dark') => StyleSheet.create({
+  container: {
+    flexDirection: 'row' as 'row',
+    alignItems: 'center' as 'center',
+    backgroundColor: Colors[colorScheme].card,
+    padding: 10,
+    borderRadius: 8,
+  },
+});
