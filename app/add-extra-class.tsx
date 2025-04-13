@@ -21,13 +21,25 @@ import { ThemedView } from '@/components/ThemedView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
+import { useNavigation } from '@react-navigation/native';
+import { useLayoutEffect } from 'react';
 
 const AddExtraClassScreen = () => {
   const router = useRouter();
   const { addExtraClass, courses } = useContext(AppContext);
+  const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: 'Add Extra Class',
+      headerStyle: {
+        backgroundColor: Colors[colorScheme].card,
+      },
+    });
+  }, [navigation, colors]);
 
   // State variables
   const [date, setDate] = useState(new Date());
@@ -150,7 +162,6 @@ const AddExtraClassScreen = () => {
       <ScrollView style={styles.contentContainer}>
         {/* Form Content */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Add Extra Class</ThemedText>
 
           {/* Course Selection - Replaced Picker with TouchableOpacity + Modal */}
           <View style={styles.inputGroup}>

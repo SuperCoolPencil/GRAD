@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useLayoutEffect } from 'react';
 import {
   View,
   TextInput,
@@ -16,18 +16,28 @@ import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const AddCourseScreen = () => {
-  const router = useRouter();
   const { addCourse, isValidCourseId } = useContext(AppContext);
+  const router = useRouter();
+  const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: `Add Course`,
+      headerStyle: {
+        backgroundColor: Colors[colorScheme].card,
+      },
+    });
+  }, [navigation, colors]);
 
   // Course details state
   const [courseName, setCourseName] = useState('');

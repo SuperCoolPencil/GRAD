@@ -20,16 +20,26 @@ import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext';
-import { useEffect } from 'react'; // Import the custom alert hook
+import { useEffect, useLayoutEffect } from 'react'; // Import the custom alert hook
+import { useNavigation } from '@react-navigation/native';
 
 const EditCourseScreen = () => {
   const router = useRouter();
   const { editCourse, isValidCourseId, getCourse } = useContext(AppContext);
+  const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert();
   const { id } = useLocalSearchParams();
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: `Edit Course (ID: ${id})`,
+      headerStyle: {
+        backgroundColor: Colors[colorScheme].card,
+      },
+    });
+  }, [navigation, id, colors]);
 
    // Course details state
   const [courseName, setCourseName] = useState('');
