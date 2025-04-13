@@ -327,7 +327,7 @@ const AddCourseScreen = () => {
             {/* Day selection */}
             <ThemedText style={styles.label}>Select Day:</ThemedText>
             <View style={styles.dayButtonContainer}>
-              {['M', 'T', 'W', 'Th', 'F', 'Sat', 'Sun'].map((day, index) => {
+              {['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'].map((day, index) => {
                 const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
                 return (
                   <TouchableOpacity

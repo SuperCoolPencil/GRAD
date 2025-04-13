@@ -12,7 +12,8 @@
       "distribution": "internal",
       "android": {
               "buildType": "apk"
-      }
+      },
+      "env": { "ANDROID_SDK_ROOT": "/home/meet/Android/Sdk" }
     },
     "production": {
       "autoIncrement": true
