@@ -9,7 +9,7 @@ const tintColorDark = '#fff';
 export const Colors = {
   light: {
     text: '#11181C', // Keeping text dark for contrast
-    background: '#fff', // Already brightest
+    background: '#f2f2f2', // Already brightest
     tint: '#0196FF', // Brighter blue tint
     icon: '#687076', // Keeping icons standard gray
     tabIconDefault: '#687076',
