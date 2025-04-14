@@ -64,6 +64,7 @@ export function CustomAlert({
                     marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
                     borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
                     borderColor: button.style === 'cancel' ? borderColor : 'transparent', // Use theme border color
+                    elevation: button.style === 'cancel' ? 0 : 2,
                   },
                 ]}
                 onPress={() => {
@@ -104,9 +105,9 @@ const styles = StyleSheet.create({
   },
   modalView: {
     width: '85%',
-    maxWidth: 400,
+    maxWidth: 450,
     margin: 20,
-    borderRadius: 14, // Keep previous border radius
+    borderRadius: 12, // Keep previous border radius
     padding: 20, // Keep previous padding
     alignItems: 'center',
     shadowColor: '#000',
@@ -114,12 +115,12 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
     elevation: 5,
   },
   titleText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
@@ -131,16 +132,15 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     width: '100%',
-    marginTop: 10,
+    marginTop: 20,
   },
   basicButton: {
-    borderRadius: 8, // Keep previous border radius
+    borderRadius: 12, // Keep previous border radius
     paddingVertical: 10,
     paddingHorizontal: 20,
-    minWidth: 80, // Keep previous min width
-    elevation: 2, // Add slight elevation like example
+    minWidth: 80,
     alignItems: 'center',
   },
   buttonMargin: {
