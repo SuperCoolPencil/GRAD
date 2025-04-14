@@ -28,8 +28,10 @@ export function CustomAlert({
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
-  const primaryColor = useThemeColor({}, 'tint'); // For primary button
-  const errorColor = useThemeColor({}, 'error'); // For destructive button
+  const primaryColor = useThemeColor({}, 'alertPrimary'); // For primary button
+  const destructiveColor = useThemeColor({}, 'alertDestructive'); // For destructive button
+  const tintColor = useThemeColor({}, 'tint'); // For destructive button
+
 
   return (
     <Modal
@@ -59,11 +61,11 @@ export function CustomAlert({
                 style={({ pressed }) => [
                   styles.basicButton,
                   {
-                    backgroundColor: button.style === 'destructive' ? errorColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
+                    backgroundColor: button.style === 'destructive' ? destructiveColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
                     opacity: pressed ? 0.7 : 1,
                     marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
                     borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
-                    borderColor: button.style === 'cancel' ? borderColor : 'transparent', // Use theme border color
+                    borderColor: button.style === 'cancel' ? (button.style === 'cancel' ? tintColor : borderColor) : 'transparent', // Use theme border color
                     elevation: button.style === 'cancel' ? 0 : 2,
                   },
                 ]}
@@ -78,7 +80,7 @@ export function CustomAlert({
                   style={[
                     styles.buttonText,
                     {
-                      color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? textColor : '#fff'), // Use default text color for cancel
+                      color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? tintColor : '#fff'), // Use default text color for cancel
                       fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
                       textAlign: 'center',
                     },

@@ -46,19 +46,19 @@ export const AppContext = createContext<AppContextType>({
   courses: [],
   loading: true,
   theme: "light",
-  toggleTheme: () => {},
-  addCourse: () => {},
-  editCourse: () => {},
-   getCourse: () => Promise.resolve(undefined),
-  updateCourse: () => {},
-  deleteCourse: () => {},
-  changeAttendanceRecord: () => {},
+  toggleTheme: () => { },
+  addCourse: () => { },
+  editCourse: () => { },
+  getCourse: () => Promise.resolve(undefined),
+  updateCourse: () => { },
+  deleteCourse: () => { },
+  changeAttendanceRecord: () => { },
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
-  markAttendance: () => {},
-  addScheduleItem: () => {},
-  addExtraClass: () => {},
-  clearData: () => {},
-  updateCourseCounts: () => {},
+  markAttendance: () => { },
+  addScheduleItem: () => { },
+  addExtraClass: () => { },
+  clearData: () => { },
+  updateCourseCounts: () => { },
 });
 
 interface AppProviderProps {
@@ -69,6 +69,16 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [theme, setTheme] = useState<string>("light");
+
+  const [count, setCount] = useState(0);
+
+  const increment = () => {
+    setCount(count + 1);
+  };
+
+  const decrement = () => {
+    setCount(Math.max(0, count - 1));
+  };
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
@@ -119,7 +129,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         title="Error"
         message="Course ID must contain only numbers and alphabets."
         isVisible={true}
-        onClose={() => {}}
+        onClose={() => { }}
       />
       return;
     }
@@ -131,7 +141,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         title="Error"
         message="A course with this ID already exists. Please use a different ID."
         isVisible={true}
-        onClose={() => {}}
+        onClose={() => { }}
       />
       return;
     }
@@ -206,12 +216,12 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           const currentAttendanceRecords = course.attendanceRecords || [];
 
           const updatedCourse = {
-             ...course,
-             presents: currentPresents,
-             absents: currentAbsents,
-             cancelled: currentCancelled,
-             attendanceRecords: [...currentAttendanceRecords] // Clone to avoid direct mutation
-           };
+            ...course,
+            presents: currentPresents,
+            absents: currentAbsents,
+            cancelled: currentCancelled,
+            attendanceRecords: [...currentAttendanceRecords] // Clone to avoid direct mutation
+          };
 
           // Find if an attendance record exists for the current day and schedule item
           const todayDateString = new Date().toISOString().slice(0, 10);
@@ -261,9 +271,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
           // Increment count for the new status (if it changed or is new)
           if (oldStatus !== status) {
-             if (status === 'present') updatedCourse.presents++;
-             else if (status === 'absent') updatedCourse.absents++;
-             else if (status === 'cancelled') updatedCourse.cancelled++;
+            if (status === 'present') updatedCourse.presents++;
+            else if (status === 'absent') updatedCourse.absents++;
+            else if (status === 'cancelled') updatedCourse.cancelled++;
           }
           // --- End Incremental Counter Update ---
 
@@ -310,15 +320,21 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           const oldStatus = oldRecord ? oldRecord.Status : null;
 
           updatedRecords?.forEach(record => {
-              if (record.id === recordId) {
-                  if (oldStatus === 'present') presents--;
-                  else if (oldStatus === 'absent') absents--;
-                  else if (oldStatus === 'cancelled') cancelled--;
+            if (record.id === recordId) {
+              if (oldStatus === 'present') presents--;
+              else if (oldStatus === 'absent') absents--;
+              else if (oldStatus === 'cancelled') cancelled--;
 
-                  if (record.Status === 'present') presents++;
-                  else if (record.Status === 'absent') absents++;
-                  else if (record.Status === 'cancelled') cancelled++;
-              }
+              presents = Math.max(0, presents);
+              absents = Math.max(0, absents);
+              cancelled = Math.max(0, cancelled);
+
+              if (record.Status === 'present') presents++;
+              else if (record.Status === 'absent') absents++;
+              else if (record.Status === 'cancelled') cancelled++;
+
+              
+            }
           });
 
           updatedCourse.attendanceRecords = updatedRecords;
@@ -368,7 +384,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     timeStart: string,
     timeEnd: string
   ) => {
-      setCourses((prevCourses) => {
+    setCourses((prevCourses) => {
       return prevCourses.map((course) => {
         if (course.id.toLowerCase() === courseId.toLowerCase()) {
           const updatedCourse = { ...course };
@@ -421,41 +437,41 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         theme,
         toggleTheme,
         addCourse,
-  editCourse: updateCourse,
-  getCourse: (courseId: string) => {
-    return Promise.resolve(courses.find((course) => course.id === courseId));
-  },
-  updateCourse,
-  deleteCourse,
-  changeAttendanceRecord,
-  isValidCourseId,
-  markAttendance,
-  addScheduleItem: addScheduleItem,
-  addExtraClass: addExtraClass,
-  clearData,
-  updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
-          updatedCourse[countType] = newValue;
+        editCourse: updateCourse,
+        getCourse: (courseId: string) => {
+          return Promise.resolve(courses.find((course) => course.id === courseId));
+        },
+        updateCourse,
+        deleteCourse,
+        changeAttendanceRecord,
+        isValidCourseId,
+        markAttendance,
+        addScheduleItem: addScheduleItem,
+        addExtraClass: addExtraClass,
+        clearData,
+        updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
+          setCourses((prevCourses) =>
+            prevCourses.map((course) => {
+              if (course.id.toLowerCase() === courseId.toLowerCase()) {
+                const updatedCourse = { ...course };
+                updatedCourse[countType] = newValue;
 
-          // Calculate attendance percentage
-          const totalClasses = updatedCourse.presents + updatedCourse.absents;
-          updatedCourse.attendancePercentage =
-            totalClasses === 0
-              ? 100
-              : Math.round((updatedCourse.presents / totalClasses) * 100);
+                // Calculate attendance percentage
+                const totalClasses = updatedCourse.presents + updatedCourse.absents;
+                updatedCourse.attendancePercentage =
+                  totalClasses === 0
+                    ? 100
+                    : Math.round((updatedCourse.presents / totalClasses) * 100);
 
-          // Ensure attendancePercentage is not NaN
-          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
+                // Ensure attendancePercentage is not NaN
+                updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
 
-          return updatedCourse;
-        }
-        return course;
-      })
-    );
-  },
+                return updatedCourse;
+              }
+              return course;
+            })
+          );
+        },
       }}
     >
       {children}

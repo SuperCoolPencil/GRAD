@@ -24,6 +24,8 @@ export const Colors = {
     buttonText: '#FFFFFF', 
     card: '#FFFFFF', // Making cards pure white for brighter feel
     alert: '#fff',
+    alertPrimary: '#0196FF',
+    alertDestructive: '#fb1e08',
   },
   dark: {
     text: '#ECEDEE',
@@ -40,5 +42,7 @@ export const Colors = {
     border: '#666666', 
     card: '#1c1c1e',
     alert:'#262626',
+    alertPrimary: '#0096FF',
+    alertDestructive: '#c93d33',
   },
 };
