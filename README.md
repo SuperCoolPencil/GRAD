@@ -31,6 +31,16 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
 
 ---
 
+## Upcoming Features
+
+- **Scheduled Notificatications**
+- **Google Calendar Integration**
+- **Marks Tracker**
+- **Grades Predictor**
+- **CLEO Integration**
+
+---
+
 ## Screenshots
 
 <table>
