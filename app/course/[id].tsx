@@ -6,7 +6,11 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme as useNativeColorScheme, // Rename to avoid conflict
+  Alert,
+  Pressable,
+  TextInput,
 } from 'react-native';
+import Modal from 'react-native-modal';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -53,12 +57,17 @@ const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { courses, loading, deleteCourse, updateCourse, changeAttendanceRecord } = useContext(AppContext);
+  const { courses, loading, deleteCourse, updateCourse, changeAttendanceRecord, updateCourseCounts } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   // Use the hook correctly
   const colorScheme = useNativeColorScheme() ?? 'light'; // Default to light if null
   const { showAlert } = useCustomAlert();
+
+  // State variables for the modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [countType, setCountType] = useState<"presents" | "absents" | "cancelled">("presents");
 
   const handleAttendanceClick = (recordId: string) => {
     if (!course) return;
@@ -208,18 +217,100 @@ export default function CourseDetailScreen() {
           <View style={styles.attendanceDetailRow}>
             <View style={styles.attendanceDetailItem}>
               <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
-              <ThemedText style={styles.detailText}> Present: {presents}</ThemedText>
+              <Pressable onPress={() => {
+                setCountType("presents");
+                setInputValue(String(presents));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={styles.detailText}> Present: {presents}</ThemedText>
+              </Pressable>
             </View>
             <View style={styles.attendanceDetailItem}>
               <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
-              <ThemedText style={styles.detailText}> Absent: {absents}</ThemedText>
+              <Pressable onPress={() => {
+                setCountType("absents");
+                setInputValue(String(absents));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={styles.detailText}> Absent: {absents}</ThemedText>
+              </Pressable>
             </View>
             <View style={styles.attendanceDetailItem}>
               <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
-              <ThemedText style={styles.detailText}> Cancelled: {cancelled}</ThemedText>
+              <Pressable onPress={() => {
+                setCountType("cancelled");
+                setInputValue(String(cancelled));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={styles.detailText}> Cancelled: {cancelled}</ThemedText>
+              </Pressable>
             </View>
           </View>
         </ThemedView>
+
+        <Modal
+          isVisible={modalVisible}
+          onBackdropPress={() => setModalVisible(false)} // Close on backdrop press
+          animationIn="fadeInUp" // Smoother animation
+          animationOut="fadeOutDown"
+          backdropOpacity={0.4} // Dim background slightly
+          style={styles.modalContainer} // Use style for margin/justifyContent
+        >
+          {/* Use ThemedView for consistent background and theme handling */}
+          <ThemedView style={styles.modalView}>
+            {/* Dynamic Title */}
+            <ThemedText type="subtitle" style={styles.modalTitle}>
+              Update {countType.charAt(0).toUpperCase() + countType.slice(1)} Count
+            </ThemedText>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    color: Colors[colorScheme].text,
+                    borderColor: Colors[colorScheme].border,
+                    // Use background color as fallback, as inputBackground doesn't exist
+                    backgroundColor: Colors[colorScheme].background || Colors[colorScheme].card,
+                  }
+                ]}
+                onChangeText={setInputValue}
+                value={inputValue}
+                keyboardType="number-pad"
+                placeholder={`Enter new ${countType} count`} // Add placeholder
+                placeholderTextColor={Colors[colorScheme].icon} // Style placeholder
+                autoFocus={true} // Focus input on open
+              />
+              {/* Button Container */}
+              <View style={styles.modalButtonContainer}>
+                {/* Cancel Button */}
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: Colors[colorScheme].error }]} // Use theme error color
+                  onPress={() => setModalVisible(false)} // Just close
+                >
+                  <ThemedText style={styles.buttonTextStyle}>Cancel</ThemedText>
+                </TouchableOpacity>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: Colors[colorScheme].tint }]} // Use theme tint color
+                  onPress={() => {
+                    setModalVisible(false); // Close modal first
+                    const newValue = parseInt(inputValue, 10);
+                    // Validate input: ensure it's a non-negative number
+                    if (!isNaN(newValue) && newValue >= 0) {
+                      updateCourseCounts(course.id, countType, newValue);
+                    } else {
+                      // Show an alert for invalid input
+                      showAlert('Invalid Input', 'Please enter a valid non-negative number.');
+                      // Optional: Re-open modal or clear input. Let's not re-open for now.
+                      // setInputValue(''); // Clear invalid input
+                    }
+                  }}
+                >
+                  <ThemedText style={styles.buttonTextStyle}>Submit</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedView>
+        </Modal>
 
         {/* --- Weekly Schedule Card --- */}
         {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
@@ -427,6 +518,65 @@ const styles = StyleSheet.create({
      // Optional: Add a subtle background or color if desired
      // color: Colors[colorScheme].tint,
    },
+   // Modal Styles
+   modalContainer: { // Style for the Modal component itself
+     margin: 0, // Remove default margins from react-native-modal
+     justifyContent: 'center',
+     alignItems: 'center',
+   },
+   modalView: { // Style for the content container (ThemedView)
+     width: '90%', // Wider modal
+     maxWidth: 350, // Max width constraint
+     borderRadius: 16, // Consistent rounding
+     padding: 25, // Slightly more padding
+     alignItems: 'center', // Center content horizontally
+     // Shadows applied by ThemedView potentially, or add here if needed
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 3 },
+     shadowOpacity: 0.15,
+     shadowRadius: 5,
+     elevation: 5,
+     // Background color is handled by ThemedView
+     // Border color can be added if desired, e.g., borderColor: Colors[colorScheme].border, borderWidth: 1,
+   },
+   modalTitle: {
+     marginBottom: 20, // Space below title
+     textAlign: 'center',
+     fontSize: 18, // Match card title size
+   },
+   textInput: {
+     height: 45, // Slightly taller
+     borderWidth: 1,
+     paddingHorizontal: 15, // More horizontal padding
+     borderRadius: 8, // More rounded corners
+     width: '100%', // Use full width of modal content area
+     marginBottom: 25, // Space below input
+     fontSize: 16,
+   },
+   modalButtonContainer: {
+     flexDirection: 'row',
+     justifyContent: 'space-between', // Space out buttons
+     width: '100%', // Use full width
+     marginTop: 10, // Add some space above buttons
+   },
+   button: {
+     borderRadius: 10, // More rounded buttons
+     paddingVertical: 12,
+     paddingHorizontal: 20,
+     justifyContent: 'center',
+     alignItems: 'center',
+     flex: 1, // Make buttons share space equally
+     marginHorizontal: 8, // Space between buttons
+     minHeight: 44, // Ensure minimum tap target size for accessibility
+     elevation: 2, // Add slight elevation to buttons
+   },
+   buttonTextStyle: { // Renamed from textStyle for clarity
+     fontSize: 16,
+     textAlign: 'center',
+     fontWeight: 'bold',
+     color: '#FFFFFF', // Explicitly white, or use a theme color for button text if defined
+   },
+   // Removed buttonClose, buttonCancel, modalText, centeredView as they are replaced/handled differently or unused
  });
 
 const bottomButtons = (colorScheme: 'light' | 'dark') => StyleSheet.create({

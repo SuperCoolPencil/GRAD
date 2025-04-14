@@ -1,17 +1,17 @@
 import React from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
-import Modal from 'react-native-modal';
+import { StyleSheet, View, Pressable, Modal } from 'react-native'; // Import Modal from react-native
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { AlertButton } from '@/types'; // Assuming AlertButton type is defined here
+import { AlertButton } from '@/types';
+import { Colors } from '@/constants/Colors';
 
 interface CustomAlertProps {
   isVisible: boolean;
   title?: string;
   message?: string;
   buttons?: AlertButton[];
-  onClose: () => void; // Function to close the modal from the context
+  onClose: () => void;
 }
 
 export function CustomAlert({
@@ -21,116 +21,134 @@ export function CustomAlert({
   buttons,
   onClose,
 }: CustomAlertProps) {
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'border');
-  const primaryColor = useThemeColor({}, 'tint'); // For primary button
 
   const defaultButtons: AlertButton[] = [{ text: 'OK', onPress: onClose }];
   const alertButtons = buttons && buttons.length > 0 ? buttons : defaultButtons;
 
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const borderColor = useThemeColor({}, 'border');
+  const primaryColor = useThemeColor({}, 'tint'); // For primary button
+  const errorColor = useThemeColor({}, 'error'); // For destructive button
+
   return (
     <Modal
-      isVisible={isVisible}
-      onBackdropPress={onClose} // Close on backdrop press
-      onBackButtonPress={onClose} // Close on hardware back button press (Android)
-      animationIn="fadeInUp"
-      animationOut="fadeOutDown"
-      backdropTransitionOutTiming={0}
-      style={styles.modal}
+      animationType="fade" // Using fade animation like react-native-modal's fadeOut
+      transparent={true} // Required for overlay effect
+      visible={isVisible}
+      onRequestClose={onClose} // Handle hardware back button press
     >
-      <ThemedView style={[styles.container, { borderColor }]} lightColor="#fff" darkColor="#1f1e1e">
-        {title && (
-          <ThemedText type="subtitle" style={styles.title}>
-            {title}
-          </ThemedText>
-        )}
-        {message && (
-          <ThemedText style={[styles.message, { color: textColor }]}>
-            {message}
-          </ThemedText>
-        )}
-        <View style={styles.buttonContainer}>
-          {alertButtons.map((button, index) => (
-            <Pressable
-              key={index}
-              style={({ pressed }) => [
-                styles.button,
-                {
-                  backgroundColor: button.style === 'destructive' ? 'red' : (button.style === 'cancel' ? 'transparent' : primaryColor),
-                  opacity: pressed ? 0.7 : 1,
-                  marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
-                },
-              ]}
-              onPress={() => {
-                onClose(); // Close the modal first
-                if (button.onPress) {
-                  button.onPress(); // Then execute the button's action
-                }
-              }}
-            >
-              <ThemedText
-                style={[
-                  styles.buttonText,
+      {/* Centering container similar to the example */}
+      <View style={styles.centeredView}>
+        {/* Modal content view with styling from the example */}
+        <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
+          {title && (
+            <ThemedText type="subtitle" style={styles.titleText}>
+              {title}
+            </ThemedText>
+          )}
+          {message && (
+            <ThemedText style={[styles.messageText, { color: textColor }]}>
+              {message}
+            </ThemedText>
+          )}
+          <View style={styles.buttonRow}>
+            {alertButtons.map((button, index) => (
+              <Pressable
+                key={index}
+                style={({ pressed }) => [
+                  styles.basicButton,
                   {
-                    color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? primaryColor : '#fff'),
-                    fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
+                    backgroundColor: button.style === 'destructive' ? errorColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
+                    opacity: pressed ? 0.7 : 1,
+                    marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
+                    borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
+                    borderColor: button.style === 'cancel' ? borderColor : 'transparent', // Use theme border color
                   },
                 ]}
+                onPress={() => {
+                  if (button.onPress) {
+                    button.onPress();
+                  }
+                  onClose(); // Close the modal
+                }}
               >
-                {button.text}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
-      </ThemedView>
+                <ThemedText
+                  style={[
+                    styles.buttonText,
+                    {
+                      color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? textColor : '#fff'), // Use default text color for cancel
+                      fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
+                      textAlign: 'center',
+                    },
+                  ]}
+                >
+                  {button.text}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        </ThemedView>
+      </View>
     </Modal>
   );
 }
 
+// Styles adapted from the example and previous basic version
 const styles = StyleSheet.create({
-  modal: {
+  centeredView: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 0, // Use margin for positioning container if needed
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Semi-transparent backdrop
   },
-  container: {
+  modalView: {
     width: '85%',
     maxWidth: 400,
-    borderRadius: 14,
-    padding: 20,
+    margin: 20,
+    borderRadius: 14, // Keep previous border radius
+    padding: 20, // Keep previous padding
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 10,
+  titleText: {
+    fontSize: 18,
     fontWeight: 'bold',
-  },
-  message: {
+    marginBottom: 10,
     textAlign: 'center',
-    marginBottom: 20,
-    fontSize: 16,
-    lineHeight: 22,
   },
-  buttonContainer: {
+  messageText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'center', // Center buttons if only one, space if multiple? Adjust as needed.
+    justifyContent: 'flex-end',
+    width: '100%',
     marginTop: 10,
   },
-  button: {
-    borderRadius: 8,
+  basicButton: {
+    borderRadius: 8, // Keep previous border radius
     paddingVertical: 10,
     paddingHorizontal: 20,
-    justifyContent: 'center',
+    minWidth: 80, // Keep previous min width
+    elevation: 2, // Add slight elevation like example
     alignItems: 'center',
-    minWidth: 80, // Ensure buttons have a minimum width
+  },
+  buttonMargin: {
+    marginLeft: 10,
   },
   buttonText: {
     fontSize: 16,
+    fontWeight: 'bold', // Match example text style
     textAlign: 'center',
   },
 });

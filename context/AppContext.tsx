@@ -39,6 +39,7 @@ interface AppContextType {
     timeEnd: string
   ) => void;
   clearData: () => void;
+  updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -57,6 +58,7 @@ export const AppContext = createContext<AppContextType>({
   addScheduleItem: () => {},
   addExtraClass: () => {},
   clearData: () => {},
+  updateCourseCounts: () => {},
 });
 
 interface AppProviderProps {
@@ -431,6 +433,29 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   addScheduleItem: addScheduleItem,
   addExtraClass: addExtraClass,
   clearData,
+  updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
+    setCourses((prevCourses) =>
+      prevCourses.map((course) => {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
+          const updatedCourse = { ...course };
+          updatedCourse[countType] = newValue;
+
+          // Calculate attendance percentage
+          const totalClasses = updatedCourse.presents + updatedCourse.absents;
+          updatedCourse.attendancePercentage =
+            totalClasses === 0
+              ? 100
+              : Math.round((updatedCourse.presents / totalClasses) * 100);
+
+          // Ensure attendancePercentage is not NaN
+          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
+
+          return updatedCourse;
+        }
+        return course;
+      })
+    );
+  },
       }}
     >
       {children}

@@ -23,6 +23,7 @@ export const Colors = {
     inputBackground: '#FFFFFF', // Already white
     buttonText: '#FFFFFF', 
     card: '#FFFFFF', // Making cards pure white for brighter feel
+    alert: '#fff',
   },
   dark: {
     text: '#ECEDEE',
@@ -37,6 +38,7 @@ export const Colors = {
     shadow: '#000000',
     placeholder: '#47474C', 
     border: '#666666', 
-    card: '#1c1c1e'
+    card: '#1c1c1e',
+    alert:'#262626',
   },
 };
