@@ -23,6 +23,7 @@ interface AppContextType {
   getCourse: (courseId: string) => Promise<Course | undefined>;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
+  changeAttendanceRecord: (courseId: string, recordId: string, newStatus: "present" | "absent" | "cancelled") => void;
   isValidCourseId: (courseId: string) => boolean;
   markAttendance: (
     courseId: string,
@@ -50,6 +51,7 @@ export const AppContext = createContext<AppContextType>({
    getCourse: () => Promise.resolve(undefined),
   updateCourse: () => {},
   deleteCourse: () => {},
+  changeAttendanceRecord: () => {},
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
   markAttendance: () => {},
   addScheduleItem: () => {},
@@ -285,6 +287,60 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     );
   };
 
+  const changeAttendanceRecord = (courseId: string, recordId: string, newStatus: "present" | "absent" | "cancelled") => {
+    setCourses((prevCourses) =>
+      prevCourses.map((course) => {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
+          const updatedCourse = { ...course };
+          const updatedRecords = updatedCourse.attendanceRecords?.map(record => {
+            if (record.id === recordId) {
+              return { ...record, Status: newStatus };
+            }
+            return record;
+          });
+
+          // Update presents, absents, cancelled counts
+          let presents = updatedCourse.presents || 0;
+          let absents = updatedCourse.absents || 0;
+          let cancelled = updatedCourse.cancelled || 0;
+
+          const oldRecord = updatedCourse.attendanceRecords?.find(r => r.id === recordId);
+          const oldStatus = oldRecord ? oldRecord.Status : null;
+
+          updatedRecords?.forEach(record => {
+              if (record.id === recordId) {
+                  if (oldStatus === 'present') presents--;
+                  else if (oldStatus === 'absent') absents--;
+                  else if (oldStatus === 'cancelled') cancelled--;
+
+                  if (record.Status === 'present') presents++;
+                  else if (record.Status === 'absent') absents++;
+                  else if (record.Status === 'cancelled') cancelled++;
+              }
+          });
+
+          updatedCourse.attendanceRecords = updatedRecords;
+          updatedCourse.presents = presents;
+          updatedCourse.absents = absents;
+          updatedCourse.cancelled = cancelled;
+
+          // Calculate attendance percentage
+          const totalClasses = updatedCourse.presents + updatedCourse.absents;
+          updatedCourse.attendancePercentage =
+            totalClasses === 0
+              ? 100
+              : Math.round((updatedCourse.presents / totalClasses) * 100);
+
+          // Ensure attendancePercentage is not NaN
+          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
+
+          return updatedCourse;
+        }
+        return course;
+      })
+    );
+  };
+
   const addScheduleItem = (
     courseId: string,
     newScheduleItem: ScheduleItem
@@ -369,6 +425,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   },
   updateCourse,
   deleteCourse,
+  changeAttendanceRecord,
   isValidCourseId,
   markAttendance,
   addScheduleItem: addScheduleItem,

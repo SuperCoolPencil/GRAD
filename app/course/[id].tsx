@@ -11,7 +11,7 @@ import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Course, ScheduleItem, ExtraClass } from '@/types';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
 // Assuming useColorScheme hook provides 'light' | 'dark'
@@ -53,12 +53,36 @@ const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { courses, loading, deleteCourse } = useContext(AppContext);
+  const { courses, loading, deleteCourse, updateCourse, changeAttendanceRecord } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   // Use the hook correctly
   const colorScheme = useNativeColorScheme() ?? 'light'; // Default to light if null
   const { showAlert } = useCustomAlert();
+
+  const handleAttendanceClick = (recordId: string) => {
+    if (!course) return;
+
+    let newStatus: "present" | "absent" | "cancelled";
+    const record = course.attendanceRecords?.find(r => r.id === recordId);
+    if (!record) return;
+
+    switch (record.Status) {
+      case 'present':
+        newStatus = 'absent';
+        break;
+      case 'absent':
+        newStatus = 'cancelled';
+        break;
+      case 'cancelled':
+        newStatus = 'present';
+        break;
+      default:
+        newStatus = 'present';
+    }
+
+    changeAttendanceRecord(course.id, recordId, newStatus);
+  };
 
   useEffect(() => {
     if (!loading && id) {
@@ -269,7 +293,7 @@ export default function CourseDetailScreen() {
                  }
 
                  return (
-                   <View key={record.id} style={styles.historyItem}>
+                   <TouchableOpacity key={record.id} style={styles.historyItem} onPress={() => handleAttendanceClick(record.id)}>
                      <Ionicons name={statusIcon} size={18} color={statusColor} />
                      <ThemedText style={[styles.historyText, { color: statusColor }]}>
                         {displayStatusText} {/* Use the display variable here */}
@@ -277,7 +301,7 @@ export default function CourseDetailScreen() {
                       <ThemedText style={styles.historyDateText}>
                         on {formattedDate} {record.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
                       </ThemedText>
-                    </View>
+                    </TouchableOpacity>
                   );
                })}
            </ThemedView>

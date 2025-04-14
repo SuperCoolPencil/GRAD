@@ -16,7 +16,6 @@ import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const DAYS_OF_WEEK = [
   "Sunday",
@@ -117,7 +116,6 @@ function TodaysClassesContent({
   colorScheme: 'light' | 'dark';
 }) {
   const [markedClasses, setMarkedClasses] = useState<string[]>([]);
-  const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   useEffect(() => {
     const loadMarkedClasses = async () => {
@@ -214,19 +212,11 @@ function TodaysClassesContent({
     isExtraClass: boolean,
     scheduleItemId?: string
   ) => {
-    showAlert('Mark Attendance', `Mark attendance as ${status}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'OK',
-        onPress: () => {
-          markAttendance(courseId, status, isExtraClass, scheduleItemId);
-          setMarkedClasses((prevMarkedClasses) => {
-            const classId = scheduleItemId || `${courseId}-extra-${isExtraClass}`;
-            return [...prevMarkedClasses, classId];
-          });
-        },
-      },
-    ]);
+    markAttendance(courseId, status, isExtraClass, scheduleItemId);
+    setMarkedClasses((prevMarkedClasses) => {
+      const classId = scheduleItemId || `${courseId}-extra-${isExtraClass}`;
+      return [...prevMarkedClasses, classId];
+    });
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
