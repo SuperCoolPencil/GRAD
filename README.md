@@ -38,6 +38,7 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
 - **Marks Tracker**
 - **Grades Predictor**
 - **CLEO Integration**
+- **Cloud Sync Options**
 
 ---
 
