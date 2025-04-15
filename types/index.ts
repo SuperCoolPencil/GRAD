@@ -32,6 +32,7 @@ export interface Course {
     attendanceRecords?: AttendanceRecord[];
     attendancePercentage?: number;
     classes?: { status: 'present' | 'absent' | 'cancelled' }[];
+    isArchived?: boolean;
 }
 
 export interface ClassItem {

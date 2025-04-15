@@ -155,6 +155,11 @@ function TodaysClassesContent({
     const classesForToday: ClassItem[] = [];
 
     courses.forEach((course: Course) => {
+      // Skip archived courses
+      if (course.isArchived) {
+        return;
+      }
+
       const presents = course.presents || 0;
       const absents = course.absents || 0;
       const required = course.requiredAttendance || 75;

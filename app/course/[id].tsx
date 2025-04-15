@@ -56,6 +56,7 @@ export default function CourseDetailScreen() {
     updateCourse,
     changeAttendanceRecord,
     updateCourseCounts,
+    archiveCourse, // Import archiveCourse
   } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -117,6 +118,25 @@ export default function CourseDetailScreen() {
           onPress: () => {
             deleteCourse(course.id);
             router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleArchive = () => {
+    if (!course) return;
+    showAlert(
+      'Archive Course',
+      `Archived courses will no longer appear in your main lists, weekly schedules, or trigger notifications`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          style: 'destructive', // Use destructive style for clarity
+          onPress: () => {
+            archiveCourse(course.id);
+            router.back(); // Go back after archiving
           },
         },
       ]
@@ -186,8 +206,12 @@ export default function CourseDetailScreen() {
               <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
             </TouchableOpacity>
           </Link>
+          {/* Add Archive Button */}
+          <TouchableOpacity onPress={handleArchive} style={{ marginRight: 10 }}>
+            <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleDelete}>
-            <Ionicons name="close-circle-outline" size={24} color={Colors[colorScheme].error} />
+            <Ionicons name="trash-outline" size={24} color={Colors[colorScheme].error} />
           </TouchableOpacity>
         </View>
       </View>

@@ -50,7 +50,9 @@ export default function CoursesScreen() {
   );
 }
 
-function CoursesContent({ courses, colorScheme, router }: { courses: any; colorScheme: 'light' | 'dark'; router: any }) {
+function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; colorScheme: 'light' | 'dark'; router: any }) {
+  // Filter out archived courses
+  const activeCourses = courses.filter(course => !course.isArchived);
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage || 0;
@@ -128,7 +130,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
 
   return (
     <FlatList
-      data={courses}
+      data={activeCourses} // Use the filtered list
       renderItem={renderCourseItem}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}

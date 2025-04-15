@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'; // Import Platform, removed useColorScheme
 import Constants from 'expo-constants'; // Import Constants
+import { Link, useRouter } from 'expo-router';
 import { ExternalLink } from '@/components/ExternalLink'; // Adjusted path
 import { AppContext } from '@/context/AppContext'; // Adjusted path
 import { ThemedText } from '@/components/ThemedText'; // Added for consistency
@@ -8,9 +9,11 @@ import { ThemedView } from '@/components/ThemedView'; // Added for consistency
 import { Colors } from '@/constants/Colors'; // Added for consistency
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function SettingsScreen() {
   const { clearData } = useContext(AppContext);
+  const router = useRouter();
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
@@ -67,6 +70,15 @@ export default function SettingsScreen() {
         {/* Data Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
+          {/* Add Link to Archived Courses */}
+          <TouchableOpacity
+            style={[styles.clearButton, { backgroundColor: Colors.light.tint }]}
+            onPress={() => {
+              router.push("/archived-courses");
+            }}
+          >
+            <Text style={styles.clearButtonText}>View Archived Courses</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.clearButton, { backgroundColor: Colors.light.error }]}
             onPress={handleClearData}
