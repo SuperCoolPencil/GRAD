@@ -68,8 +68,8 @@ export default function TodaysClassesScreen() {
   const router = useRouter();
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={styles.titleContainer}>
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
+      <View style={[styles.titleContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
         <ThemedText
           type="title"
           style={{ color: Colors[colorScheme || "light"].text }}
@@ -83,7 +83,7 @@ export default function TodaysClassesScreen() {
           <Ionicons
             name="add-circle-outline"
             size={28}
-            color={Colors[colorScheme || "light"].tint || "#007AFF"}
+            color={Colors[colorScheme || "light"].tint}
           />
         </TouchableOpacity>
       </View>
@@ -222,7 +222,7 @@ function TodaysClassesContent({
   const renderClassItem = ({ item }: { item: ClassItem }) => {
     const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
     const cardBackground =
-      colorScheme === 'dark' ? '#262626' : '#FFFFFF';
+      colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
     // We can color-code the text that indicates how many you must attend/bunk
     let attendanceNote = 'At required attendance';
     if (item.needToAttend > 0) {
@@ -250,22 +250,22 @@ function TodaysClassesContent({
                 </ThemedText>
               </View>
               <View style={styles.infoRow}>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                color={colorScheme === 'dark' ? '#CCC' : '#888'}
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={Colors[colorScheme || 'light'].icon}
                 style={{ marginRight: 4 }}
               />
               <ThemedText>
-                {item.timeStart} - {item.timeEnd}{' '}
-                {item.isExtraClass ? '(Extra)' : ''}
+                {item.timeStart} - {item.timeEnd}
+                {item.isExtraClass ? ' (Extra)' : ''}
               </ThemedText>
             </View>
             <View style={styles.infoRow}>
               <Ionicons
                 name="stats-chart-outline"
                 size={16}
-                color={colorScheme === 'dark' ? '#CCC' : '#888'}
+                color={Colors[colorScheme || 'light'].icon}
                 style={{ marginRight: 4 }}
               />
               <ThemedText>
@@ -289,9 +289,9 @@ function TodaysClassesContent({
                   <Ionicons
                     name="checkmark-done-circle-outline"
                     size={20}
-                    color="#808080" // Neutral gray color
+                    color={Colors[colorScheme || 'light'].icon} // Neutral gray color
                   />
-                  
+
                 </View>
               )}
             </View>
@@ -304,8 +304,8 @@ function TodaysClassesContent({
                 handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id)
               }
             >
-              <Ionicons name="checkmark-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Present</ThemedText>
+              <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Present</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -314,8 +314,8 @@ function TodaysClassesContent({
                 handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id)
               }
             >
-              <Ionicons name="close-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Absent</ThemedText>
+              <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Absent</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -324,8 +324,8 @@ function TodaysClassesContent({
                 handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
               }
             >
-              <Ionicons name="remove-circle-outline" size={20} color="white" />
-              <ThemedText style={styles.actionButtonText}>Cancel</ThemedText>
+              <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Cancel</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -340,20 +340,21 @@ function TodaysClassesContent({
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.classesList}
       ListEmptyComponent={() => (
-        <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>
+        <ThemedView style={[styles.emptyContainer, {backgroundColor: Colors[colorScheme || "light"].background}]}>
+          <ThemedText style={[styles.emptyText, {color: Colors[colorScheme || "light"].text}]}>
             No classes scheduled for today!
           </ThemedText>
         </ThemedView>
       )}
       removeClippedSubviews={false}
+      style={{ backgroundColor: Colors[colorScheme || "light"].background }}
     />
   );
 }
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#808080',
+    color: Colors.light.icon,
     bottom: -90,
     left: -35,
     position: "absolute",
@@ -422,7 +423,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionButtonText: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
     marginLeft: 4,

@@ -3,11 +3,14 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
+import { white } from "react-native-paper/lib/typescript/styles/themes/v2/colors";
+
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
+    white: '#FFFFFF',
     text: '#11181C', // Keeping text dark for contrast
     background: '#f2f2f2', // Already brightest
     tint: '#0196FF', // Brighter blue tint
@@ -28,8 +31,9 @@ export const Colors = {
     alertDestructive: '#fb1e08',
   },
   dark: {
+    white: '#FFFFFF',
     text: '#ECEDEE',
-    background: '#010101',
+    background: '#010101', // background: '#010101',
     tint: '#0096FF',
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
@@ -40,6 +44,8 @@ export const Colors = {
     shadow: '#000000',
     placeholder: '#47474C', 
     border: '#666666', 
+    inputBackground: '#1c1c1e',
+    buttonText: '#FFFFFF',
     card: '#1c1c1e',
     alert:'#262626',
     alertPrimary: '#0096FF',

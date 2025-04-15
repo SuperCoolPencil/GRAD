@@ -269,7 +269,7 @@ export default function CourseDetailScreen() {
                   {
                     color: textColor,
                     borderColor: borderColor,
-                    backgroundColor: '#3A3A3A',
+                    backgroundColor: Colors[colorScheme].inputBackground,
                   },
                 ]}
                 keyboardType="number-pad"

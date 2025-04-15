@@ -12,17 +12,15 @@ import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import TopBar from '@/components/TopBar';
-import { useTheme } from '@react-navigation/native';
 
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
-  const { colors } = useTheme();
 
   return (
     // Add background color to the main container, consistent with settings.tsx
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
       {/* Move Title Container Here */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText
@@ -37,7 +35,7 @@ export default function CoursesScreen() {
             <Ionicons
               name="add-circle-outline"
               size={28}
-              color={Colors[colorScheme].tint || '#007AFF'}
+              color={Colors[colorScheme].tint}
             />
           </TouchableOpacity>
         </Link>
@@ -60,10 +58,10 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
     // Determine the accent color based on attendance percentage - theme aware
     const getAccentColor = () => {
       if (attendancePercentage >= item.requiredAttendance)
-        return Colors[colorScheme || 'light'].success || '#4CAF50'; // Green for good attendance
+        return Colors[colorScheme].success; // Green for good attendance
       if (attendancePercentage >= item.requiredAttendance - 10)
-        return Colors[colorScheme || 'light'].warning || '#FFC107'; // Yellow for borderline
-      return Colors[colorScheme || 'light'].error || '#F44336'; // Red for poor attendance
+        return Colors[colorScheme].warning; // Yellow for borderline
+      return Colors[colorScheme].error; // Red for poor attendance
     };
 
     const accentColor = getAccentColor();
@@ -89,14 +87,14 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
         <View style={[styles.courseCardContainer, {
           borderLeftColor: accentColor,
-          shadowColor: Colors[colorScheme || 'light'].shadow || '#000',
-          backgroundColor: Colors[colorScheme || 'light'].card,
+          shadowColor: Colors[colorScheme].shadow,
+          backgroundColor: Colors[colorScheme].card,
         }]}>
           <ThemedView
             style={[
               styles.courseCard,
               {
-                backgroundColor: Colors[colorScheme || 'light'].card,
+                backgroundColor: Colors[colorScheme].card,
               },
             ]}
           >
@@ -104,14 +102,14 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
               <View style={styles.courseInfo}>
                 <ThemedText
                   type="subtitle"
-                  style={{ color: Colors[colorScheme || 'light'].text }}
+                  style={{ color: Colors[colorScheme].text }}
                 >
                   {item.name} ({item.id})
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme || 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme].text }}>
                   Attendance: {attendancePercentage}%
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme || 'light'].text }}>
+                <ThemedText style={{ color: Colors[colorScheme].text }}>
                   Required: {item.requiredAttendance}%
                 </ThemedText>
               </View>
@@ -119,7 +117,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: any; colorS
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={Colors[colorScheme || 'light'].icon || '#808080'}
+                color={Colors[colorScheme].icon}
               />
             </ThemedView>
           </ThemedView>

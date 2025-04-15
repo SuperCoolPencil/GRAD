@@ -19,7 +19,6 @@ import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 
 const AddCourseScreen = () => {
@@ -27,17 +26,14 @@ const AddCourseScreen = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
-  const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: `Add Course`,
-      headerStyle: {
-        backgroundColor: Colors[colorScheme].card,
-      },
+      headerStyle: styles.headerStyle,
     });
-  }, [navigation, colors]);
+  }, [navigation, colorScheme]);
 
   // Course details state
   const [courseName, setCourseName] = useState('');
@@ -57,7 +53,7 @@ const AddCourseScreen = () => {
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   
   // Generate styles based on theme
-  const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
+  const styles = useMemo(() => getStyles(colorScheme, Colors[colorScheme]), [colorScheme]);
 
   // Helper functions
   const formatTime = (date: Date) => {
@@ -325,7 +321,7 @@ const AddCourseScreen = () => {
               onSlidingComplete={(value) => item.setRequiredAttendance(value)}
               minimumTrackTintColor={Colors[colorScheme].tint}
               maximumTrackTintColor={Colors[colorScheme].border}
-              thumbTintColor='#fff'
+              thumbTintColor={Colors[colorScheme].white}
             />
 
             <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
@@ -438,6 +434,9 @@ const AddCourseScreen = () => {
 
 // Function to generate theme-aware styles
 const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.create({
+  headerStyle: {
+    backgroundColor: colors.card,
+  },
   container: {
     flex: 1,
   },
@@ -462,7 +461,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontWeight: '500',
   },
   input: {
-    backgroundColor: Colors[colorScheme].card,
+    backgroundColor: Colors[colorScheme].inputBackground,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
@@ -500,7 +499,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     includeFontPadding: false, // For Android
   },
   dayButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.card,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -530,7 +529,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     marginTop: 20,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
+    color: colors.buttonText,
     fontSize: 18,
     fontWeight: 'bold',
   },
