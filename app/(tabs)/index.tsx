@@ -16,6 +16,7 @@ import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CustomAlert } from "@/components/CustomAlert";
 
 const DAYS_OF_WEEK = [
   "Sunday",
@@ -64,6 +65,7 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 export default function TodaysClassesScreen() {
   const { courses, markAttendance, loading } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
+  const [showAlert, setShowAlert] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
 
@@ -78,7 +80,13 @@ export default function TodaysClassesScreen() {
         </ThemedText>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => router.push("/add-extra-class")}
+          onPress={() => {
+            if (courses.length === 0) {
+              setShowAlert(true);
+            } else {
+              router.push("/add-extra-class");
+            }
+          }}
         >
           <Ionicons
             name="add-circle-outline"
@@ -95,6 +103,19 @@ export default function TodaysClassesScreen() {
         todaysClasses={todaysClasses}
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
+      />
+      <CustomAlert
+        isVisible={showAlert}
+        title="No Courses"
+        message="Create a course first"
+        buttons={[
+          { text: "OK", onPress: () => setShowAlert(false) },
+          { text: "Create Course", onPress: () => {
+            setShowAlert(false);
+            router.push("/add-course");
+          }}
+        ]}
+        onClose={() => setShowAlert(false)}
       />
     </View>
   );

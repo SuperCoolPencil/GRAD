@@ -41,6 +41,7 @@ interface AppContextType {
   clearData: () => void;
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void; // Add archive function type
+  unarchiveCourse: (courseId: string) => void; // Add unarchive function type
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -60,7 +61,8 @@ export const AppContext = createContext<AppContextType>({
   addExtraClass: () => { },
   clearData: () => { },
   updateCourseCounts: () => { },
-  archiveCourse: () => { }, // Add default archive function
+  archiveCourse: () => { },
+  unarchiveCourse: () => { },
 });
 
 interface AppProviderProps {
@@ -429,6 +431,16 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     );
   };
 
+  const unarchiveCourse = (courseId: string) => {
+    setCourses((prevCourses) =>
+      prevCourses.map((course) =>
+        course.id.toLowerCase() === courseId.toLowerCase()
+          ? { ...course, isArchived: false }
+          : course
+      )
+    );
+  }
+
   useEffect(() => {
     const saveTheme = async () => {
       try {
@@ -462,6 +474,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         addExtraClass: addExtraClass,
         clearData,
         archiveCourse, // Add archive function to context value
+        unarchiveCourse,
         updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
           setCourses((prevCourses) =>
             prevCourses.map((course) => {

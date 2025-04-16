@@ -1,7 +1,8 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native'; // Import Platform
+import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native';
 import { useContext } from 'react';
 import { Link, useRouter } from 'expo-router';
-import Constants from 'expo-constants'; // Import Constants
+import Constants from 'expo-constants';
+import { useCustomAlert } from '@/context/AlertContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -17,11 +18,10 @@ export default function ArchivedCoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
+  const { unarchiveCourse } = useContext(AppContext);
 
   return (
-    // Add background color to the main container, consistent with settings.tsx
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      {/* Move Title Container Here */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -30,9 +30,7 @@ export default function ArchivedCoursesScreen() {
         >
           Archived Courses
         </ThemedText>
-        {/* Removed Add button */}
       </ThemedView>
-      {/* Pass props to Content */}
       <ArchivedCoursesContent
         courses={courses}
         colorScheme={colorScheme}
@@ -43,24 +41,40 @@ export default function ArchivedCoursesScreen() {
 }
 
 function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Course[]; colorScheme: 'light' | 'dark'; router: any }) {
-  // Filter to show *only* archived courses
   const archivedCourses = courses.filter(course => course.isArchived === true);
+  const { unarchiveCourse } = useContext(AppContext);
+  const { showAlert } = useCustomAlert();
+
+  const handleUnarchive = (item: Course) => {
+    showAlert(
+      'Unarchive Course',
+      `Are you sure you want to unarchive ${item.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unarchive',
+          style: 'destructive',
+          onPress: () => {
+            unarchiveCourse(item.id);
+          },
+        },
+      ]
+    );
+  };
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage || 0;
 
-    // Determine the accent color based on attendance percentage - theme aware
     const getAccentColor = () => {
       if (attendancePercentage >= item.requiredAttendance)
-        return Colors[colorScheme].success; // Green for good attendance
+        return Colors[colorScheme].success;
       if (attendancePercentage >= item.requiredAttendance - 10)
-        return Colors[colorScheme].warning; // Yellow for borderline
-      return Colors[colorScheme].error; // Red for poor attendance
+        return Colors[colorScheme].warning;
+      return Colors[colorScheme].error;
     };
 
     const accentColor = getAccentColor();
 
-    // Calculate the counts for present, absent, and cancelled classes for each course
     let presentCount = 0;
     let absentCount = 0;
     let cancelledCount = 0;
@@ -107,13 +121,12 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
                   Required: {item.requiredAttendance}%
                 </ThemedText>
               </View>
-              {/* Right Arrow Icon indicating navigation */}
-              <Pressable>
-              <Ionicons
-                name="arrow-up-circle-outline"
-                size={32}
-                color={Colors[colorScheme].icon}
-              />
+              <Pressable onPress={() => handleUnarchive(item)}>
+                <Ionicons
+                  name="arrow-up-circle-outline"
+                  size={32}
+                  color={Colors[colorScheme].icon}
+                />
               </Pressable>
             </ThemedView>
           </ThemedView>
@@ -124,16 +137,16 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
 
   return (
     <FlatList
-      data={archivedCourses} // Use the filtered list for archived courses
+      data={archivedCourses}
       renderItem={renderCourseItem}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}
       ListEmptyComponent={() => (
-        <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>
-            No courses have been archived yet.
-          </ThemedText>
-        </ThemedView>
+          <ThemedView style={styles.emptyContainer}>
+            <ThemedText style={styles.emptyText}>
+              No courses have been archived yet.
+            </ThemedText>
+          </ThemedView>
       )}
       removeClippedSubviews={false}
     />
@@ -141,17 +154,15 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
 }
 
 const styles = StyleSheet.create({
-  // Adjust titleContainer style to match index.tsx and settings.tsx pattern
   titleContainer: {
     flexDirection: "row",
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
-    // Use paddingTop instead of marginTop to account for status bar
     paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 32,
     backgroundColor: "transparent",
     alignItems: "center",
-    justifyContent: 'space-between', // Keep title left, allow space for potential future buttons
+    justifyContent: 'space-between',
   },
   coursesList: {
     gap: 8,
@@ -160,15 +171,14 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   courseCardContainer: {
-    borderLeftWidth: 4, // Accent thickness
+    borderLeftWidth: 4,
     borderRadius: 16,
-    marginBottom: 0, // Reduced margin
-    // Shadows for iOS:
+    marginBottom: 0,
   },
   courseCard: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 0, // Removed marginBottom from here
+    marginBottom: 0,
   },
   courseHeader: {
     flexDirection: 'row',
@@ -179,10 +189,6 @@ const styles = StyleSheet.create({
   courseInfo: {
     flex: 1,
     gap: 4,
-  },
-  addButton: { // Kept style in case needed later, but button removed from header
-    marginLeft: 'auto', // Push the button to the right
-    padding: 4,
   },
   emptyContainer: {
     alignItems: 'center',
