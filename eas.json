@@ -13,7 +13,7 @@
       "android": {
               "buildType": "apk"
       },
-      "env": { "ANDROID_SDK_ROOT": "/home/meet/Android/Sdk" }
+      "env": { "ANDROID_SDK_ROOT": "/home/supercoolpencil/Android/Sdk" }
     },
     "production": {
       "autoIncrement": true

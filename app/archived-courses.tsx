@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Platform } from 'react-native'; // Import Platform
+import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native'; // Import Platform
 import { useContext } from 'react';
 import { Link, useRouter } from 'expo-router';
 import Constants from 'expo-constants'; // Import Constants
@@ -108,11 +108,13 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
                 </ThemedText>
               </View>
               {/* Right Arrow Icon indicating navigation */}
+              <Pressable>
               <Ionicons
-                name="chevron-forward"
-                size={24}
+                name="arrow-up-circle-outline"
+                size={32}
                 color={Colors[colorScheme].icon}
               />
+              </Pressable>
             </ThemedView>
           </ThemedView>
         </View>

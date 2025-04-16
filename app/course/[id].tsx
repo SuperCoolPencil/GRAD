@@ -128,7 +128,7 @@ export default function CourseDetailScreen() {
     if (!course) return;
     showAlert(
       'Archive Course',
-      `Archived courses will no longer appear in your main lists, weekly schedules, or trigger notifications`,
+      `Archived courses no longer appear in your courses list, weekly schedules, or trigger notifications`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -207,9 +207,11 @@ export default function CourseDetailScreen() {
             </TouchableOpacity>
           </Link>
           {/* Add Archive Button */}
-          <TouchableOpacity onPress={handleArchive} style={{ marginRight: 10 }}>
-            <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
-          </TouchableOpacity>
+          {course.isArchived !== true && (
+            <TouchableOpacity onPress={handleArchive} style={{ marginRight: 10 }}>
+              <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={handleDelete}>
             <Ionicons name="trash-outline" size={24} color={Colors[colorScheme].error} />
           </TouchableOpacity>
