@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/ThemedText'; // Added for consistency
 import { ThemedView } from '@/components/ThemedView'; // Added for consistency
 import { Colors } from '@/constants/Colors'; // Added for consistency
 import { useTheme } from '@react-navigation/native';
+import { useColorScheme } from 'react-native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -15,6 +16,7 @@ export default function SettingsScreen() {
   const { clearData } = useContext(AppContext);
   const router = useRouter();
   const { colors } = useTheme();
+  const colorScheme = useColorScheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   const handleClearData = async () => {
@@ -52,6 +54,7 @@ export default function SettingsScreen() {
             href="mailto:thesupercoolpencil@gmail.com"
             style={styles.linkText}
           >
+            <Ionicons name="mail-outline" size={20} color={colors.text} style={{ marginRight: 5 }} />
             <ThemedText style={styles.linkText}>thesupercoolpencil@gmail.com</ThemedText>
           </ExternalLink>
         </View>
@@ -63,6 +66,7 @@ export default function SettingsScreen() {
             href="https://github.com/SuperCoolPencil/GRAD"
             style={styles.linkText}
           >
+            <Ionicons name="logo-github" size={20} color={colors.text} style={{ marginRight: 5 }} />
             <ThemedText style={styles.linkText}>GitHub Repository</ThemedText>
           </ExternalLink>
         </View>
@@ -72,17 +76,19 @@ export default function SettingsScreen() {
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
           {/* Add Link to Archived Courses */}
           <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: Colors.light.tint }]}
+            style={[styles.clearButton, { backgroundColor: colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint }]}
             onPress={() => {
               router.push("/archived-courses");
             }}
           >
+            <Ionicons name="archive-outline" size={20} color="#fff" style={{ marginRight: 5 }} />
             <Text style={styles.clearButtonText}>View Archived Courses</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: Colors.light.error }]}
+            style={[styles.clearButton, { backgroundColor: colorScheme === 'dark' ? Colors.dark.error : Colors.light.error }]}
             onPress={handleClearData}
           >
+            <Ionicons name="trash-outline" size={20} color="#fff" style={{ marginRight: 5 }} />
             <Text style={styles.clearButtonText}>Clear All Data</Text>
           </TouchableOpacity>
         </View>

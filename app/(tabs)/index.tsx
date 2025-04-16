@@ -81,7 +81,7 @@ export default function TodaysClassesScreen() {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
-            if (courses.length === 0) {
+            if (courses.filter(course => !course.isArchived).length === 0) {
               setShowAlert(true);
             } else {
               router.push("/add-extra-class");
