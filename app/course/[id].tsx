@@ -53,7 +53,6 @@ export default function CourseDetailScreen() {
     courses,
     loading,
     deleteCourse,
-    updateCourse,
     changeAttendanceRecord,
     updateCourseCounts,
     archiveCourse, // Import archiveCourse
@@ -63,11 +62,9 @@ export default function CourseDetailScreen() {
   const colorScheme = useNativeColorScheme() ?? 'light';
   const { showAlert } = useCustomAlert();
 
-  const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'alertPrimary');
-  const destructiveColor = useThemeColor({}, 'alertDestructive');
   const tintColor = useThemeColor({}, 'tint');
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -287,7 +284,7 @@ export default function CourseDetailScreen() {
           <View style={styles.centeredView}>
             <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
               <ThemedText type="subtitle" style={styles.modalTitle}>
-                Update {countType.charAt(0).toLocaleUpperCase()+countType.slice(1)} Count
+                Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
               </ThemedText>
               <TextInput
                 style={[

@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'; // Import Platform, removed useColorScheme
 import Constants from 'expo-constants'; // Import Constants
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ExternalLink } from '@/components/ExternalLink'; // Adjusted path
 import { AppContext } from '@/context/AppContext'; // Adjusted path
 import { ThemedText } from '@/components/ThemedText'; // Added for consistency
@@ -28,7 +28,8 @@ export default function SettingsScreen() {
           text: "Cancel",
           style: "cancel",
         },
-        { text: "OK", 
+        {
+          text: "OK",
           style: "destructive",
           onPress: async () => {
             await clearData();
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 16, 
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 16,
     paddingBottom: 16, // Reduced bottom padding for title
     backgroundColor: 'transparent', // Ensure background color doesn't interfere
   },

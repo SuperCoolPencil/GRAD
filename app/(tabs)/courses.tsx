@@ -3,15 +3,12 @@ import { useContext } from 'react';
 import { Link, useRouter } from 'expo-router';
 import Constants from 'expo-constants'; // Import Constants
 import Ionicons from '@expo/vector-icons/Ionicons';
-
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import TopBar from '@/components/TopBar';
 
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
@@ -154,7 +151,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32, 
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32,
     backgroundColor: "transparent",
     alignItems: "center",
   },

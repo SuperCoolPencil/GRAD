@@ -1,24 +1,20 @@
 import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native';
 import { useContext } from 'react';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useCustomAlert } from '@/context/AlertContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
-
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import TopBar from '@/components/TopBar';
 
 export default function ArchivedCoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
-  const { unarchiveCourse } = useContext(AppContext);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
@@ -142,11 +138,11 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}
       ListEmptyComponent={() => (
-          <ThemedView style={styles.emptyContainer}>
-            <ThemedText style={styles.emptyText}>
-              No courses have been archived yet.
-            </ThemedText>
-          </ThemedView>
+        <ThemedView style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyText}>
+            No courses have been archived yet.
+          </ThemedText>
+        </ThemedView>
       )}
       removeClippedSubviews={false}
     />

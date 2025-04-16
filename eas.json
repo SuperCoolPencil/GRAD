@@ -11,9 +11,11 @@
     "preview": {
       "distribution": "internal",
       "android": {
-              "buildType": "apk"
+        "buildType": "apk"
       },
-      "env": { "ANDROID_SDK_ROOT": "/home/supercoolpencil/Android/Sdk" }
+      "env": {
+        "ANDROID_SDK_ROOT": "/home/supercoolpencil/Android/Sdk"
+      }
     },
     "production": {
       "autoIncrement": true

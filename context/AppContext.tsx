@@ -74,16 +74,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [theme, setTheme] = useState<string>("light");
 
-  const [count, setCount] = useState(0);
-
-  const increment = () => {
-    setCount(count + 1);
-  };
-
-  const decrement = () => {
-    setCount(Math.max(0, count - 1));
-  };
-
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
@@ -123,8 +113,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       saveData();
     }
   }, [courses, loading, theme]);
-
-  const [isAddCourseAlertVisible, setIsAddCourseAlertVisible] = useState(false);
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
@@ -337,7 +325,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
               else if (record.Status === 'absent') absents++;
               else if (record.Status === 'cancelled') cancelled++;
 
-              
+
             }
           });
 

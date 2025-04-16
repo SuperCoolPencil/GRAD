@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   FlatList,
-  TextInputProps,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -41,37 +40,37 @@ const AddCourseScreen = () => {
 
   // Attendance state
   const [requiredAttendance, setRequiredAttendance] = useState(75);
-  
+
   // Weekly schedule state
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>([]);
-  
+
   // UI control state
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-  
+
   // Generate styles based on theme
   const styles = useMemo(() => getStyles(colorScheme, Colors[colorScheme]), [colorScheme]);
 
   // Helper functions
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   };
-  
- const getTimeForStorage = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: false 
+
+  const getTimeForStorage = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
     });
   };
-  
+
   const validateScheduleItem = () => {
     if (!selectedDay) {
       showAlert("Error", "Please select a day.");
@@ -219,7 +218,7 @@ const AddCourseScreen = () => {
       setStartTime(selectedTime);
     }
   };
-  
+
   const handleEndTimeChange = (event: DateTimePickerEvent, selectedTime: Date | undefined) => {
     setShowEndTimePicker(false);
     if (selectedTime) {
@@ -232,7 +231,7 @@ const AddCourseScreen = () => {
     // Convert stored 24-hour time strings to readable 12-hour format
     const startTime = new Date(`2000-01-01T${item.timeStart}`);
     const endTime = new Date(`2000-01-01T${item.timeEnd}`);
-    
+
     return (
       <View style={styles.scheduleItem}>
         <View>
@@ -242,10 +241,10 @@ const AddCourseScreen = () => {
           </ThemedText>
         </View>
         <TouchableOpacity onPress={() => removeScheduleItem(item.id)}>
-          <Ionicons 
-            name="close-circle-outline" 
-            size={20} 
-            color={Colors[colorScheme].tint} 
+          <Ionicons
+            name="close-circle-outline"
+            size={20}
+            color={Colors[colorScheme].tint}
           />
         </TouchableOpacity>
       </View>
@@ -287,7 +286,7 @@ const AddCourseScreen = () => {
           {/* Course Details Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Course Details</ThemedText>
-            
+
             <ThemedText style={styles.label}>Course Name:</ThemedText>
             <TextInput
               style={styles.input}
@@ -313,7 +312,7 @@ const AddCourseScreen = () => {
 
             <ThemedText style={styles.label}>Required Attendance: {item.requiredAttendance}%</ThemedText>
             <Slider
-              style={{width: '100%', height: 40}}
+              style={{ width: '100%', height: 40 }}
               minimumValue={0}
               maximumValue={100}
               step={5}
@@ -326,11 +325,11 @@ const AddCourseScreen = () => {
 
             <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
           </View>
-          
+
           {/* Weekly Schedule Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
-            
+
             {/* Day selection */}
             <ThemedText style={styles.label}>Select Day:</ThemedText>
             <View style={styles.dayButtonContainer}>
@@ -360,8 +359,8 @@ const AddCourseScreen = () => {
             {/* Time selection */}
             <View style={styles.timeContainer}>
               <View style={styles.timeSection}>
-                <TouchableOpacity 
-                  style={styles.timePickerButton} 
+                <TouchableOpacity
+                  style={styles.timePickerButton}
                   onPress={() => item.setShowStartTimePicker(true)}
                 >
                   <ThemedText style={styles.timePickerText}>
@@ -378,10 +377,10 @@ const AddCourseScreen = () => {
                   />
                 )}
               </View>
-              
+
               <View style={styles.timeSection}>
-                <TouchableOpacity 
-                  style={styles.timePickerButton} 
+                <TouchableOpacity
+                  style={styles.timePickerButton}
                   onPress={() => item.setShowEndTimePicker(true)}
                 >
                   <ThemedText style={styles.timePickerText}>
@@ -406,7 +405,7 @@ const AddCourseScreen = () => {
                 Add Weekly Class
               </ThemedText>
             </TouchableOpacity>
-            
+
             {/* Display current schedule */}
             {item.weeklySchedule.length > 0 && (
               <View style={styles.scheduleContainer}>
@@ -420,7 +419,7 @@ const AddCourseScreen = () => {
               </View>
             )}
           </View>
-          
+
           {/* Submit Button */}
           <TouchableOpacity style={styles.primaryButton} onPress={item.handleSubmit}>
             <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>

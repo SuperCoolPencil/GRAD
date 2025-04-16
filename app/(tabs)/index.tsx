@@ -110,10 +110,12 @@ export default function TodaysClassesScreen() {
         message="Create a course first"
         buttons={[
           { text: "OK", onPress: () => setShowAlert(false) },
-          { text: "Create Course", onPress: () => {
-            setShowAlert(false);
-            router.push("/add-course");
-          }}
+          {
+            text: "Create Course", onPress: () => {
+              setShowAlert(false);
+              router.push("/add-course");
+            }
+          }
         ]}
         onClose={() => setShowAlert(false)}
       />
@@ -206,7 +208,7 @@ function TodaysClassesContent({
 
       // Process extra classes.
       course.extraClasses?.forEach((extra: ExtraClass) => {
-          if (extra.date === currentDateString) {
+        if (extra.date === currentDateString) {
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
             courseId: course.id,
@@ -267,7 +269,7 @@ function TodaysClassesContent({
           },
         ]}
       >
-        <ThemedView style={[styles.classCardContent, {backgroundColor: Colors[colorScheme || 'light'].card,}]}>
+        <ThemedView style={[styles.classCardContent, { backgroundColor: Colors[colorScheme || 'light'].card, }]}>
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -276,42 +278,42 @@ function TodaysClassesContent({
                 </ThemedText>
               </View>
               <View style={styles.infoRow}>
-              <Ionicons
-                name="time-outline"
-                size={16}
-                color={Colors[colorScheme || 'light'].icon}
-                style={{ marginRight: 4 }}
-              />
-              <ThemedText>
-                {item.timeStart} - {item.timeEnd}
-                {item.isExtraClass ? ' (Extra)' : ''}
-              </ThemedText>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons
-                name="stats-chart-outline"
-                size={16}
-                color={Colors[colorScheme || 'light'].icon}
-                style={{ marginRight: 4 }}
-              />
-              <ThemedText>
-                Current: {item.currentAttendance}% / Req: {item.requiredAttendance}%
-              </ThemedText>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons
-                name={item.needToAttend <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
-                size={16}
-                color={accentColor}
-                style={{ marginRight: 4 }}
-              />
-              <ThemedText style={{ color: accentColor }}>
-                {attendanceNote}
-              </ThemedText>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color={Colors[colorScheme || 'light'].icon}
+                  style={{ marginRight: 4 }}
+                />
+                <ThemedText>
+                  {item.timeStart} - {item.timeEnd}
+                  {item.isExtraClass ? ' (Extra)' : ''}
+                </ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons
+                  name="stats-chart-outline"
+                  size={16}
+                  color={Colors[colorScheme || 'light'].icon}
+                  style={{ marginRight: 4 }}
+                />
+                <ThemedText>
+                  Current: {item.currentAttendance}% / Req: {item.requiredAttendance}%
+                </ThemedText>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons
+                  name={item.needToAttend <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+                  size={16}
+                  color={accentColor}
+                  style={{ marginRight: 4 }}
+                />
+                <ThemedText style={{ color: accentColor }}>
+                  {attendanceNote}
+                </ThemedText>
               </View>
               {markedClasses.includes(item.id) && (
                 <View style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center' }}>
-                  <ThemedText style={{ marginLeft: 4, fontSize: 12}}>Marked </ThemedText>
+                  <ThemedText style={{ marginLeft: 4, fontSize: 12 }}>Marked </ThemedText>
                   <Ionicons
                     name="checkmark-done-circle-outline"
                     size={20}
@@ -331,7 +333,7 @@ function TodaysClassesContent({
               }
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Present</ThemedText>
+              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Present</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -341,7 +343,7 @@ function TodaysClassesContent({
               }
             >
               <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Absent</ThemedText>
+              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Absent</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -351,7 +353,7 @@ function TodaysClassesContent({
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{color: Colors[colorScheme].buttonText}}> Cancel</ThemedText>
+              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Cancel</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -366,8 +368,8 @@ function TodaysClassesContent({
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.classesList}
       ListEmptyComponent={() => (
-        <ThemedView style={[styles.emptyContainer, {backgroundColor: Colors[colorScheme || "light"].background}]}>
-          <ThemedText style={[styles.emptyText, {color: Colors[colorScheme || "light"].text}]}>
+        <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+          <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
             No classes scheduled for today!
           </ThemedText>
         </ThemedView>
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32, 
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32,
     backgroundColor: "transparent",
     alignItems: "center",
   },
@@ -408,7 +410,7 @@ const styles = StyleSheet.create({
   // Outer container for the card, with color-coded accent on the left.
   classCardContainer: {
     borderLeftWidth: 4, // Accent thickness
-    borderRadius: 16,  
+    borderRadius: 16,
     marginBottom: 0, // Reduced margin
     // Shadows for iOS:
     shadowOffset: { width: 0, height: 2 },

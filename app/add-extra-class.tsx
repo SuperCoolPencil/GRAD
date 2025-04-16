@@ -1,18 +1,15 @@
 import React, { useState, useContext, useMemo } from 'react';
 import {
   View,
-  TextInput,
   StyleSheet,
   useColorScheme,
   TouchableOpacity,
-  Platform,
   ScrollView,
   Modal, // Import Modal
   FlatList // Import FlatList for options
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
-import { Course } from '@/types';
 // Removed Picker import
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
@@ -158,7 +155,7 @@ const AddExtraClassScreen = () => {
   };
 
   return (
-    <ThemedView style={[styles.container, {backgroundColor: colors.background}]}>
+    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.contentContainer}>
         {/* Form Content */}
         <View style={styles.section}>
@@ -171,9 +168,9 @@ const AddExtraClassScreen = () => {
               onPress={() => setIsPickerVisible(true)}
             >
               <ThemedText style={styles.pickerTriggerText}>
-                {selectedCourse 
+                {selectedCourse
                   ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...' // Show selected course name
-                  : 'Select a course...'} 
+                  : 'Select a course...'}
               </ThemedText>
               {/* Add a dropdown icon */}
               <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].text} />
@@ -186,12 +183,12 @@ const AddExtraClassScreen = () => {
               animationType="fade"
               onRequestClose={() => setIsPickerVisible(false)}
             >
-              <TouchableOpacity 
-                style={styles.modalContainer} 
-                activeOpacity={1} 
+              <TouchableOpacity
+                style={styles.modalContainer}
+                activeOpacity={1}
                 onPressOut={() => setIsPickerVisible(false)} // Close on outside click
               >
-                <View style={styles.modalContent} onStartShouldSetResponder={() => true}> 
+                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
                   <FlatList
                     data={courses}
                     keyExtractor={(item) => item.id}
@@ -376,12 +373,12 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     borderRadius: 10,
     // Original picker styles:
     color: Colors[colorScheme].text,
-    height: 50, 
+    height: 50,
     // Note: Direct styling of Picker items can be inconsistent across platforms.
     // Consider a custom dropdown component for better control if needed.
   },
   pickerItem: { // Basic item style (might need platform-specific adjustments)
-    color: Colors[colorScheme].text, 
+    color: Colors[colorScheme].text,
     height: 50,
   },
   primaryButton: {
@@ -413,10 +410,10 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontSize: 16, // Match input text size
   },
   // Styles for the Modal (to be added in the next step)
-  modalContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)' // Semi-transparent background
   },
   modalContent: {
