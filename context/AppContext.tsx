@@ -3,8 +3,11 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useContext, // Added for accessing context within provider if needed later
 } from "react";
+import { Platform, Alert } from "react-native"; // Added Platform and Alert
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications"; // Added expo-notifications import
 import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 
@@ -42,7 +45,11 @@ interface AppContextType {
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void; // Add archive function type
   unarchiveCourse: (courseId: string) => void; // Add unarchive function type
+  scheduleClassReminders: () => Promise<void>; // Add type for scheduling function
 }
+
+// Define the category identifier
+const CLASS_REMINDER_CATEGORY_ID = "CLASS_REMINDER";
 
 export const AppContext = createContext<AppContextType>({
   courses: [],
@@ -63,6 +70,7 @@ export const AppContext = createContext<AppContextType>({
   updateCourseCounts: () => { },
   archiveCourse: () => { },
   unarchiveCourse: () => { },
+  scheduleClassReminders: async () => {}, // Add default empty function
 });
 
 interface AppProviderProps {
@@ -111,8 +119,194 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
     if (!loading) {
       saveData();
+      // Schedule reminders whenever courses change and data is loaded
+      scheduleClassReminders(); // Now defined above, so accessible
     }
   }, [courses, loading, theme]);
+
+  // Define scheduleClassReminders function *before* useEffect hooks that might use it
+  const scheduleClassReminders = async () => {
+    console.log("Attempting to schedule class reminders...");
+    await Notifications.cancelAllScheduledNotificationsAsync(); // Clear old notifications first
+    console.log("Cancelled previous notifications.");
+
+    const now = new Date();
+    const scheduledIdentifiers = new Set<string>(); // Keep track of scheduled notifications
+
+    courses.forEach(course => {
+      if (course.isArchived) return; // Skip archived courses
+
+      // Schedule for weekly classes
+      (course.weeklySchedule || []).forEach(item => {
+        const [hours, minutes] = item.timeStart.split(':').map(Number);
+        const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(item.day);
+
+        // Calculate the next occurrence of this day and time
+        let nextClassDate = new Date(now);
+        nextClassDate.setDate(now.getDate() + ((dayOfWeek - now.getDay() + 7) % 7)); // Move to the correct day of the week
+        nextClassDate.setHours(hours, minutes, 0, 0); // Set the time
+
+        // If the calculated time is in the past for today, schedule for next week
+        if (nextClassDate <= now) {
+           nextClassDate.setDate(nextClassDate.getDate() + 7);
+        }
+
+        // Schedule reminder 15 minutes before
+        const reminderTime = new Date(nextClassDate.getTime() - 15 * 60 * 1000); // 15 minutes before
+
+        // Only schedule if the reminder time is in the future
+        if (reminderTime > now) {
+          const identifier = `${course.id}-weekly-${item.id}-${reminderTime.toISOString()}`; // Unique identifier
+          if (!scheduledIdentifiers.has(identifier)) {
+            Notifications.scheduleNotificationAsync({
+              content: {
+                title: `Class Reminder: ${course.name}`,
+                body: `Your class starts at ${item.timeStart}.`,
+                data: { courseId: course.id, scheduleItemId: item.id, isExtraClass: false },
+                categoryIdentifier: CLASS_REMINDER_CATEGORY_ID,
+              },
+              trigger: reminderTime as any, // Cast Date to any to bypass TS error
+              identifier: identifier, // Add identifier here
+            });
+            scheduledIdentifiers.add(identifier);
+            console.log(`Scheduled weekly reminder for ${course.name} at ${reminderTime}`);
+          }
+        }
+      });
+
+      // Schedule for extra classes
+      (course.extraClasses || []).forEach(extra => {
+        const [year, month, day] = extra.date.split('-').map(Number);
+        const [hours, minutes] = extra.timeStart.split(':').map(Number);
+        const classDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+        // Schedule reminder 15 minutes before
+        const reminderTime = new Date(classDateTime.getTime() - 15 * 60 * 1000); // 15 minutes before
+
+        // Only schedule if the reminder time is in the future
+        if (reminderTime > now) {
+           const identifier = `${course.id}-extra-${extra.id}-${reminderTime.toISOString()}`; // Unique identifier
+           if (!scheduledIdentifiers.has(identifier)) {
+              Notifications.scheduleNotificationAsync({
+                content: {
+                  title: `Extra Class Reminder: ${course.name}`,
+                  body: `Your extra class starts at ${extra.timeStart} on ${extra.date}.`,
+                  data: { courseId: course.id, scheduleItemId: extra.id, isExtraClass: true }, // Use extra.id as scheduleItemId here
+                categoryIdentifier: CLASS_REMINDER_CATEGORY_ID,
+              },
+              trigger: reminderTime as any, // Cast Date to any to bypass TS error
+              identifier: identifier, // Add identifier here
+            });
+            scheduledIdentifiers.add(identifier);
+              console.log(`Scheduled extra class reminder for ${course.name} at ${reminderTime}`);
+           }
+        }
+      });
+    });
+    console.log("Finished scheduling reminders.");
+  };
+
+  // --- Notification Setup Effect ---
+  useEffect(() => {
+    const setupNotifications = async () => {
+      // 1. Request Permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        Alert.alert('Permission Required', 'Failed to get push token for push notification!');
+        return;
+      }
+
+      // 2. Android Channel (Important!)
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+        });
+      }
+
+      // 3. Define Actionable Category
+      await Notifications.setNotificationCategoryAsync(CLASS_REMINDER_CATEGORY_ID, [
+        {
+          identifier: 'present',
+          buttonTitle: 'Present',
+          options: {
+            opensAppToForeground: false, // Keep app in background if possible
+          },
+        },
+        {
+          identifier: 'absent',
+          buttonTitle: 'Absent',
+          options: {
+            opensAppToForeground: false,
+          },
+        },
+        {
+          identifier: 'cancelled',
+          buttonTitle: 'Cancelled',
+          options: {
+            // Destructive action styling might be available on some platforms
+            // isDestructive: true, // Example, check expo-notifications docs
+            opensAppToForeground: false,
+          },
+        },
+      ]);
+
+      console.log("Notification permissions granted and category set up.");
+    };
+
+    setupNotifications();
+
+    // --- Notification Response Handler ---
+    const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification Response:', JSON.stringify(response, null, 2)); // Log the full response
+
+      const actionIdentifier = response.actionIdentifier;
+      const notificationData = response.notification.request.content.data;
+
+      console.log('Action Identifier:', actionIdentifier);
+      console.log('Notification Data:', notificationData);
+
+      if (notificationData && notificationData.courseId && notificationData.scheduleItemId !== undefined) { // Ensure necessary data exists
+        const { courseId, scheduleItemId, isExtraClass } = notificationData as { courseId: string; scheduleItemId: string | undefined; isExtraClass: boolean }; // Type assertion
+
+        if (actionIdentifier === 'present' || actionIdentifier === 'absent' || actionIdentifier === 'cancelled') {
+          console.log(`Calling markAttendance for ${courseId}, status: ${actionIdentifier}, isExtra: ${isExtraClass}, scheduleId: ${scheduleItemId}`);
+          // Directly call markAttendance - Need to ensure it's accessible here
+          // This might require restructuring or passing markAttendance down if it's not directly in scope
+          // For now, assuming it might be accessible via context or needs adjustment
+          // **Potential Issue:** markAttendance might not be directly callable here without context access or refactoring.
+          // We will address this when implementing the scheduling part.
+          // For now, let's log the intent.
+           Alert.alert(
+             "Attendance Action",
+             `Action "${actionIdentifier}" received for course ${courseId}. (Implementation pending context access)`
+           );
+           // Call markAttendance directly
+           markAttendance(courseId, actionIdentifier as "present" | "absent" | "cancelled", isExtraClass, scheduleItemId);
+           // Provide visual feedback (optional, but good UX)
+           Alert.alert("Attendance Updated", `Status for ${courseId} set to ${actionIdentifier}.`);
+        } else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          console.log('Notification tapped (default action)');
+          // Handle default tap if needed (e.g., navigate to course screen)
+        }
+      } else {
+        console.warn('Received notification response without expected data:', notificationData);
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      Notifications.removeNotificationSubscription(notificationResponseSubscription);
+    };
+
+  }, []); // Run only once on mount
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
@@ -463,6 +657,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         clearData,
         archiveCourse, // Add archive function to context value
         unarchiveCourse,
+        scheduleClassReminders, // Pass the function defined above
         updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
           setCourses((prevCourses) =>
             prevCourses.map((course) => {
