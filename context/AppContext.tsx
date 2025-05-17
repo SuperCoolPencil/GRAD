@@ -272,9 +272,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
       console.log('Action Identifier:', actionIdentifier);
       console.log('Notification Data:', notificationData);
+      console.log('Notification Data scheduleItemId:', notificationData.scheduleItemId); // ADDED
 
       if (notificationData && notificationData.courseId && notificationData.scheduleItemId !== undefined) { // Ensure necessary data exists
         const { courseId, scheduleItemId, isExtraClass } = notificationData as { courseId: string; scheduleItemId: string | undefined; isExtraClass: boolean }; // Type assertion
+        console.log('Extracted scheduleItemId:', scheduleItemId); // ADDED
 
         if (actionIdentifier === 'present' || actionIdentifier === 'absent' || actionIdentifier === 'cancelled') {
           console.log(`Calling markAttendance for ${courseId}, status: ${actionIdentifier}, isExtra: ${isExtraClass}, scheduleId: ${scheduleItemId}`);
