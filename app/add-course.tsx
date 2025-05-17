@@ -42,7 +42,7 @@ const AddCourseScreen = () => {
   const [requiredAttendance, setRequiredAttendance] = useState(75);
 
   // Weekly schedule state
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>([]);
@@ -72,7 +72,7 @@ const AddCourseScreen = () => {
   };
 
   const validateScheduleItem = () => {
-    if (!selectedDay) {
+    if (selectedDays.length === 0) {
       showAlert("Error", "Please select a day.");
       return false;
     }
@@ -94,7 +94,7 @@ const AddCourseScreen = () => {
 
     // Check for overlapping schedule items
     const hasOverlap = weeklySchedule.some(item => {
-      if (item.day !== selectedDay) return false;
+      if (!selectedDays.includes(item.day)) return false;
 
       const itemStart = new Date(`2000-01-01T${item.timeStart}`);
       const itemEnd = new Date(`2000-01-01T${item.timeEnd}`);
@@ -119,19 +119,52 @@ const AddCourseScreen = () => {
   const addWeeklyClass = () => {
     if (!validateScheduleItem()) return;
 
-    const newScheduleItem = {
-      id: Date.now().toString(),
-      day: selectedDay || '', // Ensure day is a string
-      timeStart: startTime ? getTimeForStorage(startTime) : '',
-      timeEnd: endTime ? getTimeForStorage(endTime) : '',
-    };
+    const isTimeAfter5PM = endTime && endTime.getHours() >= 17;
 
-    setWeeklySchedule([...weeklySchedule, newScheduleItem]);
+    if (isTimeAfter5PM) {
+      showAlert(
+        "Confirmation",
+        "This class ends after 5 PM. Are you sure you want to add it?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Confirm",
+            onPress: () => {
+              selectedDays.forEach(selectedDay => {
+                const newScheduleItem = {
+                  id: Date.now().toString(),
+                  day: selectedDay || '', // Ensure day is a string
+                  timeStart: startTime ? getTimeForStorage(startTime) : '',
+                  timeEnd: endTime ? getTimeForStorage(endTime) : '',
+                };
+                setWeeklySchedule(prevSchedule => [...prevSchedule, newScheduleItem]);
+              });
 
-    // Reset selection for next entry
-    setSelectedDay(null);
-    setStartTime(null);
-    setEndTime(null);
+              setSelectedDays([]);
+              setStartTime(null);
+              setEndTime(null);
+            },
+          },
+        ]
+      );
+    } else {
+      selectedDays.forEach(selectedDay => {
+        const newScheduleItem = {
+          id: Date.now().toString(),
+          day: selectedDay || '', // Ensure day is a string
+          timeStart: startTime ? getTimeForStorage(startTime) : '',
+          timeEnd: endTime ? getTimeForStorage(endTime) : '',
+        };
+        setWeeklySchedule(prevSchedule => [...prevSchedule, newScheduleItem]);
+      });
+
+      setSelectedDays([]);
+      setStartTime(null);
+      setEndTime(null);
+    }
   };
 
   const removeScheduleItem = (id: string) => {
@@ -206,7 +239,7 @@ const AddCourseScreen = () => {
     setCourseName("");
     setCourseId("");
     setWeeklySchedule([]);
-    setSelectedDay(null);
+    setSelectedDays([]);
     setStartTime(null);
     setEndTime(null);
   };
@@ -255,7 +288,7 @@ const AddCourseScreen = () => {
     courseName,
     courseId,
     requiredAttendance,
-    selectedDay,
+    selectedDays,
     startTime,
     endTime,
     weeklySchedule,
@@ -264,7 +297,7 @@ const AddCourseScreen = () => {
     setCourseName,
     setCourseId,
     setRequiredAttendance,
-    setSelectedDay,
+    setSelectedDays,
     setStartTime,
     setEndTime,
     setWeeklySchedule,
@@ -275,6 +308,14 @@ const AddCourseScreen = () => {
     addWeeklyClass,
     removeScheduleItem,
     handleSubmit,
+  };
+
+  const toggleDaySelection = (day: string) => {
+    if (selectedDays.includes(day)) {
+      setSelectedDays(selectedDays.filter(selectedDay => selectedDay !== day));
+    } else {
+      setSelectedDays([...selectedDays, day]);
+    }
   };
 
   return (
@@ -335,19 +376,20 @@ const AddCourseScreen = () => {
             <View style={styles.dayButtonContainer}>
               {['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'].map((day, index) => {
                 const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
+                const isSelected = selectedDays.includes(fullDayName);
                 return (
                   <TouchableOpacity
                     key={day}
                     style={[
                       styles.dayButton,
-                      item.selectedDay === fullDayName && styles.dayButtonSelected,
+                      isSelected && styles.dayButtonSelected,
                       { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
                     ]}
-                    onPress={() => item.setSelectedDay(fullDayName)}
+                    onPress={() => toggleDaySelection(fullDayName)}
                   >
                     <ThemedText style={[
                       styles.dayButtonText,
-                      item.selectedDay === fullDayName && styles.dayButtonTextSelected
+                      isSelected && styles.dayButtonTextSelected
                     ]}>
                       {day}
                     </ThemedText>
