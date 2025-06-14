@@ -10,8 +10,44 @@ import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+// Helper to calculate attendance delta.
+// Returns a positive number when you need to attend extra classes to reach the required attendance,
+// a negative number when you can bunk extra classes and still maintain the requirement,
+// and zero when you’re exactly meeting the requirement.
+const getAttendanceDelta = (
+  presents: number,
+  absents: number,
+  requiredAttendance: number
+): number => {
+  const total = presents + absents;
+  const requiredFraction = requiredAttendance / 100;
+  if (total === 0) {
+    // With no classes held, assume you must attend no class.
+    return 0;
+  }
+  const currentFraction = presents / total;
+  if (currentFraction >= requiredFraction) {
+    // Calculate how many classes can be bunked.
+    return -Math.floor(presents / requiredFraction - total);
+  } else {
+    // Calculate extra classes needed.
+    return Math.ceil(
+      (requiredFraction * total - presents) / (1 - requiredFraction)
+    );
+  }
+};
+
+// Assign a border color or accent color based on delta.
+const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
+  if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
+  if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
+  return Colors[colorScheme].tint; // Exactly at required => yellow accent
+};
+
+
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
+  console.log("CoursesScreen: courses =", courses);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -53,34 +89,13 @@ function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; c
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage || 0;
+    const requiredAttendance = item.requiredAttendance || 75;
 
-    // Determine the accent color based on attendance percentage - theme aware
-    const getAccentColor = () => {
-      if (attendancePercentage >= item.requiredAttendance)
-        return Colors[colorScheme].success; // Green for good attendance
-      if (attendancePercentage >= item.requiredAttendance - 10)
-        return Colors[colorScheme].warning; // Yellow for borderline
-      return Colors[colorScheme].error; // Red for poor attendance
-    };
+    const presentCount = item.presents || 0;
+    const absentCount = item.absents || 0;
 
-    const accentColor = getAccentColor();
-
-    // Calculate the counts for present, absent, and cancelled classes for each course
-    let presentCount = 0;
-    let absentCount = 0;
-    let cancelledCount = 0;
-
-    if (item.classes) {
-      item.classes.forEach((cls: any) => {
-        if (cls.status === 'present') {
-          presentCount++;
-        } else if (cls.status === 'absent') {
-          absentCount++;
-        } else if (cls.status === 'cancelled') {
-          cancelledCount++;
-        }
-      });
-    }
+    const accentColor = getDeltaColor(getAttendanceDelta(presentCount, absentCount, requiredAttendance), colorScheme);
+    console.log(`courses.tsx: courseName=${item.name}, presentCount=${presentCount}, absentCount=${absentCount}, attendancePercentage=${requiredAttendance}, colorScheme=${colorScheme}, accentColor=${accentColor}`);
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
