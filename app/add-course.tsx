@@ -418,7 +418,18 @@ const AddCourseScreen = () => {
               <View style={styles.scheduleContainer}>
                 <ThemedText style={styles.label}>Current Schedule:</ThemedText>
                 <FlatList
-                  data={item.weeklySchedule}
+                  data={[...item.weeklySchedule].sort((a, b) => {
+                    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                    const dayAIndex = daysOfWeek.indexOf(a.day);
+                    const dayBIndex = daysOfWeek.indexOf(b.day);
+
+                    if (dayAIndex !== dayBIndex) {
+                      return dayAIndex - dayBIndex;
+                    }
+
+                    // If days are the same, sort by start time
+                    return a.timeStart.localeCompare(b.timeStart);
+                  })}
                   renderItem={renderScheduleItem}
                   keyExtractor={item => item.id}
                   style={styles.scheduleList}
