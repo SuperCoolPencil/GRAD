@@ -42,7 +42,7 @@ const AddCourseScreen = () => {
   const [requiredAttendance, setRequiredAttendance] = useState(75);
 
   // Weekly schedule state
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>([]);
@@ -72,7 +72,7 @@ const AddCourseScreen = () => {
   };
 
   const validateScheduleItem = () => {
-    if (!selectedDay) {
+    if (selectedDays.length === 0) {
       showAlert("Error", "Please select a day.");
       return false;
     }
@@ -94,7 +94,7 @@ const AddCourseScreen = () => {
 
     // Check for overlapping schedule items
     const hasOverlap = weeklySchedule.some(item => {
-      if (item.day !== selectedDay) return false;
+      if (!selectedDays.includes(item.day)) return false;
 
       const itemStart = new Date(`2000-01-01T${item.timeStart}`);
       const itemEnd = new Date(`2000-01-01T${item.timeEnd}`);
@@ -119,17 +119,17 @@ const AddCourseScreen = () => {
   const addWeeklyClass = () => {
     if (!validateScheduleItem()) return;
 
-    const newScheduleItem = {
+    const newScheduleItems = selectedDays.map(day => ({
       id: Date.now().toString(),
-      day: selectedDay || '', // Ensure day is a string
+      day: day,
       timeStart: startTime ? getTimeForStorage(startTime) : '',
       timeEnd: endTime ? getTimeForStorage(endTime) : '',
-    };
+    }));
 
-    setWeeklySchedule([...weeklySchedule, newScheduleItem]);
+    setWeeklySchedule([...weeklySchedule, ...newScheduleItems]);
 
     // Reset selection for next entry
-    setSelectedDay(null);
+    setSelectedDays([]);
     setStartTime(null);
     setEndTime(null);
   };
@@ -206,7 +206,7 @@ const AddCourseScreen = () => {
     setCourseName("");
     setCourseId("");
     setWeeklySchedule([]);
-    setSelectedDay(null);
+    setSelectedDays([]);
     setStartTime(null);
     setEndTime(null);
   };
@@ -255,7 +255,7 @@ const AddCourseScreen = () => {
     courseName,
     courseId,
     requiredAttendance,
-    selectedDay,
+    selectedDays,
     startTime,
     endTime,
     weeklySchedule,
@@ -264,7 +264,7 @@ const AddCourseScreen = () => {
     setCourseName,
     setCourseId,
     setRequiredAttendance,
-    setSelectedDay,
+    setSelectedDays,
     setStartTime,
     setEndTime,
     setWeeklySchedule,
@@ -335,19 +335,26 @@ const AddCourseScreen = () => {
             <View style={styles.dayButtonContainer}>
               {['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'].map((day, index) => {
                 const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
+                const isSelected = item.selectedDays.includes(fullDayName);
                 return (
                   <TouchableOpacity
                     key={day}
                     style={[
                       styles.dayButton,
-                      item.selectedDay === fullDayName && styles.dayButtonSelected,
+                      isSelected && styles.dayButtonSelected,
                       { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }
                     ]}
-                    onPress={() => item.setSelectedDay(fullDayName)}
+                    onPress={() => {
+                      if (isSelected) {
+                        item.setSelectedDays(item.selectedDays.filter(d => d !== fullDayName));
+                      } else {
+                        item.setSelectedDays([...item.selectedDays, fullDayName]);
+                      }
+                    }}
                   >
                     <ThemedText style={[
                       styles.dayButtonText,
-                      item.selectedDay === fullDayName && styles.dayButtonTextSelected
+                      isSelected && styles.dayButtonTextSelected
                     ]}>
                       {day}
                     </ThemedText>
