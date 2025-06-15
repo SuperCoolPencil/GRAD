@@ -56,7 +56,7 @@ export default function SettingsScreen() {
             style={styles.linkText}
           >
             <Ionicons name="mail-outline" size={20} color={colors.text} style={{ marginRight: 5 }} />
-            <ThemedText style={styles.linkText}>thesupercoolpencil@gmail.com</ThemedText>
+            <ThemedText style={styles.linkText}> thesupercoolpencil@gmail.com</ThemedText>
           </ExternalLink>
         </View>
 
@@ -68,7 +68,7 @@ export default function SettingsScreen() {
             style={styles.linkText}
           >
             <Ionicons name="logo-github" size={20} color={colors.text} style={{ marginRight: 5 }} />
-            <ThemedText style={styles.linkText}>GitHub Repository</ThemedText>
+            <ThemedText style={styles.linkText}> GitHub Repository</ThemedText>
           </ExternalLink>
         </View>
 

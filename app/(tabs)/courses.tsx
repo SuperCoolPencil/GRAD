@@ -10,6 +10,10 @@ import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+const truncate = (str: string, n: number) => {
+  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
+};
+
 // Helper to calculate attendance delta.
 // Returns a positive number when you need to attend extra classes to reach the required attendance,
 // a negative number when you can bunk extra classes and still maintain the requirement,
@@ -116,7 +120,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; c
                   type="subtitle"
                   style={{ color: Colors[colorScheme].text }}
                 >
-                  {item.name} ({item.id})
+                  {truncate(item.name, 20)} ({truncate(item.id, 10)})
                 </ThemedText>
                 <ThemedText style={{ color: Colors[colorScheme].text }}>
                   Attendance: {attendancePercentage}%

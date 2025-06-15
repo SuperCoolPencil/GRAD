@@ -21,6 +21,10 @@ import { useCustomAlert } from '@/context/AlertContext'; // Import the custom al
 import { useNavigation } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
 
+const truncate = (str: string, n: number) => {
+  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
+};
+
 const AddExtraClassScreen = () => {
   const router = useRouter();
   const { addExtraClass, courses } = useContext(AppContext);
@@ -201,7 +205,7 @@ const AddExtraClassScreen = () => {
                         }}
                       >
                         <ThemedText style={styles.modalItemText}>
-                          {`${item.name} (${item.id})`}
+                          {`${truncate(item.name, 20)} (${truncate(item.id, 10)})`}
                         </ThemedText>
                       </TouchableOpacity>
                     )}

@@ -18,6 +18,10 @@ import { useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomAlert } from "@/components/CustomAlert";
 
+const truncate = (str: string, n: number) => {
+  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
+};
+
 const DAYS_OF_WEEK = [
   "Sunday",
   "Monday",
@@ -274,7 +278,7 @@ function TodaysClassesContent({
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <ThemedText type="subtitle" style={styles.courseName}>
-                  {item.courseName}
+                  {truncate(item.courseName, 20)}
                 </ThemedText>
               </View>
               <View style={styles.infoRow}>
