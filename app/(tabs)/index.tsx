@@ -249,7 +249,6 @@ function TodaysClassesContent({
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
     const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
-    console.log(`index.tsx: courseName=${item.courseName}, needToAttend=${item.needToAttend}, colorScheme=${colorScheme}, accentColor=${accentColor}`);
     const cardBackground =
       colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
     // We can color-code the text that indicates how many you must attend/bunk

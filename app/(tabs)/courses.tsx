@@ -47,7 +47,6 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 
 export default function CoursesScreen() {
   const { courses } = useContext(AppContext);
-  console.log("CoursesScreen: courses =", courses);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -95,7 +94,6 @@ function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; c
     const absentCount = item.absents || 0;
 
     const accentColor = getDeltaColor(getAttendanceDelta(presentCount, absentCount, requiredAttendance), colorScheme);
-    console.log(`courses.tsx: courseName=${item.name}, presentCount=${presentCount}, absentCount=${absentCount}, attendancePercentage=${requiredAttendance}, colorScheme=${colorScheme}, accentColor=${accentColor}`);
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>

@@ -196,7 +196,13 @@ export default function CourseDetailScreen() {
         }}
       />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32 }}>
-        <ThemedText type="title">{course.name}</ThemedText>
+        <ThemedText
+            type="title"
+            style={{ maxWidth: '60%', flexShrink: 1 }}
+            ellipsizeMode="tail"
+          >
+            {course.name}
+          </ThemedText>
         <View style={{ flexDirection: 'row' }}>
           <Link href={`/edit-course/${course.id}`} asChild>
             <TouchableOpacity style={{ marginRight: 10 }}>

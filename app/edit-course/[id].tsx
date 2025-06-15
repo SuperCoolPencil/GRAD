@@ -212,7 +212,18 @@ const EditCourseScreen = () => {
         presents: existingCourse?.presents || 0,
         absents: existingCourse?.absents || 0,
         cancelled: existingCourse?.cancelled || 0,
-        weeklySchedule: weeklySchedule,
+        weeklySchedule: weeklySchedule.sort((a, b) => {
+          const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+          const dayAIndex = daysOfWeek.indexOf(a.day);
+          const dayBIndex = daysOfWeek.indexOf(b.day);
+
+          if (dayAIndex !== dayBIndex) {
+            return dayAIndex - dayBIndex;
+          }
+
+          // If days are the same, sort by start time
+          return a.timeStart.localeCompare(b.timeStart);
+        }),
         attendanceRecords: existingCourse?.attendanceRecords || [],
         extraClasses: existingCourse?.extraClasses || [],
         requiredAttendance: requiredAttendance || 0,
@@ -230,6 +241,7 @@ const EditCourseScreen = () => {
     } catch (error) {
       console.error("Failed to edit course:", error);
       showAlert("Error", "Failed to edit course. Please try again.");
+      return;
     }
   };
 

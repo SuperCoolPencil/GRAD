@@ -180,7 +180,18 @@ const AddCourseScreen = () => {
         presents: 0,
         absents: 0,
         cancelled: 0,
-        weeklySchedule: weeklySchedule,
+        weeklySchedule: weeklySchedule.sort((a, b) => {
+          const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+          const dayAIndex = daysOfWeek.indexOf(a.day);
+          const dayBIndex = daysOfWeek.indexOf(b.day);
+
+          if (dayAIndex !== dayBIndex) {
+            return dayAIndex - dayBIndex;
+          }
+
+          // If days are the same, sort by start time
+          return a.timeStart.localeCompare(b.timeStart);
+        }),
         attendanceRecords: [],
         extraClasses: [],
         requiredAttendance: requiredAttendance,
@@ -199,6 +210,7 @@ const AddCourseScreen = () => {
     } catch (error) {
       console.error("Failed to add course:", error);
       showAlert("Error", "Failed to add course. Please try again.");
+      return;
     }
   };
 
@@ -304,8 +316,7 @@ const AddCourseScreen = () => {
               placeholderTextColor={Colors[colorScheme].placeholder}
               autoCapitalize="characters"
               onChangeText={(text) => {
-                // Allow only alphanumeric characters
-                const formattedText = text.replace(/[^a-zA-Z0-9]/g, '');
+                const formattedText = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
                 item.setCourseId(formattedText);
               }}
             />
