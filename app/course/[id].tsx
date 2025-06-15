@@ -198,7 +198,7 @@ export default function CourseDetailScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32 }}>
         <ThemedText
             type="title"
-            style={{ maxWidth: '60%', flexShrink: 1 }}
+            style={{ maxWidth: '70%', flexShrink: 1 }}
             ellipsizeMode="tail"
           >
             {course.name}
@@ -255,7 +255,7 @@ export default function CourseDetailScreen() {
                 setInputValue(String(presents));
                 setModalVisible(true);
               }}>
-                <ThemedText style={styles.detailText}> Present: {presents}</ThemedText>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
               </Pressable>
             </View>
             <View style={styles.attendanceDetailItem}>
@@ -265,7 +265,7 @@ export default function CourseDetailScreen() {
                 setInputValue(String(absents));
                 setModalVisible(true);
               }}>
-                <ThemedText style={styles.detailText}> Absent: {absents}</ThemedText>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
               </Pressable>
             </View>
             <View style={styles.attendanceDetailItem}>
@@ -275,7 +275,7 @@ export default function CourseDetailScreen() {
                 setInputValue(String(cancelled));
                 setModalVisible(true);
               }}>
-                <ThemedText style={styles.detailText}> Cancelled: {cancelled}</ThemedText>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
               </Pressable>
             </View>
           </View>
@@ -506,10 +506,18 @@ const styles = StyleSheet.create({
   attendanceDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.2)',
+    borderRadius: 5,
+    padding: 5,
   },
   detailText: {
     marginLeft: 4,
     fontSize: 14,
+  },
+  clickableText: {
+    textDecorationLine: 'underline',
+    cursor: 'pointer',
   },
   scheduleItem: {
     flexDirection: 'row',
