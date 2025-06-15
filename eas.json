@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "ANDROID_SDK_ROOT": "/home/supercoolpencil/Android/Sdk"
+        "ANDROID_SDK_ROOT": "/home/supercoolpencil/Android/sdk"
       }
     },
     "production": {
