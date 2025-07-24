@@ -46,16 +46,15 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
 
 <table>
   <tr>
-    <td align="center"><img src="demo-screens/add-course.jpeg" alt="Add Course" width="300" /></td>
     <td align="center"><img src="demo-screens/classes.png" alt="Classes" width="300" /></td>
-  </tr>
-  <tr>
     <td align="center"><img src="demo-screens/course-info.jpeg" alt="Course Info" width="300" /></td>
-    <td align="center"><img src="demo-screens/extra-class.jpeg" alt="Extra Class" width="300" /></td>
   </tr>
   <tr>
+    <td align="center"><img src="demo-screens/extra-class.jpeg" alt="Extra Class" width="300" /></td>
     <td align="center"><img src="demo-screens/my-courses.png" alt="My Courses" width="300" /></td>
-    <td align="center"><img src="demo-screens/settings.png" alt="Settings" width="300" /></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="demo-screens/settings.jpeg" alt="Settings" width="300" /></td>
   </tr>
 </table>
 
