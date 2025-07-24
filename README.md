@@ -1,5 +1,5 @@
 # GRAD 👋
-**GRAD** (Grades, Reports, Attendance Dashboard) is a lightweight mobile app that helps students track their internal marks and attendance with simplicity and clarity.
+**GRAD** is a lightweight mobile app that helps students track their internal marks and attendance with simplicity and clarity.
 
 This project is built with [Expo](https://expo.dev) and was bootstrapped using [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
