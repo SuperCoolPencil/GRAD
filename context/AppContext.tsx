@@ -18,6 +18,8 @@ interface AppContextType {
   courses: Course[];
   loading: boolean;
   theme: string;
+  notificationTime: number;
+  updateNotificationTime: (time: number) => void;
   toggleTheme: () => void;
   addCourse: (newCourse: Course) => void;
   editCourse: (updatedCourse: Course) => void;
@@ -50,6 +52,8 @@ export const AppContext = createContext<AppContextType>({
   courses: [],
   loading: true,
   theme: "light",
+  notificationTime: 10,
+  updateNotificationTime: () => { },
   toggleTheme: () => { },
   addCourse: () => { },
   editCourse: () => { },
@@ -76,6 +80,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [theme, setTheme] = useState<string>("light");
+  const [notificationTime, setNotificationTime] = useState(10);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
@@ -86,11 +91,15 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       try {
         const storedCourses = await AsyncStorage.getItem("courses");
         const storedTheme = await AsyncStorage.getItem("theme");
+        const storedNotificationTime = await AsyncStorage.getItem("notificationTime");
         if (storedCourses) {
           setCourses(JSON.parse(storedCourses));
         }
         if (storedTheme) {
           setTheme(storedTheme);
+        }
+        if (storedNotificationTime) {
+          setNotificationTime(JSON.parse(storedNotificationTime));
         }
       } catch (error) {
         console.error("Failed to load data", error);
@@ -107,6 +116,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       try {
         await AsyncStorage.setItem("courses", JSON.stringify(courses));
         await AsyncStorage.setItem("theme", theme);
+        await AsyncStorage.setItem("notificationTime", JSON.stringify(notificationTime));
       } catch (error) {
         console.error("Failed to save data", error);
       }
@@ -115,7 +125,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (!loading) {
       saveData();
     }
-  }, [courses, loading, theme]);
+  }, [courses, loading, theme, notificationTime]);
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
@@ -427,7 +437,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const unarchiveCourse = async (courseId: string) => {
     const courseToUnarchive = courses.find((course) => course.id.toLowerCase() === courseId.toLowerCase());
     if (courseToUnarchive) {
-      await scheduleCourseNotifications(courseToUnarchive, 10); // Assuming a default of 10 minutes
+      await scheduleCourseNotifications(courseToUnarchive, notificationTime);
     }
     setCourses((prevCourses) =>
       prevCourses.map((course) =>
@@ -495,12 +505,33 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     saveTheme();
   }, [theme]);
 
+  const rescheduleAllNotifications = async () => {
+    await cancelAllNotifications();
+    for (const course of courses) {
+      if (!course.isArchived) {
+        await scheduleCourseNotifications(course, notificationTime);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!loading) {
+      rescheduleAllNotifications();
+    }
+  }, [courses, loading, notificationTime]);
+
+  const updateNotificationTime = (time: number) => {
+    setNotificationTime(time);
+  };
+
   return (
     <AppContext.Provider
       value={{
         courses,
         loading,
         theme,
+        notificationTime,
+        updateNotificationTime,
         toggleTheme,
         addCourse,
         editCourse: updateCourse,

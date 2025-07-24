@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, StyleSheet, Platform, Linking, Switch, TextInput } from 'react-native';
+import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button } from 'react-native';
 import Constants from 'expo-constants';
+import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import {
@@ -19,9 +20,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime } = useContext(AppContext);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [notificationTime, setNotificationTime] = useState('10');
+  const [isModalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
@@ -59,7 +60,7 @@ export default function SettingsScreen() {
       await cancelAllNotifications();
       for (const course of courses) {
         if (!course.isArchived) {
-          await scheduleCourseNotifications(course, parseInt(notificationTime, 10));
+          await scheduleCourseNotifications(course, notificationTime);
         }
       }
     } else {
@@ -67,19 +68,6 @@ export default function SettingsScreen() {
     }
   };
 
-  useEffect(() => {
-    const updateNotifications = async () => {
-      if (notificationsEnabled) {
-        await cancelAllNotifications();
-        for (const course of courses) {
-          if (!course.isArchived) {
-            await scheduleCourseNotifications(course, parseInt(notificationTime, 10));
-          }
-        }
-      }
-    };
-    updateNotifications();
-  }, [notificationTime, notificationsEnabled, courses]);
 
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -124,17 +112,25 @@ export default function SettingsScreen() {
             />
           </View>
           {notificationsEnabled && (
-            <View style={styles.notificationSetting}>
-              <ThemedText>Notification Time (minutes before class)</ThemedText>
-              <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                value={notificationTime}
-                onChangeText={setNotificationTime}
-                keyboardType="numeric"
-              />
-            </View>
+            <SettingsButton
+              onPress={() => setModalVisible(true)}
+              title={`Notify ${notificationTime} minutes before class`}
+              iconName="time-outline"
+              backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+              textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            />
           )}
         </View>
+
+        <NotificationTimeModal
+          isVisible={isModalVisible}
+          onClose={() => setModalVisible(false)}
+          onSave={(time) => {
+            updateNotificationTime(time);
+            setModalVisible(false);
+          }}
+          initialTime={notificationTime}
+        />
 
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
