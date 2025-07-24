@@ -167,8 +167,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
-    // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32,
+    paddingTop: 64,
     backgroundColor: "transparent",
     alignItems: "center",
   },

@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
+import CustomHeader from '@/components/CustomHeader';
 
 const EditCourseScreen = () => {
   const router = useRouter();
@@ -29,15 +30,6 @@ const EditCourseScreen = () => {
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert();
   const { id } = useLocalSearchParams();
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: `Edit Course (ID: ${id})`,
-      headerStyle: {
-        backgroundColor: Colors[colorScheme].card,
-      },
-    });
-  }, [navigation, id, colors]);
 
   // Course details state
   const [courseName, setCourseName] = useState('');
@@ -324,9 +316,11 @@ const EditCourseScreen = () => {
   };
 
   return (
-    <FlatList
-      data={[formData]}
-      keyExtractor={() => 'form'}
+    <>
+      <CustomHeader title={`Edit Course (ID: ${id})`} />
+      <FlatList
+        data={[formData]}
+        keyExtractor={() => 'form'}
       renderItem={({ item }) => (
         <ThemedView style={styles.contentContainer}>
           {/* Course Details Section */}
@@ -479,6 +473,7 @@ const EditCourseScreen = () => {
       )}
       style={styles.container}
     />
+    </>
   );
 };
 

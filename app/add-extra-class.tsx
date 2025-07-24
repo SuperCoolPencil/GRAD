@@ -20,6 +20,7 @@ import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 import { useNavigation } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
+import CustomHeader from '@/components/CustomHeader';
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -32,15 +33,6 @@ const AddExtraClassScreen = () => {
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: 'Add Extra Class',
-      headerStyle: {
-        backgroundColor: Colors[colorScheme].card,
-      },
-    });
-  }, [navigation, colors]);
 
   // State variables
   const [date, setDate] = useState(new Date());
@@ -160,6 +152,7 @@ const AddExtraClassScreen = () => {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
+      <CustomHeader title="Add Extra Class" />
       <ScrollView style={styles.contentContainer}>
         {/* Form Content */}
         <View style={styles.section}>

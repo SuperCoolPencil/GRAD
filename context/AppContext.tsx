@@ -7,6 +7,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
+import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 
 const isValidCourseId = (courseId: string) => {
   const regex = /^[a-zA-Z0-9]*$/;
@@ -42,6 +43,7 @@ interface AppContextType {
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void; // Add archive function type
   unarchiveCourse: (courseId: string) => void; // Add unarchive function type
+  addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -63,6 +65,7 @@ export const AppContext = createContext<AppContextType>({
   updateCourseCounts: () => { },
   archiveCourse: () => { },
   unarchiveCourse: () => { },
+  addAttendance: () => { },
 });
 
 interface AppProviderProps {
@@ -184,7 +187,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     );
   };
 
-  const deleteCourse = (courseId: string) => {
+  const deleteCourse = async (courseId: string) => {
+    await cancelCourseNotifications(courseId);
     setCourses((prevCourses) =>
       prevCourses.filter((course) => course.id.toLowerCase() !== courseId.toLowerCase())
     );
@@ -409,7 +413,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const archiveCourse = (courseId: string) => {
+  const archiveCourse = async (courseId: string) => {
+    await cancelCourseNotifications(courseId);
     setCourses((prevCourses) =>
       prevCourses.map((course) =>
         course.id.toLowerCase() === courseId.toLowerCase()
@@ -419,7 +424,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     );
   };
 
-  const unarchiveCourse = (courseId: string) => {
+  const unarchiveCourse = async (courseId: string) => {
+    const courseToUnarchive = courses.find((course) => course.id.toLowerCase() === courseId.toLowerCase());
+    if (courseToUnarchive) {
+      await scheduleCourseNotifications(courseToUnarchive, 10); // Assuming a default of 10 minutes
+    }
     setCourses((prevCourses) =>
       prevCourses.map((course) =>
         course.id.toLowerCase() === courseId.toLowerCase()
@@ -428,6 +437,51 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       )
     );
   }
+
+  const addAttendance = async (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
+    setCourses((prevCourses) =>
+      prevCourses.map((course) => {
+        if (course.id.toLowerCase() === courseId.toLowerCase()) {
+          const updatedCourse = { ...course };
+          const newRecord: AttendanceRecord = {
+            id: Date.now().toString(),
+            data: new Date().toISOString(),
+            Status: status,
+            isExtraClass: isExtraClass,
+            scheduleItemId: scheduleId,
+          };
+          updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
+
+          if (status === 'present') {
+            updatedCourse.presents = (updatedCourse.presents || 0) + 1;
+          } else if (status === 'absent') {
+            updatedCourse.absents = (updatedCourse.absents || 0) + 1;
+          } else if (status === 'cancelled') {
+            updatedCourse.cancelled = (updatedCourse.cancelled || 0) + 1;
+          }
+
+          const totalClasses = updatedCourse.presents + updatedCourse.absents;
+          updatedCourse.attendancePercentage =
+            totalClasses === 0
+              ? 100
+              : Math.round((updatedCourse.presents / totalClasses) * 100);
+
+          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
+
+          return updatedCourse;
+        }
+        return course;
+      })
+    );
+
+    const storedMarkedClasses = await AsyncStorage.getItem('markedClasses');
+    const markedClasses = storedMarkedClasses ? JSON.parse(storedMarkedClasses) : [];
+    const classId = isExtraClass ? `${courseId}-extra-${scheduleId}` : `${courseId}-${scheduleId}`;
+    if (!markedClasses.includes(classId)) {
+      const newMarkedClasses = [...markedClasses, classId];
+      await AsyncStorage.setItem('markedClasses', JSON.stringify(newMarkedClasses));
+    }
+  };
 
   useEffect(() => {
     const saveTheme = async () => {
@@ -463,6 +517,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         clearData,
         archiveCourse, // Add archive function to context value
         unarchiveCourse,
+        addAttendance,
         updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
           setCourses((prevCourses) =>
             prevCourses.map((course) => {

@@ -1,8 +1,14 @@
-import React, { useContext } from 'react';
-import { View, StyleSheet, Platform, Linking } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { View, StyleSheet, Platform, Linking, Switch, TextInput } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
+import {
+  requestPermissions,
+  scheduleCourseNotifications,
+  cancelAllNotifications,
+  setupNotificationChannels,
+} from '@/utils/notifications';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -13,7 +19,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { clearData } = useContext(AppContext);
+  const { courses, clearData } = useContext(AppContext);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTime, setNotificationTime] = useState('10');
   const router = useRouter();
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
@@ -39,6 +47,39 @@ export default function SettingsScreen() {
       ]
     );
   };
+
+  useEffect(() => {
+    setupNotificationChannels();
+  }, []);
+
+  const handleNotificationToggle = async (value: boolean) => {
+    setNotificationsEnabled(value);
+    if (value) {
+      await requestPermissions();
+      await cancelAllNotifications();
+      for (const course of courses) {
+        if (!course.isArchived) {
+          await scheduleCourseNotifications(course, parseInt(notificationTime, 10));
+        }
+      }
+    } else {
+      await cancelAllNotifications();
+    }
+  };
+
+  useEffect(() => {
+    const updateNotifications = async () => {
+      if (notificationsEnabled) {
+        await cancelAllNotifications();
+        for (const course of courses) {
+          if (!course.isArchived) {
+            await scheduleCourseNotifications(course, parseInt(notificationTime, 10));
+          }
+        }
+      }
+    };
+    updateNotifications();
+  }, [notificationTime, notificationsEnabled, courses]);
 
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -74,6 +115,28 @@ export default function SettingsScreen() {
 
         {/* Data Section */}
         <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Notifications</ThemedText>
+          <View style={styles.notificationSetting}>
+            <ThemedText>Enable Notifications</ThemedText>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleNotificationToggle}
+            />
+          </View>
+          {notificationsEnabled && (
+            <View style={styles.notificationSetting}>
+              <ThemedText>Notification Time (minutes before class)</ThemedText>
+              <TextInput
+                style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+                value={notificationTime}
+                onChangeText={setNotificationTime}
+                keyboardType="numeric"
+              />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
           <SettingsButton
             onPress={() => router.push("/archived-courses")}
@@ -94,13 +157,26 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  notificationSetting: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    width: 60,
+    textAlign: 'center',
+  },
   titleContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32,
+    paddingTop: 64,
     backgroundColor: "transparent",
   },
   contentContainer: {

@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -12,6 +13,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    <SafeAreaView style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -48,5 +50,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </SafeAreaView>
   );
 }

@@ -1,8 +1,8 @@
 import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native';
 import { useContext } from 'react';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
 import { useCustomAlert } from '@/context/AlertContext';
+import CustomHeader from '@/components/CustomHeader';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -18,15 +18,7 @@ export default function ArchivedCoursesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          numberOfLines={1}
-          style={[{ color: Colors[colorScheme].text }]}
-        >
-          Archived Courses
-        </ThemedText>
-      </ThemedView>
+      <CustomHeader title="Archived Courses" />
       <ArchivedCoursesContent
         courses={courses}
         colorScheme={colorScheme}
@@ -150,16 +142,6 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 16 : 32,
-    backgroundColor: "transparent",
-    alignItems: "center",
-    justifyContent: 'space-between',
-  },
   coursesList: {
     gap: 8,
     paddingHorizontal: 16,

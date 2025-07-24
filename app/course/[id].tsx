@@ -20,6 +20,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
 import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import CustomHeader from '@/components/CustomHeader';
 
 const getAttendanceDelta = (
   presents: number,
@@ -183,18 +184,7 @@ export default function CourseDetailScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: course.id,
-          headerStyle: {
-            backgroundColor: Colors[colorScheme].card,
-          },
-          headerTintColor: Colors[colorScheme].text,
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      />
+      <CustomHeader title={course.id} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32 }}>
         <ThemedText
             type="title"

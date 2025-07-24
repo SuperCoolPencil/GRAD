@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
+import CustomHeader from '@/components/CustomHeader';
 
 const AddCourseScreen = () => {
   const { addCourse, isValidCourseId } = useContext(AppContext);
@@ -26,13 +27,6 @@ const AddCourseScreen = () => {
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: `Add Course`,
-      headerStyle: styles.headerStyle,
-    });
-  }, [navigation, colorScheme]);
 
   // Course details state
   const [courseName, setCourseName] = useState('');
@@ -290,6 +284,8 @@ const AddCourseScreen = () => {
   };
 
   return (
+    <>
+    <CustomHeader title="Add Course" />
     <FlatList
       data={[formData]}
       keyExtractor={() => 'form'}
@@ -457,6 +453,7 @@ const AddCourseScreen = () => {
       )}
       style={styles.container}
     />
+    </>
   );
 };
 
