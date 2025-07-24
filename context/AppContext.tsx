@@ -19,8 +19,10 @@ interface AppContextType {
   loading: boolean;
   theme: string;
   notificationTime: number;
+  notificationsEnabled: boolean;
   updateNotificationTime: (time: number) => void;
   toggleTheme: () => void;
+  toggleNotifications: () => void;
   addCourse: (newCourse: Course) => void;
   editCourse: (updatedCourse: Course) => void;
   getCourse: (courseId: string) => Promise<Course | undefined>;
@@ -53,8 +55,10 @@ export const AppContext = createContext<AppContextType>({
   loading: true,
   theme: "light",
   notificationTime: 10,
+  notificationsEnabled: false,
   updateNotificationTime: () => { },
   toggleTheme: () => { },
+  toggleNotifications: () => { },
   addCourse: () => { },
   editCourse: () => { },
   getCourse: () => Promise.resolve(undefined),
@@ -81,9 +85,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [theme, setTheme] = useState<string>("light");
   const [notificationTime, setNotificationTime] = useState(10);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+  };
+
+  const toggleNotifications = () => {
+    setNotificationsEnabled(prevState => !prevState);
   };
 
   useEffect(() => {
@@ -92,6 +101,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         const storedCourses = await AsyncStorage.getItem("courses");
         const storedTheme = await AsyncStorage.getItem("theme");
         const storedNotificationTime = await AsyncStorage.getItem("notificationTime");
+        const storedNotificationsEnabled = await AsyncStorage.getItem("notificationsEnabled");
         if (storedCourses) {
           setCourses(JSON.parse(storedCourses));
         }
@@ -100,6 +110,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         }
         if (storedNotificationTime) {
           setNotificationTime(JSON.parse(storedNotificationTime));
+        }
+        if (storedNotificationsEnabled) {
+          setNotificationsEnabled(JSON.parse(storedNotificationsEnabled));
         }
       } catch (error) {
         console.error("Failed to load data", error);
@@ -117,6 +130,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         await AsyncStorage.setItem("courses", JSON.stringify(courses));
         await AsyncStorage.setItem("theme", theme);
         await AsyncStorage.setItem("notificationTime", JSON.stringify(notificationTime));
+        await AsyncStorage.setItem("notificationsEnabled", JSON.stringify(notificationsEnabled));
       } catch (error) {
         console.error("Failed to save data", error);
       }
@@ -125,7 +139,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (!loading) {
       saveData();
     }
-  }, [courses, loading, theme, notificationTime]);
+  }, [courses, loading, theme, notificationTime, notificationsEnabled]);
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
@@ -531,8 +545,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         loading,
         theme,
         notificationTime,
+        notificationsEnabled,
         updateNotificationTime,
         toggleTheme,
+        toggleNotifications,
         addCourse,
         editCourse: updateCourse,
         getCourse: (courseId: string) => {

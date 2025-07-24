@@ -20,8 +20,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime } = useContext(AppContext);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const { colors } = useTheme();
@@ -53,9 +52,9 @@ export default function SettingsScreen() {
     setupNotificationChannels();
   }, []);
 
-  const handleNotificationToggle = async (value: boolean) => {
-    setNotificationsEnabled(value);
-    if (value) {
+  const handleNotificationToggle = async () => {
+    toggleNotifications();
+    if (!notificationsEnabled) {
       await requestPermissions();
       await cancelAllNotifications();
       for (const course of courses) {

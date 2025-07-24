@@ -3,6 +3,9 @@ import { Course, ScheduleItem, ExtraClass } from '@/types';
 
 // Function to schedule notifications for a single course
 export const scheduleCourseNotifications = async (course: Course, notificationTime: number) => {
+  // First, cancel any existing notifications for this course to avoid duplicates
+  await cancelCourseNotifications(course.id);
+
   const { weeklySchedule, extraClasses } = course;
 
   if (weeklySchedule) {
@@ -41,9 +44,15 @@ const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass)
   const requiredAttendance = course.requiredAttendance || 75;
 
   const delta = getAttendanceDelta(presents, absents, requiredAttendance);
-  const deltaMessage = delta > 0
-    ? `You need to attend ${delta} more class(es).`
-    : `You can bunk ${-delta} class(es).`;
+  let deltaMessage: string;
+
+  if (delta > 0) {
+    deltaMessage = `You need to attend ${delta} more class(es).`;
+  } else if (delta === 0) {
+    deltaMessage = 'At required attendance';
+  } else {
+    deltaMessage = `You can bunk ${-delta} class(es).`;
+  }
 
   return {
     title: `${course.name} - ${attendancePercentage}%`,
@@ -77,26 +86,35 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
   const content = getNotificationContent(course, item);
   const now = new Date();
   let trigger: Notifications.NotificationTriggerInput;
+  let scheduledTime: Date;
 
   if ('day' in item) { // It's a weekly schedule item
-    const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(item.day);
-    const [hour, minute] = item.timeStart.split(':').map(Number);
+    const dayIndex = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+      .indexOf(item.day);
 
-    const date = new Date();
-    date.setHours(hour, minute, 0, 0);
-    date.setDate(now.getDate() + (dayIndex - now.getDay() + 7) % 7);
-    date.setMinutes(date.getMinutes() - notificationTime);
+    // 1) Build next-possible class date at the exact start time:
+    const [h, m] = item.timeStart.split(':').map(Number);
+    const nextClass = new Date();
+    const daysUntil = (dayIndex - nextClass.getDay() + 7) % 7;
+    nextClass.setDate(nextClass.getDate() + daysUntil);
+    nextClass.setHours(h, m, 0, 0);
 
-    if (date < now) { // If the time has already passed for this week, schedule for next week
-      date.setDate(date.getDate() + 7);
+    // 2) Subtract your notificationTime
+    nextClass.setMinutes(nextClass.getMinutes() - notificationTime);
+
+    // 3) If that lands you still in the past, add 7 more days
+    if (nextClass < now) {
+      nextClass.setDate(nextClass.getDate() + 7);
     }
 
+    scheduledTime = new Date(nextClass);
+    // 4) Push only the final hour/minute back into a repeating trigger
     trigger = {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: dayIndex + 1, // 1 = Sunday … 7 = Saturday
+      hour: nextClass.getHours(),
+      minute: nextClass.getMinutes(),
       channelId: 'default',
-      weekday: dayIndex + 1,
-      hour: date.getHours(),
-      minute: date.getMinutes(),
-      repeats: true,
     };
   } else { // It's an extra class
     const [year, month, day] = item.date.split('-').map(Number);
@@ -108,13 +126,18 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       return;
     }
 
+    scheduledTime = date;
     trigger = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       channelId: 'default',
       date: date,
     };
   }
 
+  const identifier = `${course.id}-${item.id}`;
+
   await Notifications.scheduleNotificationAsync({
+    identifier,
     content,
     trigger,
   });
