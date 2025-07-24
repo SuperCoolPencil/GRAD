@@ -55,6 +55,7 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
   </tr>
   <tr>
     <td align="center"><img src="demo-screens/settings.jpeg" alt="Settings" width="300" /></td>
+    <td align="center"><img src="demo-screens/notification.jpeg" alt="Notification" width="300" /></td>
   </tr>
 </table>
 
