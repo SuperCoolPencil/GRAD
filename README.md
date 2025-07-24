@@ -28,17 +28,7 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
 - **Attendance Tracking**: Mark your presence or absence and track real-time attendance percentages.
 - **Extra Classes**: Easily schedule additional sessions outside your regular timetable.
 - **Simple UI**: Designed for quick updates and at-a-glance progress checks.
-
----
-
-## Upcoming Features
-
-- **Scheduled Notificatications**
-- **Google Calendar Integration**
-- **Marks Tracker**
-- **Grades Predictor**
-- **CLEO Integration**
-- **Cloud Sync Options**
+ **Scheduled Notificatications**
 
 ---
 
