@@ -516,7 +516,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   clickableText: {
-    textDecorationLine: 'underline',
     cursor: 'pointer',
   },
   scheduleItem: {
