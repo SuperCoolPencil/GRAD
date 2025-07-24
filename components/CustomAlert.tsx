@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, Pressable, Modal } from 'react-native'; // Import Modal from react-native
+import { StyleSheet, View, Pressable, Modal, Platform } from 'react-native'; // Import Modal from react-native
 import { ThemedText } from './ThemedText';
+import { BlurView } from 'expo-blur';
 import { ThemedView } from './ThemedView';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { AlertButton } from '@/types';
@@ -40,65 +41,73 @@ export function CustomAlert({
       visible={isVisible}
       onRequestClose={onClose} // Handle hardware back button press
     >
-      {/* Centering container similar to the example */}
-      <View style={styles.centeredView}>
-        {/* Modal content view with styling from the example */}
-        <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
-          {title && (
-            <ThemedText type="subtitle" style={styles.titleText}>
-              {title}
-            </ThemedText>
-          )}
-          {message && (
-            <ThemedText style={[styles.messageText, { color: textColor }]}>
-              {message}
-            </ThemedText>
-          )}
-          <View style={styles.buttonRow}>
-            {alertButtons.map((button, index) => (
-              <Pressable
-                key={index}
-                style={({ pressed }) => [
-                  styles.basicButton,
-                  {
-                    backgroundColor: button.style === 'destructive' ? destructiveColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
-                    opacity: pressed ? 0.7 : 1,
-                    marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
-                    borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
-                    borderColor: button.style === 'cancel' ? (button.style === 'cancel' ? tintColor : borderColor) : 'transparent', // Use theme border color
-                    elevation: button.style === 'cancel' ? 0 : 2,
-                  },
-                ]}
-                onPress={() => {
-                  if (button.onPress) {
-                    button.onPress();
-                  }
-                  onClose(); // Close the modal
-                }}
-              >
-                <ThemedText
-                  style={[
-                    styles.buttonText,
+      <BlurView
+        intensity={25}
+        style={styles.blurView}
+        tint="dark"
+      >
+        <View style={styles.centeredView}>
+          {/* Modal content view with styling from the example */}
+          <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
+            {title && (
+              <ThemedText type="subtitle" style={styles.titleText}>
+                {title}
+              </ThemedText>
+            )}
+            {message && (
+              <ThemedText style={[styles.messageText, { color: textColor }]}>
+                {message}
+              </ThemedText>
+            )}
+            <View style={styles.buttonRow}>
+              {alertButtons.map((button, index) => (
+                <Pressable
+                  key={index}
+                  style={({ pressed }) => [
+                    styles.basicButton,
                     {
-                      color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? tintColor : '#fff'), // Use default text color for cancel
-                      fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
-                      textAlign: 'center',
+                      backgroundColor: button.style === 'destructive' ? destructiveColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
+                      opacity: pressed ? 0.7 : 1,
+                      marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
+                      borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
+                      borderColor: button.style === 'cancel' ? (button.style === 'cancel' ? tintColor : borderColor) : 'transparent', // Use theme border color
+                      elevation: button.style === 'cancel' ? 0 : 2,
                     },
                   ]}
+                  onPress={() => {
+                    if (button.onPress) {
+                      button.onPress();
+                    }
+                    onClose(); // Close the modal
+                  }}
                 >
-                  {button.text}
-                </ThemedText>
-              </Pressable>
-            ))}
-          </View>
-        </ThemedView>
-      </View>
+                  <ThemedText
+                    style={[
+                      styles.buttonText,
+                      {
+                        color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? tintColor : '#fff'), // Use default text color for cancel
+                        fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
+                        textAlign: 'center',
+                      },
+                    ]}
+                  >
+                    {button.text}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+          </ThemedView>
+        </View>
+      </BlurView>
     </Modal>
   );
 }
 
 // Styles adapted from the example and previous basic version
 const styles = StyleSheet.create({
+  blurView: {
+    flex: 1,
+  },
   centeredView: {
     flex: 1,
     justifyContent: 'center',

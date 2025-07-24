@@ -95,13 +95,13 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+    marginBottom: 16,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 20 : 16,
-    paddingBottom: 16,
-    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 32,
+    backgroundColor: "transparent",
   },
   contentContainer: {
     flex: 1,
