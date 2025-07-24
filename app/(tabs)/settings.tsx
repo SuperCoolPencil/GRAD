@@ -1,16 +1,16 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native'; // Import Platform, removed useColorScheme
-import Constants from 'expo-constants'; // Import Constants
+import { View, StyleSheet, Platform, Linking } from 'react-native';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { ExternalLink } from '@/components/ExternalLink'; // Adjusted path
-import { AppContext } from '@/context/AppContext'; // Adjusted path
-import { ThemedText } from '@/components/ThemedText'; // Added for consistency
-import { ThemedView } from '@/components/ThemedView'; // Added for consistency
-import { Colors } from '@/constants/Colors'; // Added for consistency
+import { AppContext } from '@/context/AppContext';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@react-navigation/native';
 import { useColorScheme } from 'react-native';
-import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
+import { useCustomAlert } from '@/context/AlertContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
   const { clearData } = useContext(AppContext);
@@ -51,47 +51,42 @@ export default function SettingsScreen() {
         {/* Contact Us Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>
-          <ExternalLink
-            href="mailto:thesupercoolpencil@gmail.com"
-            style={styles.linkText}
-          >
-            <Ionicons name="mail-outline" size={20} color={colors.text} style={{ marginRight: 5 }} />
-            <ThemedText style={styles.linkText}> thesupercoolpencil@gmail.com</ThemedText>
-          </ExternalLink>
+          <SettingsButton
+            onPress={() => Linking.openURL('mailto:thesupercoolpencil@gmail.com')}
+            title="thesupercoolpencil@gmail.com"
+            iconName="mail-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
         </View>
 
         {/* Project Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Project</ThemedText>
-          <ExternalLink
-            href="https://github.com/SuperCoolPencil/GRAD"
-            style={styles.linkText}
-          >
-            <Ionicons name="logo-github" size={20} color={colors.text} style={{ marginRight: 5 }} />
-            <ThemedText style={styles.linkText}> GitHub Repository</ThemedText>
-          </ExternalLink>
+          <SettingsButton
+            onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD')}
+            title="GitHub Repository"
+            iconName="logo-github"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
         </View>
 
         {/* Data Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
-          {/* Add Link to Archived Courses */}
-          <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint }]}
-            onPress={() => {
-              router.push("/archived-courses");
-            }}
-          >
-            <Ionicons name="archive-outline" size={20} color="#fff" style={{ marginRight: 5 }} />
-            <Text style={styles.clearButtonText}>View Archived Courses</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: colorScheme === 'dark' ? Colors.dark.error : Colors.light.error }]}
+          <SettingsButton
+            onPress={() => router.push("/archived-courses")}
+            title="View Archived Courses"
+            iconName="archive-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+          />
+          <SettingsButton
             onPress={handleClearData}
-          >
-            <Ionicons name="trash-outline" size={20} color="#fff" style={{ marginRight: 5 }} />
-            <Text style={styles.clearButtonText}>Clear All Data</Text>
-          </TouchableOpacity>
+            title="Clear All Data"
+            iconName="trash-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
+          />
         </View>
       </ThemedView>
     </ThemedView>
@@ -104,47 +99,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    // Use paddingTop instead of marginTop to account for status bar
-    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 64 : 16,
-    paddingBottom: 16, // Reduced bottom padding for title
-    backgroundColor: 'transparent', // Ensure background color doesn't interfere
+    paddingTop: Platform.OS === 'android' ? Constants.statusBarHeight + 20 : 16,
+    paddingBottom: 16,
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 8, // Start content closer to title
+    paddingTop: 8,
   },
   sectionContainer: {
-    marginBottom: 24, // Increased spacing between sections
+    marginBottom: 24,
     backgroundColor: 'transparent',
   },
   sectionTitle: {
-    marginBottom: 12, // Spacing below section title
-    fontSize: 18, // Slightly smaller subtitle
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8, // Add padding for better touch area
-  },
-  settingLabel: {
-    fontSize: 16,
-  },
-  linkText: {
-    fontSize: 16,
-    paddingVertical: 4, // Add padding for better touch area
-  },
-  clearButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8, // Add margin top for spacing
-  },
-  clearButtonText: {
-    color: '#fff', // White text for button
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginBottom: 12,
+    fontSize: 18,
   },
 });
