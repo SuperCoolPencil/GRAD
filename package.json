@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
-    "@react-native-async-storage/async-storage": "2.1.2",
-    "@react-native-community/datetimepicker": "8.3.0",
-    "@react-native-community/slider": "4.5.6",
+    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-community/datetimepicker": "^8.4.1",
+    "@react-native-community/slider": "^4.5.6",
     "@react-native-picker/picker": "2.11.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
@@ -34,41 +34,38 @@
     "expo-symbols": "~0.4.5",
     "expo-system-ui": "~5.0.8",
     "expo-web-browser": "~14.1.6",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "react-native": "0.79.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-native": "^0.79.5",
     "react-native-async-storage": "^0.0.1",
     "react-native-datepicker": "^1.7.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-paper": "^5.13.1",
     "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
+    "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "^13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/jest": "^29.5.12",
-    "@types/react": "^19.1.8",
+    "@types/react": "~19.0.10",
     "@types/react-test-renderer": "^19.0.0",
-    "jest": "^29.2.1",
+    "jest": "~29.7.0",
     "jest-expo": "~52.0.6",
     "react-test-renderer": "18.3.1",
     "typescript": "^5.3.3"
   },
   "private": true,
   "overrides": {
-    "@types/react": "^19.1.8",
+    "@types/react": "~19.0.10",
     "react-native": {
-      "@types/react": "^19.1.8"
+      "@types/react": "~19.0.10"
     },
     "@react-native/virtualized-lists": {
-      "@types/react": "^19.1.8"
-    },
-    "react-test-renderer": {
-      "react": "19.0.0"
+      "@types/react": "~19.0.10"
     }
   }
 }

@@ -155,7 +155,10 @@ const EditCourseScreen = () => {
               setRequiredAttendance(course.requiredAttendance);
             }
             setWeeklySchedule(course.weeklySchedule || []);
-            setSelectedDays((course.weeklySchedule || []).map(item => item.day));
+            // Clear selected days, start time, and end time when edit-course is opened
+            setSelectedDays([]);
+            setStartTime(null);
+            setEndTime(null);
           } else {
             showAlert("Error", "Course not found.");
           }
