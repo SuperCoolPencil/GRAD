@@ -18,7 +18,10 @@ export const initDatabase = () => {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       required_attendance INTEGER NOT NULL,
-      is_archived BOOLEAN NOT NULL DEFAULT 0
+      is_archived BOOLEAN NOT NULL DEFAULT 0,
+      presents INTEGER NOT NULL DEFAULT 0,
+      absents INTEGER NOT NULL DEFAULT 0,
+      cancelled INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS weekly_schedules (
       id TEXT PRIMARY KEY,
@@ -51,25 +54,21 @@ export const initDatabase = () => {
   const columns = db.getAllSync<{ name: string }>('PRAGMA table_info(courses)');
   const columnNames = columns.map(c => c.name);
 
-  if (columnNames.includes('presents')) {
-    console.log('Migrating database: removing presents column');
-    db.execSync('ALTER TABLE courses DROP COLUMN presents');
-  }
-  if (columnNames.includes('absents')) {
-    console.log('Migrating database: removing absents column');
-    db.execSync('ALTER TABLE courses DROP COLUMN absents');
-  }
-  if (columnNames.includes('cancelled')) {
-    console.log('Migrating database: removing cancelled column');
-    db.execSync('ALTER TABLE courses DROP COLUMN cancelled');
-  }
-  if (columnNames.includes('attendance_percentage')) {
-    console.log('Migrating database: removing attendance_percentage column');
-    db.execSync('ALTER TABLE courses DROP COLUMN attendance_percentage');
-  }
   if (!columnNames.includes('is_archived')) {
     console.log('Migrating database: adding is_archived column');
     db.execSync('ALTER TABLE courses ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.includes('presents')) {
+    console.log('Migrating database: adding presents column');
+    db.execSync('ALTER TABLE courses ADD COLUMN presents INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.includes('absents')) {
+    console.log('Migrating database: adding absents column');
+    db.execSync('ALTER TABLE courses ADD COLUMN absents INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnNames.includes('cancelled')) {
+    console.log('Migrating database: adding cancelled column');
+    db.execSync('ALTER TABLE courses ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0');
   }
 
   console.log('Database initialized successfully');
@@ -114,9 +113,9 @@ const getCourseFromDbRow = (c: any): Course => {
     scheduleItemId: r.schedule_item_id,
   }));
 
-  const presents = attendanceRecords.filter(r => r.status === 'present').length;
-  const absents = attendanceRecords.filter(r => r.status === 'absent').length;
-  const cancelled = attendanceRecords.filter(r => r.status === 'cancelled').length;
+  const presents = c.presents;
+  const absents = c.absents;
+  const cancelled = c.cancelled;
   const totalClasses = presents + absents;
   const attendancePercentage = totalClasses > 0 ? Math.round((presents / totalClasses) * 100) : 100;
 
@@ -141,6 +140,14 @@ export const getCourses = (): Course[] => {
   return coursesFromDb.map(getCourseFromDbRow);
 };
 
+export const updateCourseCounts = (courseId: string, presents: number, absents: number, cancelled: number) => {
+  console.log(`Updating counts for course: ${courseId}`);
+  db.runSync(
+    'UPDATE courses SET presents = ?, absents = ?, cancelled = ? WHERE id = ?',
+    presents, absents, cancelled, courseId
+  );
+};
+
 export const getCourseById = (courseId: string): Course | null => {
   console.log(`Getting course by id: ${courseId}`);
   const courseFromDb = db.getFirstSync('SELECT * FROM courses WHERE id = ?', courseId);
@@ -154,8 +161,8 @@ export const addCourse = (course: Course) => {
   console.log(`Adding course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO courses (id, name, required_attendance, is_archived) VALUES (?, ?, ?, ?)',
-      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0
+      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0
     );
     course.weeklySchedule?.forEach(item => {
       db.runSync(
@@ -170,8 +177,8 @@ export const updateCourse = (course: Course) => {
   console.log(`Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ? WHERE id = ?',
+      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.id
     );
 
     // Update weekly schedules
@@ -225,10 +232,25 @@ export const deleteCourse = (courseId: string) => {
 
 export const addAttendanceRecord = (record: AttendanceRecord) => {
   console.log(`Adding attendance record for course: ${record.course_id}`);
-  db.runSync(
-    'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id) VALUES (?, ?, ?, ?, ?, ?)',
-    record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null
-  );
+  db.withTransactionSync(() => {
+    db.runSync(
+      'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id) VALUES (?, ?, ?, ?, ?, ?)',
+      record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null
+    );
+
+    let updateColumn = '';
+    if (record.status === 'present') {
+      updateColumn = 'presents';
+    } else if (record.status === 'absent') {
+      updateColumn = 'absents';
+    } else if (record.status === 'cancelled') {
+      updateColumn = 'cancelled';
+    }
+
+    if (updateColumn) {
+      db.runSync(`UPDATE courses SET ${updateColumn} = ${updateColumn} + 1 WHERE id = ?`, record.course_id);
+    }
+  });
 };
 
 export const addScheduleItem = (courseId: string, item: ScheduleItem) => {
