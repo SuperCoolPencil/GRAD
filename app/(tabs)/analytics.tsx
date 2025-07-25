@@ -38,8 +38,9 @@ export default function AnalyticsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [fromDate, setFromDate] = useState<Date | null>(null);
+  const [toDate, setToDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState<'from' | 'to' | null>(null);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [isHeatmapPickerVisible, setIsHeatmapPickerVisible] = useState(false);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(10);
@@ -132,9 +133,17 @@ export default function AnalyticsScreen() {
   };
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDate(selectedDate);
+    const currentDate = selectedDate || (showDatePicker === 'from' ? fromDate : toDate);
+    setShowDatePicker(null);
+    if (currentDate) {
+      if (showDatePicker === 'from') {
+        setFromDate(currentDate);
+        if (toDate && currentDate > toDate) {
+          setToDate(null);
+        }
+      } else {
+        setToDate(currentDate);
+      }
     }
   };
 
@@ -144,13 +153,24 @@ export default function AnalyticsScreen() {
    .filter(record => {
     const courseMatch = selectedCourse ? record.courseId === selectedCourse : true;
     const recordDate = new Date(record.date);
-    const dateMatch = date.toDateString() === recordDate.toDateString();
-    return courseMatch && dateMatch;
+    
+    if (fromDate && recordDate < fromDate) {
+      return false;
+    }
+    if (toDate) {
+      const toDateEnd = new Date(toDate);
+      toDateEnd.setHours(23, 59, 59, 999);
+      if (recordDate > toDateEnd) {
+        return false;
+      }
+    }
+
+    return courseMatch;
   });
 
   const paginatedHistory = filteredHistory.slice(0, visibleHistoryCount);
 
-  const ListHeader = () => (
+  const ListHeader = React.memo(() => (
     <>
       <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
         <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
@@ -251,13 +271,29 @@ export default function AnalyticsScreen() {
           </Modal>
         </View>
         <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Date:</ThemedText>
-          <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
-            <ThemedText style={styles.datePickerText}>{formatDate(date)}</ThemedText>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <ThemedText style={styles.label}>From Date:</ThemedText>
+              <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('from')}>
+                <ThemedText style={styles.datePickerText}>{fromDate ? formatDate(fromDate) : 'Select Date'}</ThemedText>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <ThemedText style={styles.label}>To Date:</ThemedText>
+              <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('to')}>
+                <ThemedText style={styles.datePickerText}>{toDate ? formatDate(toDate) : 'Select Date'}</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
           {showDatePicker && (
-            <DateTimePicker value={date} mode="date" onChange={handleDateChange} />
+            <DateTimePicker value={showDatePicker === 'from' ? fromDate || new Date() : toDate || new Date()} mode="date" onChange={handleDateChange} />
           )}
+          <TouchableOpacity style={styles.clearButton} onPress={() => {
+            setFromDate(null);
+            setToDate(null);
+          }}>
+            <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
+          </TouchableOpacity>
         </View>
         <FlatList
           data={paginatedHistory}
@@ -299,16 +335,23 @@ export default function AnalyticsScreen() {
           }}
           ListEmptyComponent={<Text style={{ color: colors.text }}>No records found.</Text>}
           ListFooterComponent={
-            filteredHistory.length > visibleHistoryCount ? (
-              <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleHistoryCount(prev => prev + 10)}>
-                <ThemedText style={styles.showMoreButtonText}>Show More</ThemedText>
-              </TouchableOpacity>
-            ) : null
+            <View>
+              {filteredHistory.length > visibleHistoryCount && (
+                <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleHistoryCount(prev => prev + 10)}>
+                  <ThemedText style={styles.showMoreButtonText}>Show More</ThemedText>
+                </TouchableOpacity>
+              )}
+              {visibleHistoryCount > 10 && (
+                <TouchableOpacity style={styles.showLessButton} onPress={() => setVisibleHistoryCount(prev => Math.max(10, prev - 10))}>
+                  <ThemedText style={styles.showLessButtonText}>Show Less</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
           }
         />
       </ThemedView>
     </>
-  );
+  ));
 
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -449,10 +492,32 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     marginTop: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: colors.tint,
+    backgroundColor: colors.border,
     borderRadius: 5,
   },
   showMoreButtonText: {
+    color: colors.text,
+    fontWeight: 'bold',
+  },
+  showLessButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: colors.border,
+    borderRadius: 5,
+  },
+  showLessButtonText: {
+    color: colors.text,
+    fontWeight: 'bold',
+  },
+  clearButton: {
+    marginTop: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: Colors[colorScheme].error,
+    borderRadius: 5,
+  },
+  clearButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
