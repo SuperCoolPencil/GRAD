@@ -142,7 +142,7 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
 }) {
-  const [markedClasses, setMarkedClasses] = useState<string[]>([]);
+  const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
 
   useEffect(() => {
     const loadMarkedClasses = async () => {
@@ -247,7 +247,7 @@ function TodaysClassesContent({
     markAttendance(courseId, status, isExtraClass, scheduleItemId);
     setMarkedClasses((prevMarkedClasses) => {
       const classId = scheduleItemId || `${courseId}-extra-${scheduleItemId}`;
-      return [...prevMarkedClasses, classId];
+      return { ...prevMarkedClasses, [classId]: status };
     });
   };
 
@@ -315,15 +315,14 @@ function TodaysClassesContent({
                   {attendanceNote}
                 </ThemedText>
               </View>
-              {markedClasses.includes(item.id) && (
+              {markedClasses[item.id] && (
                 <View style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center' }}>
-                  <ThemedText style={{ marginLeft: 4, fontSize: 12 }}>Marked </ThemedText>
                   <Ionicons
                     name="checkmark-done-circle-outline"
                     size={20}
                     color={Colors[colorScheme || 'light'].icon} // Neutral gray color
                   />
-
+                  <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{markedClasses[item.id]}</ThemedText>
                 </View>
               )}
             </View>
