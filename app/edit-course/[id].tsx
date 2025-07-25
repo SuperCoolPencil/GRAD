@@ -21,10 +21,11 @@ import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '@/components/CustomHeader';
+import { formatTime as formatTimeUtil } from '@/utils/time';
 
 const EditCourseScreen = () => {
   const router = useRouter();
-  const { editCourse, isValidCourseId, getCourse } = useContext(AppContext);
+  const { editCourse, isValidCourseId, getCourse, is24Hour } = useContext(AppContext);
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
@@ -53,11 +54,12 @@ const EditCourseScreen = () => {
 
   // Helper functions
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+    const timeString = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false,
     });
+    return formatTimeUtil(timeString, is24Hour);
   };
 
   const getTimeForStorage = (date: Date) => {
@@ -405,7 +407,7 @@ const EditCourseScreen = () => {
                   <DateTimePicker
                     value={item.startTime || new Date()}
                     mode="time"
-                    is24Hour={false}
+                    is24Hour={is24Hour}
                     display="default"
                     onChange={item.handleStartTimeChange}
                   />
@@ -425,7 +427,7 @@ const EditCourseScreen = () => {
                   <DateTimePicker
                     value={item.endTime || new Date()}
                     mode="time"
-                    is24Hour={false}
+                    is24Hour={is24Hour}
                     display="default"
                     onChange={item.handleEndTimeChange}
                   />

@@ -13,6 +13,7 @@ import {
 import { Modal } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
+import { formatTime } from '@/utils/time';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
@@ -57,6 +58,7 @@ export default function CourseDetailScreen() {
     changeAttendanceRecord,
     updateCourseCounts,
     archiveCourse, // Import archiveCourse
+    is24Hour,
   } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -350,7 +352,7 @@ export default function CourseDetailScreen() {
               <View key={item.id} style={styles.scheduleItem}>
                 <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
                 <ThemedText style={styles.scheduleText}>
-                  <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {item.timeStart} - {item.timeEnd}
+                  <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
                 </ThemedText>
               </View>
             ))}
@@ -366,7 +368,7 @@ export default function CourseDetailScreen() {
               <View key={item.id} style={styles.scheduleItem}>
                 <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
                 <ThemedText style={styles.scheduleText}>
-                  <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {item.timeStart} - {item.timeEnd}
+                  <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
                 </ThemedText>
               </View>
             ))}

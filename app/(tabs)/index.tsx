@@ -10,6 +10,7 @@ import {
 import Constants from 'expo-constants'; // Import Constants
 import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
 import { AppContext } from "@/context/AppContext";
+import { formatTime } from "@/utils/time";
 import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -67,7 +68,7 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, markAttendance, loading } = useContext(AppContext);
+  const { courses, markAttendance, loading, is24Hour } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
@@ -107,6 +108,7 @@ export default function TodaysClassesScreen() {
         todaysClasses={todaysClasses}
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
+        is24Hour={is24Hour}
       />
       <CustomAlert
         isVisible={showAlert}
@@ -134,6 +136,7 @@ function TodaysClassesContent({
   todaysClasses,
   setTodaysClasses,
   colorScheme,
+  is24Hour,
 }: {
   courses: any;
   markAttendance: any;
@@ -141,6 +144,7 @@ function TodaysClassesContent({
   todaysClasses: any;
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
+  is24Hour: boolean;
 }) {
   const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
 
@@ -289,7 +293,7 @@ function TodaysClassesContent({
                   style={{ marginRight: 4 }}
                 />
                 <ThemedText>
-                  {item.timeStart} - {item.timeEnd}
+                  {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
                   {item.isExtraClass ? ' (Extra)' : ''}
                 </ThemedText>
               </View>

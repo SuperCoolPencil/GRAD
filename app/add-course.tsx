@@ -20,9 +20,10 @@ import { ScheduleItem } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 import CustomHeader from '@/components/CustomHeader';
+import { formatTime as formatTimeUtil } from '@/utils/time';
 
 const AddCourseScreen = () => {
-  const { addCourse, isValidCourseId } = useContext(AppContext);
+  const { addCourse, isValidCourseId, is24Hour } = useContext(AppContext);
   const router = useRouter();
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
@@ -50,11 +51,12 @@ const AddCourseScreen = () => {
 
   // Helper functions
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+    const timeString = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false,
     });
+    return formatTimeUtil(timeString, is24Hour);
   };
 
   const getTimeForStorage = (date: Date) => {
@@ -385,7 +387,7 @@ const AddCourseScreen = () => {
                   <DateTimePicker
                     value={item.startTime || new Date()}
                     mode="time"
-                    is24Hour={false}
+                    is24Hour={is24Hour}
                     display="default"
                     onChange={item.handleStartTimeChange}
                   />
@@ -405,7 +407,7 @@ const AddCourseScreen = () => {
                   <DateTimePicker
                     value={item.endTime || new Date()}
                     mode="time"
-                    is24Hour={false}
+                    is24Hour={is24Hour}
                     display="default"
                     onChange={item.handleEndTimeChange}
                   />
