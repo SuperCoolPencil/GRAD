@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
-import { calculateAttendancePercentage, generateHeatmapData, getOldestRecordDate, getActiveDaysFromData } from '@/utils/attendance';
+import { calculateAttendancePercentage, generateHeatmapData, getOldestRecordDate } from '@/utils/attendance';
 import { useTheme } from '@react-navigation/native';
 import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
@@ -34,6 +34,7 @@ const formatMonthRange = (date: Date): string => {
 
 export default function AnalyticsScreen() {
   const { courses, getCoursesWithRecordsInRange, changeAttendanceRecord } = useContext(AppContext);
+  const activeCourses = useMemo(() => courses.filter(course => !course.isArchived), [courses]);
   const { showAlert } = useCustomAlert();
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
@@ -85,7 +86,7 @@ export default function AnalyticsScreen() {
     );
   };
 
-  const chartData = courses.map(course => ({
+  const chartData = activeCourses.map(course => ({
     label: course.name,
     value: calculateAttendancePercentage(course.presents, course.absents),
   }));
@@ -100,13 +101,11 @@ export default function AnalyticsScreen() {
       .then(setHeatmapCourses);
   }, [displayMonth, getCoursesWithRecordsInRange]);
 
-  const { heatmapData, activeDays } = useMemo(() => {
+  const heatmapData = useMemo(() => {
     const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
     const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 3, 0);
     const coursesToDisplay = selectedHeatmapCourse ? heatmapCourses.filter(c => c.id === selectedHeatmapCourse) : heatmapCourses;
-    const data = generateHeatmapData(coursesToDisplay, startDate, endDate);
-    const activeDays = getActiveDaysFromData(data);
-    return { heatmapData: data, activeDays };
+    return generateHeatmapData(coursesToDisplay, startDate, endDate);
   }, [heatmapCourses, displayMonth, selectedHeatmapCourse]);
 
   const handlePrevPage = () => {
@@ -148,7 +147,7 @@ export default function AnalyticsScreen() {
     }
   };
 
-  const filteredHistory = courses.flatMap(course =>
+  const filteredHistory = activeCourses.flatMap(course =>
     (course.attendanceRecords || []).map(record => ({ ...record, courseName: course.name, courseId: course.id }))
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .filter(record => {
@@ -188,22 +187,24 @@ export default function AnalyticsScreen() {
 
   const ListHeader = React.memo(() => (
     <>
-      <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-        <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
-        <RadarChart
-          data={chartData}
-          maxValue={100}
-          gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
-          stroke={['#666', '#666', '#666', '#666', '#666']}
-          strokeWidth={[1, 1, 1, 1, 1]}
-          strokeOpacity={[1, 1, 1, 1, 1]}
-          labelColor={colors.text}
-          dataFillColor="#007AFF"
-          dataFillOpacity={0.8}
-          dataStroke="#007AFF"
-          dataStrokeWidth={2}
-        />
-      </ThemedView>
+      {activeCourses.length > 2 && (
+        <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
+          <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
+          <RadarChart
+            data={chartData}
+            maxValue={100}
+            gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
+            stroke={['#666', '#666', '#666', '#666', '#666']}
+            strokeWidth={[1, 1, 1, 1, 1]}
+            strokeOpacity={[1, 1, 1, 1, 1]}
+            labelColor={colors.text}
+            dataFillColor="#007AFF"
+            dataFillOpacity={0.8}
+            dataStroke="#007AFF"
+            dataStrokeWidth={2}
+          />
+        </ThemedView>
+      )}
       <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.heatmapHeader}>
           <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
@@ -216,7 +217,7 @@ export default function AnalyticsScreen() {
             <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
           </TouchableOpacity>
         </View>
-        <HeatmapComponent data={heatmapData} activeDays={activeDays} />
+        <HeatmapComponent data={heatmapData} />
         <View style={styles.inputGroup}>
           <ThemedText style={styles.label}>Course:</ThemedText>
           <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsHeatmapPickerVisible(true)}>
@@ -287,7 +288,7 @@ export default function AnalyticsScreen() {
                     <ThemedText style={styles.modalItemText}>All Courses</ThemedText>
                   </TouchableOpacity>
                   <FlatList
-                    data={courses}
+                    data={activeCourses}
                     keyExtractor={(item) => item.id!}
                     showsVerticalScrollIndicator={false}
                     renderItem={({ item }) => (

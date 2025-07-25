@@ -5,12 +5,11 @@ import { Colors } from '@/constants/Colors';
 
 interface HeatmapComponentProps {
   data: { date: Date; value: number }[];
-  activeDays: number[];
 }
 
 const CELL_SIZE = 20;
 const CELL_MARGIN = 4;
-const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // Helper function to convert hex color to an RGB object
 const hexToRgb = (hex: string) => {
@@ -44,50 +43,52 @@ const interpolateColor = (color1: string, color2: string, factor: number) => {
   return null;
 };
 
-const HeatmapComponent = ({ data, activeDays }: HeatmapComponentProps) => {
+const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const themeColors = Colors[colorScheme];
 
-  const displayWeekDays = useMemo(() => {
-    return WEEK_DAYS.filter((_, index) => activeDays.includes(index));
-  }, [activeDays]);
-
   const { columns, months } = useMemo(() => {
-    if (!data || data.length === 0 || activeDays.length === 0) {
+    if (!data || data.length === 0) {
       return { columns: [], months: [] };
     }
 
-    const filteredData = data.filter(d => activeDays.includes(d.date.getDay()));
-    if (filteredData.length === 0) {
-      return { columns: [], months: [] };
-    }
+    const firstDate = data[0].date;
+    const dayOfWeek = (firstDate.getDay() + 6) % 7;
 
-    const firstDate = filteredData[0].date;
-    const dayOfWeek = activeDays.indexOf(firstDate.getDay());
-
-    const numericData = filteredData.map(d => d.value);
+    const numericData = data.map(d => d.value);
     const paddedData = [...Array(dayOfWeek).fill(-2), ...numericData];
 
     const chunkedColumns = [];
-    for (let i = 0; i < paddedData.length; i += activeDays.length) {
-      chunkedColumns.push(paddedData.slice(i, i + activeDays.length));
+    for (let i = 0; i < paddedData.length; i += 7) {
+      chunkedColumns.push(paddedData.slice(i, i + 7));
     }
 
     const monthLabels: { name: string, columnCount: number }[] = [];
     let lastMonth = -1;
-    filteredData.forEach(d => {
+    let columnCount = 0;
+    
+    for (let i = 0; i < data.length; i++) {
+      const d = data[i];
       const month = d.date.getMonth();
+      
       if (month !== lastMonth) {
+        if (lastMonth !== -1) {
+          monthLabels[monthLabels.length - 1].columnCount = columnCount;
+        }
         monthLabels.push({ name: d.date.toLocaleString('default', { month: 'short' }), columnCount: 1 });
         lastMonth = month;
+        columnCount = 1;
       } else {
-        monthLabels[monthLabels.length - 1].columnCount++;
+        columnCount++;
       }
-    });
+    }
+    if (monthLabels.length > 0) {
+      monthLabels[monthLabels.length - 1].columnCount = columnCount;
+    }
 
     return { columns: chunkedColumns, months: monthLabels };
-  }, [data, activeDays]);
+  }, [data]);
 
   // The day labels are rendered from the `displayWeekDays` array.
   // The data columns are constructed such that the first item in each column corresponds to the first day in `displayWeekDays`,
@@ -129,7 +130,7 @@ const HeatmapComponent = ({ data, activeDays }: HeatmapComponentProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.weekdaysContainer}>
-        {displayWeekDays.map(day => (
+        {WEEK_DAYS.map(day => (
           <Text key={day} style={[styles.weekday, { color: colors.text }]}>{day}</Text>
         ))}
       </View>
@@ -147,7 +148,7 @@ const HeatmapComponent = ({ data, activeDays }: HeatmapComponentProps) => {
             </View>
             <View style={styles.monthsContainer}>
               {months.map((month, index) => (
-                <Text key={index} style={[styles.monthLabel, { color: colors.text, width: (CELL_SIZE + CELL_MARGIN) * (month.columnCount / activeDays.length) }]}>
+                <Text key={index} style={[styles.monthLabel, { color: colors.text, width: (CELL_SIZE + CELL_MARGIN) * (month.columnCount / 7) }]}>
                   {month.name}
                 </Text>
               ))}
@@ -174,6 +175,7 @@ const styles = StyleSheet.create({
     lineHeight: CELL_SIZE,
     marginVertical: CELL_MARGIN / 2,
     fontSize: 12,
+    textAlign: 'center',
   },
   gridContainer: {
     flexDirection: 'row',

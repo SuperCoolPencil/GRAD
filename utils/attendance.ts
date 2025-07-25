@@ -18,15 +18,6 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
   return new Date(Math.min(...allDates.map(d => d.getTime())));
 };
 
-export const getActiveDaysFromData = (data: { date: Date; value: number }[]): number[] => {
-  const activeDays = new Set<number>();
-  data.forEach(item => {
-    if (item.value !== -1) {
-      activeDays.add(item.date.getDay());
-    }
-  });
-  return Array.from(activeDays).sort((a, b) => a - b);
-};
 
 export const generateHeatmapData = (courses: Course[], startDate: Date, endDate: Date): { date: Date; value: number }[] => {
   const dateMap: { [key: string]: { presents: number; absents: number } } = {};
