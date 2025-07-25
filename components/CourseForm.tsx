@@ -182,109 +182,115 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
   };
 
   return (
-    <ThemedView style={styles.contentContainer}>
-      <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Course Details</ThemedText>
-        <ThemedText style={styles.label}>Course Name:</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={courseName}
-          onChangeText={setCourseName}
-          placeholder="Enter Course Name (e.g., Calculus)"
-          placeholderTextColor={Colors[colorScheme].placeholder}
-          autoCapitalize="sentences"
-        />
-        {!isEditing && (
-          <>
-            <ThemedText style={styles.label}>Course ID:</ThemedText>
+    <FlatList
+      data={weeklySchedule}
+      renderItem={renderScheduleItem}
+      keyExtractor={(item) => item.id}
+      style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
+      contentContainerStyle={styles.contentContainer}
+      ListHeaderComponent={
+        <>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Course Details</ThemedText>
+            <ThemedText style={styles.label}>Course Name:</ThemedText>
             <TextInput
               style={styles.input}
-              value={courseId}
-              placeholder="Enter Course ID (e.g., MA102)"
+              value={courseName}
+              onChangeText={setCourseName}
+              placeholder="Enter Course Name (e.g., Calculus)"
               placeholderTextColor={Colors[colorScheme].placeholder}
-              autoCapitalize="characters"
-              onChangeText={(text) => setCourseId(text.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+              autoCapitalize="sentences"
             />
-          </>
-        )}
-        <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
-        <Slider
-          style={{ width: '100%', height: 40 }}
-          minimumValue={0}
-          maximumValue={100}
-          step={5}
-          value={requiredAttendance}
-          onSlidingComplete={setRequiredAttendance}
-          minimumTrackTintColor={Colors[colorScheme].tint}
-          maximumTrackTintColor={Colors[colorScheme].border}
-          thumbTintColor={Colors[colorScheme].white}
-        />
-        <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
-      </View>
-
-      <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
-        <ThemedText style={styles.label}>Select Day:</ThemedText>
-        <View style={styles.dayButtonContainer}>
-          {['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'].map((day, index) => {
-            const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
-            const isSelected = selectedDays.includes(fullDayName);
-            return (
-              <TouchableOpacity
-                key={day}
-                style={[styles.dayButton, isSelected && styles.dayButtonSelected, { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }]}
-                onPress={() => {
-                  setSelectedDays(isSelected ? selectedDays.filter(d => d !== fullDayName) : [...selectedDays, fullDayName]);
-                }}
-              >
-                <ThemedText style={[styles.dayButtonText, isSelected && styles.dayButtonTextSelected]}>{day}</ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.timeContainer}>
-          <View style={styles.timeSection}>
-            <TouchableOpacity style={styles.timePickerButton} onPress={() => setShowStartTimePicker(true)}>
-              <ThemedText style={styles.timePickerText}>{startTime ? formatTime(startTime) : 'Select Start Time'}</ThemedText>
-            </TouchableOpacity>
-            {showStartTimePicker && <DateTimePicker value={startTime || new Date()} mode="time" is24Hour={is24Hour} display="default" onChange={handleStartTimeChange} />}
+            {!isEditing && (
+              <>
+                <ThemedText style={styles.label}>Course ID:</ThemedText>
+                <TextInput
+                  style={styles.input}
+                  value={courseId}
+                  placeholder="Enter Course ID (e.g., MA102)"
+                  placeholderTextColor={Colors[colorScheme].placeholder}
+                  autoCapitalize="characters"
+                  onChangeText={(text) => setCourseId(text.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+                />
+              </>
+            )}
+            <ThemedText style={styles.label}>Required Attendance: {requiredAttendance}%</ThemedText>
+            <Slider
+              style={{ width: '100%', height: 40 }}
+              minimumValue={0}
+              maximumValue={100}
+              step={5}
+              value={requiredAttendance}
+              onSlidingComplete={setRequiredAttendance}
+              minimumTrackTintColor={Colors[colorScheme].tint}
+              maximumTrackTintColor={Colors[colorScheme].border}
+              thumbTintColor={Colors[colorScheme].white}
+            />
+            <View style={{ height: 1, backgroundColor: Colors[colorScheme].border, marginVertical: 10 }} />
           </View>
-          <View style={styles.timeSection}>
-            <TouchableOpacity style={styles.timePickerButton} onPress={() => setShowEndTimePicker(true)}>
-              <ThemedText style={styles.timePickerText}>{endTime ? formatTime(endTime) : 'Select End Time'}</ThemedText>
-            </TouchableOpacity>
-            {showEndTimePicker && <DateTimePicker value={endTime || new Date()} mode="time" is24Hour={is24Hour} display="default" onChange={handleEndTimeChange} />}
-          </View>
-        </View>
 
-        <TouchableOpacity style={styles.secondaryButton} onPress={addWeeklyClass}>
-          <ThemedText style={styles.secondaryButtonText}>Add Weekly Class</ThemedText>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Weekly Schedule</ThemedText>
+            <ThemedText style={styles.label}>Select Day:</ThemedText>
+            <View style={styles.dayButtonContainer}>
+              {['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'].map((day, index) => {
+                const fullDayName = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][index];
+                const isSelected = selectedDays.includes(fullDayName);
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[styles.dayButton, isSelected && styles.dayButtonSelected, { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' }]}
+                    onPress={() => {
+                      setSelectedDays(isSelected ? selectedDays.filter(d => d !== fullDayName) : [...selectedDays, fullDayName]);
+                    }}
+                  >
+                    <ThemedText style={[styles.dayButtonText, isSelected && styles.dayButtonTextSelected]}>{day}</ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.timeContainer}>
+              <View style={styles.timeSection}>
+                <TouchableOpacity style={styles.timePickerButton} onPress={() => setShowStartTimePicker(true)}>
+                  <ThemedText style={styles.timePickerText}>{startTime ? formatTime(startTime) : 'Select Start Time'}</ThemedText>
+                </TouchableOpacity>
+                {showStartTimePicker && <DateTimePicker value={startTime || new Date()} mode="time" is24Hour={is24Hour} display="default" onChange={handleStartTimeChange} />}
+              </View>
+              <View style={styles.timeSection}>
+                <TouchableOpacity style={styles.timePickerButton} onPress={() => setShowEndTimePicker(true)}>
+                  <ThemedText style={styles.timePickerText}>{endTime ? formatTime(endTime) : 'Select End Time'}</ThemedText>
+                </TouchableOpacity>
+                {showEndTimePicker && <DateTimePicker value={endTime || new Date()} mode="time" is24Hour={is24Hour} display="default" onChange={handleEndTimeChange} />}
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.secondaryButton} onPress={addWeeklyClass}>
+              <ThemedText style={styles.secondaryButtonText}>Add Weekly Class</ThemedText>
+            </TouchableOpacity>
+
+            {weeklySchedule.length > 0 && (
+              <View style={styles.scheduleContainer}>
+                <ThemedText style={styles.label}>Current Schedule:</ThemedText>
+              </View>
+            )}
+          </View>
+        </>
+      }
+      ListFooterComponent={
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+          <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
         </TouchableOpacity>
-
-        {weeklySchedule.length > 0 && (
-          <View style={styles.scheduleContainer}>
-            <ThemedText style={styles.label}>Current Schedule:</ThemedText>
-            <FlatList
-              data={weeklySchedule}
-              renderItem={renderScheduleItem}
-              keyExtractor={(item) => item.id}
-              style={styles.scheduleList}
-            />
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
-        <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
-      </TouchableOpacity>
-    </ThemedView>
+      }
+    />
   );
 };
 
 const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.create({
-  contentContainer: {
+  container: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
     backgroundColor: colors.background,
   },
