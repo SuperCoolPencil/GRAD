@@ -1,5 +1,6 @@
 import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, Dimensions, FlatList, Text, TouchableOpacity, Modal, useColorScheme } from 'react-native';
+import { BlurView } from 'expo-blur';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useCustomAlert } from '@/context/AlertContext';
 import { RadarChart } from '@salmonco/react-native-radar-chart';
@@ -37,7 +38,7 @@ export default function AnalyticsScreen() {
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState<'from' | 'to' | null>(null);
@@ -151,7 +152,7 @@ export default function AnalyticsScreen() {
     (course.attendanceRecords || []).map(record => ({ ...record, courseName: course.name, courseId: course.id }))
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
    .filter(record => {
-    const courseMatch = selectedCourse ? record.courseId === selectedCourse : true;
+    const courseMatch = selectedCourses.length > 0 ? selectedCourses.includes(record.courseId) : true;
     const recordDate = new Date(record.date);
     
     if (fromDate && recordDate < fromDate) {
@@ -169,6 +170,21 @@ export default function AnalyticsScreen() {
   });
 
   const paginatedHistory = filteredHistory.slice(0, visibleHistoryCount);
+
+  const CourseItem = React.memo(({ item, isSelected, onPress, colors, styles }: any) => (
+    <TouchableOpacity
+      style={styles.modalItem}
+      onPress={onPress}
+    >
+      <Ionicons
+        name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
+        size={24}
+        color={isSelected ? Colors[colorScheme].tint : colors.text}
+        style={{ marginRight: 10 }}
+      />
+      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
+    </TouchableOpacity>
+  ));
 
   const ListHeader = React.memo(() => (
     <>
@@ -241,7 +257,7 @@ export default function AnalyticsScreen() {
           <ThemedText style={styles.label}>Course:</ThemedText>
           <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsPickerVisible(true)}>
             <ThemedText style={styles.pickerTriggerText}>
-              {selectedCourse ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...' : 'Select a course...'}
+              {selectedCourses.length === 0 ? 'All Courses' : `${selectedCourses.length} course(s) selected`}
             </ThemedText>
             <Ionicons name="chevron-down" size={20} color={colors.text} />
           </TouchableOpacity>
@@ -251,23 +267,54 @@ export default function AnalyticsScreen() {
             animationType="fade"
             onRequestClose={() => setIsPickerVisible(false)}
           >
-            <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPressOut={() => setIsPickerVisible(false)}>
-              <View style={styles.modalContent}>
-                <FlatList
-                  data={[{ id: null, name: 'All Courses' }, ...courses]}
-                  keyExtractor={(item) => item.id || 'all-courses'}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.modalItem} onPress={() => {
-                      setSelectedCourse(item.id);
-                      setIsPickerVisible(false);
-                    }}>
-                      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableOpacity>
+            <BlurView intensity={25} style={styles.blurView} tint="dark">
+              <TouchableOpacity
+                style={styles.modalContainer}
+                activeOpacity={1}
+                onPressOut={() => setIsPickerVisible(false)}
+              >
+                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                  <TouchableOpacity
+                    style={styles.modalItem}
+                    onPress={() => setSelectedCourses([])}
+                  >
+                    <Ionicons
+                      name={selectedCourses.length === 0 ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={24}
+                      color={selectedCourses.length === 0 ? Colors[colorScheme].tint : colors.text}
+                      style={{ marginRight: 10 }}
+                    />
+                    <ThemedText style={styles.modalItemText}>All Courses</ThemedText>
+                  </TouchableOpacity>
+                  <FlatList
+                    data={courses}
+                    keyExtractor={(item) => item.id!}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                      <CourseItem
+                        item={item}
+                        isSelected={selectedCourses.includes(item.id!)}
+                        onPress={() => {
+                          setSelectedCourses(prev =>
+                            selectedCourses.includes(item.id!)
+                              ? prev.filter(id => id !== item.id)
+                              : [...prev, item.id!]
+                          );
+                        }}
+                        colors={colors}
+                        styles={styles}
+                      />
+                    )}
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setIsPickerVisible(false)}
+                  >
+                    <ThemedText style={styles.modalCloseButtonText}>Close</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </BlurView>
           </Modal>
         </View>
         <View style={styles.inputGroup}>
@@ -466,11 +513,14 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     fontSize: 16,
     color: colors.text,
   },
+  blurView: {
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)'
+    backgroundColor: 'rgba(0,0,0,0.4)'
   },
   modalContent: {
     backgroundColor: colors.card,
@@ -483,6 +533,8 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modalItemText: {
     fontSize: 16,
@@ -519,6 +571,30 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   },
   clearButtonText: {
     color: 'white',
+    fontWeight: 'bold',
+  },
+  doneButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors['light'].success,
+    borderRadius: 5,
+  },
+  doneButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  modalCloseButton: {
+    backgroundColor: Colors[colorScheme].tint,
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  modalCloseButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
