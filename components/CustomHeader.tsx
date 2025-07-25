@@ -15,7 +15,11 @@ const CustomHeader = ({ title }: CustomHeaderProps) => {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
-    <SafeAreaView edges={['top']} style={{ backgroundColor: Colors[colorScheme].card }}>
+    <SafeAreaView edges={['top']} style={{ 
+      backgroundColor: Colors[colorScheme].card,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+    }}>
       <View style={styles.container}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={Colors[colorScheme].text} />

@@ -185,6 +185,5 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: 12,
-    fontSize: 18,
   },
 });

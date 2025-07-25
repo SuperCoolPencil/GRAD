@@ -185,7 +185,7 @@ export default function CourseDetailScreen() {
   return (
     <>
       <CustomHeader title={course.id} />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32, paddingBottom: 16 }}>
         <ThemedText
             type="title"
             style={{ maxWidth: '70%', flexShrink: 1 }}
@@ -463,7 +463,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     marginBottom: 12,
-    fontSize: 18,
   },
   headerButtons: {
     flexDirection: 'row',
