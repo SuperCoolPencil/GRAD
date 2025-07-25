@@ -1,7 +1,8 @@
 export interface AttendanceRecord {
   id: string;
-  data: string;
-  Status: 'present' | 'absent' | 'cancelled';
+  course_id: string;
+  date: string;
+  status: 'present' | 'absent' | 'cancelled';
   isExtraClass: boolean;
   scheduleItemId?: string;
 }
@@ -31,7 +32,6 @@ export interface Course {
   extraClasses?: ExtraClass[];
   attendanceRecords?: AttendanceRecord[];
   attendancePercentage?: number;
-  classes?: { status: 'present' | 'absent' | 'cancelled' }[];
   isArchived?: boolean;
 }
 

@@ -141,6 +141,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
       cancelled: initialData?.cancelled || 0,
       attendanceRecords: initialData?.attendanceRecords || [],
       extraClasses: initialData?.extraClasses || [],
+      attendancePercentage: 100,
     };
 
     if (weeklySchedule.length === 0) {

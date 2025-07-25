@@ -1,9 +1,12 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button } from 'react-native';
+import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollView } from 'react-native';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
+import { db, reopenDatabase } from '@/utils/database';
 import {
   requestPermissions,
   scheduleCourseNotifications,
@@ -20,7 +23,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const { colors } = useTheme();
@@ -46,6 +49,29 @@ export default function SettingsScreen() {
         }
       ]
     );
+  };
+
+  const handleExportData = async () => {
+    await save(); // Ensure all data is saved before exporting
+    
+    // Close the database to ensure all data is written to the file
+    db.closeSync();
+
+    const dbUri = FileSystem.documentDirectory + 'SQLite/grad.db';
+    const fileInfo = await FileSystem.getInfoAsync(dbUri);
+    if (!fileInfo.exists) {
+      showAlert("Error", "Database file not found.");
+      reopenDatabase(); // Reopen the database even if sharing fails
+      return;
+    }
+    
+    try {
+      await Sharing.shareAsync(dbUri);
+    } catch (error) {
+      showAlert("Error", "Failed to share the database file.");
+    } finally {
+      reopenDatabase(); // Reopen the database after sharing is complete
+    }
   };
 
   useEffect(() => {
@@ -75,7 +101,10 @@ export default function SettingsScreen() {
           Settings
         </ThemedText>
       </ThemedView>
-      <ThemedView style={[styles.contentContainer, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={styles.contentContainer}
+      >
         {/* Contact Us Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>
@@ -152,13 +181,20 @@ export default function SettingsScreen() {
             backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
           />
           <SettingsButton
+            onPress={handleExportData}
+            title="Export Database"
+            iconName="download-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+          <SettingsButton
             onPress={handleClearData}
             title="Clear All Data"
             iconName="trash-outline"
             backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
           />
         </View>
-      </ThemedView>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -187,9 +223,9 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   contentContainer: {
-    flex: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 24,
   },
   sectionContainer: {
     marginBottom: 24,

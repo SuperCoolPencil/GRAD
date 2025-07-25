@@ -1,13 +1,9 @@
-import {
-  createContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createContext, useState, useEffect, ReactNode } from "react";
 import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
+import * as db from '../utils/database';
+import { calculateAttendancePercentage } from "@/utils/attendance";
 
 const isValidCourseId = (courseId: string) => {
   const regex = /^[a-zA-Z0-9]*$/;
@@ -27,7 +23,7 @@ interface AppContextType {
   toggleNotifications: () => void;
   addCourse: (newCourse: Course) => void;
   editCourse: (updatedCourse: Course) => void;
-  getCourse: (courseId: string) => Promise<Course | undefined>;
+  getCourse: (courseId: string) => Course | undefined;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
   changeAttendanceRecord: (courseId: string, recordId: string, newStatus: "present" | "absent" | "cancelled") => void;
@@ -47,9 +43,10 @@ interface AppContextType {
   ) => void;
   clearData: () => void;
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
-  archiveCourse: (courseId: string) => void; // Add archive function type
-  unarchiveCourse: (courseId: string) => void; // Add unarchive function type
+  archiveCourse: (courseId: string) => void;
+  unarchiveCourse: (courseId: string) => void;
   addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
+  save: () => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -65,7 +62,7 @@ export const AppContext = createContext<AppContextType>({
   toggleNotifications: () => { },
   addCourse: () => { },
   editCourse: () => { },
-  getCourse: () => Promise.resolve(undefined),
+  getCourse: () => undefined,
   updateCourse: () => { },
   deleteCourse: () => { },
   changeAttendanceRecord: () => { },
@@ -78,6 +75,7 @@ export const AppContext = createContext<AppContextType>({
   archiveCourse: () => { },
   unarchiveCourse: () => { },
   addAttendance: () => { },
+  save: () => Promise.resolve(),
 });
 
 interface AppProviderProps {
@@ -92,147 +90,82 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
 
-  const toggle24Hour = () => {
-    setIs24Hour(prevState => !prevState);
-  };
-
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
-  };
-
-  const toggleNotifications = () => {
-    setNotificationsEnabled(prevState => !prevState);
-  };
-
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = () => {
       try {
-        const storedCourses = await AsyncStorage.getItem("courses");
-        const storedTheme = await AsyncStorage.getItem("theme");
-        const storedNotificationTime = await AsyncStorage.getItem("notificationTime");
-        const storedNotificationsEnabled = await AsyncStorage.getItem("notificationsEnabled");
-        const storedIs24Hour = await AsyncStorage.getItem("is24Hour");
-        if (storedCourses) {
-          setCourses(JSON.parse(storedCourses));
-        }
-        if (storedTheme) {
-          setTheme(storedTheme);
-        }
-        if (storedNotificationTime) {
-          setNotificationTime(JSON.parse(storedNotificationTime));
-        }
-        if (storedNotificationsEnabled) {
-          setNotificationsEnabled(JSON.parse(storedNotificationsEnabled));
-        }
-        if (storedIs24Hour) {
-          setIs24Hour(JSON.parse(storedIs24Hour));
-        }
+        const settings = db.getSettings();
+        setTheme(settings.theme || 'light');
+        setNotificationTime(parseInt(settings.notificationTime || '10', 10));
+        setNotificationsEnabled(settings.notificationsEnabled === 'true');
+        setIs24Hour(settings.is24Hour === 'true');
+
+        const loadedCourses = db.getCourses();
+        setCourses(loadedCourses);
       } catch (error) {
-        console.error("Failed to load data", error);
+        console.error("Failed to load data from database", error);
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
 
-  useEffect(() => {
-    const saveData = async () => {
-      try {
-        await AsyncStorage.setItem("courses", JSON.stringify(courses));
-        await AsyncStorage.setItem("theme", theme);
-        await AsyncStorage.setItem("notificationTime", JSON.stringify(notificationTime));
-        await AsyncStorage.setItem("notificationsEnabled", JSON.stringify(notificationsEnabled));
-        await AsyncStorage.setItem("is24Hour", JSON.stringify(is24Hour));
-      } catch (error) {
-        console.error("Failed to save data", error);
-      }
-    };
+  const toggle24Hour = () => {
+    const newIs24Hour = !is24Hour;
+    setIs24Hour(newIs24Hour);
+    db.updateSetting('is24Hour', newIs24Hour.toString());
+  };
 
-    if (!loading) {
-      saveData();
-    }
-  }, [courses, loading, theme, notificationTime, notificationsEnabled, is24Hour]);
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    db.updateSetting('theme', newTheme);
+  };
+
+  const toggleNotifications = () => {
+    const newNotificationsEnabled = !notificationsEnabled;
+    setNotificationsEnabled(newNotificationsEnabled);
+    db.updateSetting('notificationsEnabled', newNotificationsEnabled.toString());
+  };
+
+  const updateNotificationTime = (time: number) => {
+    setNotificationTime(time);
+    db.updateSetting('notificationTime', time.toString());
+  };
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
     if (!isValidCourseId(courseId)) {
-      <CustomAlert
-        title="Error"
-        message="Course ID must contain only numbers and alphabets."
-        isVisible={true}
-        onClose={() => { }}
-      />
+      // This should be handled by the form validation, but as a safeguard:
+      console.error("Invalid course ID");
       return;
     }
-    const existingCourse = courses.find(
-      (course) => course.id.toLowerCase() === courseId.toLowerCase()
-    );
-    if (existingCourse) {
-      <CustomAlert
-        title="Error"
-        message="A course with this ID already exists. Please use a different ID."
-        isVisible={true}
-        onClose={() => { }}
-      />
+    if (courses.some(c => c.id.toLowerCase() === courseId.toLowerCase())) {
+      console.error("Course with this ID already exists.");
       return;
     }
-    // Ensure counters are initialized when adding a course
     const courseWithInitializedCounters = {
       ...newCourse,
-      presents: newCourse.presents || 0,
-      absents: newCourse.absents || 0,
-      cancelled: newCourse.cancelled || 0,
+      requiredAttendance: newCourse.requiredAttendance || 75, // Ensure a default value
       attendanceRecords: newCourse.attendanceRecords || [],
       weeklySchedule: newCourse.weeklySchedule || [],
       extraClasses: newCourse.extraClasses || [],
-      attendancePercentage: 100,
+      isArchived: false,
     };
-    setCourses((prevCourses) => [...prevCourses, courseWithInitializedCounters]);
-    return;
+    db.addCourse(courseWithInitializedCounters);
+    setCourses(prev => [...prev, courseWithInitializedCounters]);
   };
 
-  const [isUpdateCourseAlertVisible, setIsUpdateCourseAlertVisible] = useState(false);
-
   const updateCourse = (updatedCourse: Course) => {
-    const courseId = updatedCourse.id.trim();
-    if (!isValidCourseId(courseId)) {
-      <CustomAlert
-        title="Error"
-        message="Course ID must contain only numbers and alphabets."
-        isVisible={isUpdateCourseAlertVisible}
-        onClose={() => setIsUpdateCourseAlertVisible(false)}
-      />
-      return;
-    }
-    const existingCourse = courses.find(
-      (course) => course.id.toLowerCase() === courseId.toLowerCase() && course.id.toLowerCase() !== updatedCourse.id.toLowerCase()
-    );
-    if (existingCourse) {
-      <CustomAlert
-        title="Error"
-        message="A course with this ID already exists. Please use a different ID."
-        isVisible={isUpdateCourseAlertVisible}
-        onClose={() => setIsUpdateCourseAlertVisible(false)}
-      />
-      return;
-    }
-    setCourses((prevCourses) =>
-      prevCourses.map((course) =>
-        course.id.toLowerCase() === updatedCourse.id.toLowerCase() ? updatedCourse : course
-      )
-    );
+    db.updateCourse(updatedCourse);
+    setCourses(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
   };
 
   const deleteCourse = async (courseId: string) => {
     await cancelCourseNotifications(courseId);
-    setCourses((prevCourses) =>
-      prevCourses.filter((course) => course.id.toLowerCase() !== courseId.toLowerCase())
-    );
+    db.deleteCourse(courseId);
+    setCourses(prev => prev.filter(c => c.id !== courseId));
   };
-
-  const [isMarkAttendanceAlertVisible, setIsMarkAttendanceAlertVisible] = useState(false);
 
   const markAttendance = (
     courseId: string,
@@ -240,317 +173,169 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     isExtraClass: boolean,
     scheduleItemId?: string
   ) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          // Ensure counters exist, default to 0 if not
-          const currentPresents = course.presents || 0;
-          const currentAbsents = course.absents || 0;
-          const currentCancelled = course.cancelled || 0;
-          const currentAttendanceRecords = course.attendanceRecords || [];
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
 
-          const updatedCourse = {
-            ...course,
-            presents: currentPresents,
-            absents: currentAbsents,
-            cancelled: currentCancelled,
-            attendanceRecords: [...currentAttendanceRecords] // Clone to avoid direct mutation
-          };
-
-          // Find if an attendance record exists for the current day and schedule item
-          const todayDateString = new Date().toISOString().slice(0, 10);
-          const existingRecordIndex =
-            updatedCourse.attendanceRecords.findIndex(
-              (record) =>
-                new Date(record.data).toISOString().slice(0, 10) === todayDateString &&
-                record.isExtraClass === isExtraClass &&
-                record.scheduleItemId === scheduleItemId // scheduleItemId identifies the specific class instance
-            );
-
-          let oldStatus: AttendanceRecord['Status'] | undefined = undefined;
-
-          if (existingRecordIndex > -1) {
-            // Record exists, update it
-            oldStatus = updatedCourse.attendanceRecords[existingRecordIndex].Status;
-            // Only update if the status is actually different
-            if (oldStatus !== status) {
-              updatedCourse.attendanceRecords[existingRecordIndex] = {
-                ...updatedCourse.attendanceRecords[existingRecordIndex],
-                Status: status,
-              };
-            } else {
-              // Status is the same, no change needed in counters or record
-              return course; // Return original course object if no change
-            }
-          } else {
-            // No existing record, create a new one
-            const newRecord: AttendanceRecord = {
-              id: Date.now().toString(), // Consider a more robust unique ID if needed
-              data: new Date().toISOString(),
-              Status: status,
-              isExtraClass: isExtraClass,
-              scheduleItemId: scheduleItemId,
-            };
-            updatedCourse.attendanceRecords.push(newRecord);
-            // oldStatus remains undefined
-          }
-
-          // --- Incremental Counter Update Logic ---
-          // Decrement count for the old status (if it existed and changed)
-          if (oldStatus && oldStatus !== status) {
-            if (oldStatus === 'present') updatedCourse.presents--;
-            else if (oldStatus === 'absent') updatedCourse.absents--;
-            else if (oldStatus === 'cancelled') updatedCourse.cancelled--;
-          }
-
-          // Increment count for the new status (if it changed or is new)
-          if (oldStatus !== status) {
-            if (status === 'present') updatedCourse.presents++;
-            else if (status === 'absent') updatedCourse.absents++;
-            else if (status === 'cancelled') updatedCourse.cancelled++;
-          }
-          // --- End Incremental Counter Update ---
-
-          // Ensure counters don't go below zero (safety check)
-          updatedCourse.presents = Math.max(0, updatedCourse.presents);
-          updatedCourse.absents = Math.max(0, updatedCourse.absents);
-          updatedCourse.cancelled = Math.max(0, updatedCourse.cancelled);
-
-          // Calculate attendance percentage
-          const totalClasses = updatedCourse.presents + updatedCourse.absents;
-          updatedCourse.attendancePercentage =
-            totalClasses === 0
-              ? 100
-              : Math.round((updatedCourse.presents / totalClasses) * 100);
-
-          // Ensure attendancePercentage is not NaN
-          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
-
-          return updatedCourse;
-        }
-        return course;
-      })
+    const todayDateString = new Date().toISOString().slice(0, 10);
+    const existingRecord = course.attendanceRecords?.find(
+      (record) =>
+        new Date(record.date).toISOString().slice(0, 10) === todayDateString &&
+        record.isExtraClass === isExtraClass &&
+        record.scheduleItemId === scheduleItemId
     );
+
+    const updatedCourse = { ...course };
+    let oldStatus: AttendanceRecord['status'] | undefined = undefined;
+
+    if (existingRecord) {
+      oldStatus = existingRecord.status;
+      if (oldStatus !== status) {
+        existingRecord.status = status;
+      } else {
+        return; // No change
+      }
+    } else {
+      const newRecord: AttendanceRecord = {
+        id: Date.now().toString(),
+        course_id: courseId,
+        date: new Date().toISOString(),
+        status: status,
+        isExtraClass: isExtraClass,
+        scheduleItemId: scheduleItemId,
+      };
+      updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
+      db.addAttendanceRecord(newRecord);
+    }
+
+    updateCourse(updatedCourse);
   };
 
   const changeAttendanceRecord = (courseId: string, recordId: string, newStatus: "present" | "absent" | "cancelled") => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
-          const updatedRecords = updatedCourse.attendanceRecords?.map(record => {
-            if (record.id === recordId) {
-              return { ...record, Status: newStatus };
-            }
-            return record;
-          });
+    const course = courses.find(c => c.id === courseId);
+    if (!course || !course.attendanceRecords) return;
 
-          // Update presents, absents, cancelled counts
-          let presents = updatedCourse.presents || 0;
-          let absents = updatedCourse.absents || 0;
-          let cancelled = updatedCourse.cancelled || 0;
+    const record = course.attendanceRecords.find(r => r.id === recordId);
+    if (!record) return;
 
-          const oldRecord = updatedCourse.attendanceRecords?.find(r => r.id === recordId);
-          const oldStatus = oldRecord ? oldRecord.Status : null;
+    const oldStatus = record.status;
+    if (oldStatus === newStatus) return;
 
-          updatedRecords?.forEach(record => {
-            if (record.id === recordId) {
-              if (oldStatus === 'present') presents--;
-              else if (oldStatus === 'absent') absents--;
-              else if (oldStatus === 'cancelled') cancelled--;
+    const updatedCourse = { ...course };
+    record.status = newStatus;
 
-              presents = Math.max(0, presents);
-              absents = Math.max(0, absents);
-              cancelled = Math.max(0, cancelled);
-
-              if (record.Status === 'present') presents++;
-              else if (record.Status === 'absent') absents++;
-              else if (record.Status === 'cancelled') cancelled++;
-
-
-            }
-          });
-
-          updatedCourse.attendanceRecords = updatedRecords;
-          updatedCourse.presents = presents;
-          updatedCourse.absents = absents;
-          updatedCourse.cancelled = cancelled;
-
-          // Calculate attendance percentage
-          const totalClasses = updatedCourse.presents + updatedCourse.absents;
-          updatedCourse.attendancePercentage =
-            totalClasses === 0
-              ? 100
-              : Math.round((updatedCourse.presents / totalClasses) * 100);
-
-          // Ensure attendancePercentage is not NaN
-          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
-
-          return updatedCourse;
-        }
-        return course;
-      })
-    );
+    updateCourse(updatedCourse);
   };
 
-  const addScheduleItem = (
-    courseId: string,
-    newScheduleItem: ScheduleItem
-  ) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
-          updatedCourse.weeklySchedule = [
-            ...(course.weeklySchedule || []),
-            newScheduleItem,
-          ];
-          return updatedCourse;
-        }
-        return course;
-      })
-    );
+  const addScheduleItem = (courseId: string, newScheduleItem: ScheduleItem) => {
+    db.addScheduleItem(courseId, newScheduleItem);
+    const updatedCourses = courses.map(c => {
+      if (c.id === courseId) {
+        c.weeklySchedule = [...(c.weeklySchedule || []), newScheduleItem];
+      }
+      return c;
+    });
+    setCourses(updatedCourses);
   };
 
-  const addExtraClass = (
-    courseId: string,
-    date: string,
-    timeStart: string,
-    timeEnd: string
-  ) => {
-    setCourses((prevCourses) => {
-      return prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
-          const newExtraClass: ExtraClass = {
-            id: Date.now().toString(),
-            date: date,
-            timeStart: timeStart,
-            timeEnd: timeEnd,
-          };
-          updatedCourse.extraClasses = [
-            ...(course.extraClasses || []),
-            newExtraClass,
-          ];
-          return updatedCourse;
-        }
-        return course;
-      });
-    }
-    );
+  const addExtraClass = (courseId: string, date: string, timeStart: string, timeEnd: string) => {
+    const newExtraClass: ExtraClass = {
+      id: Date.now().toString(),
+      date,
+      timeStart,
+      timeEnd,
+    };
+    db.addExtraClass(courseId, newExtraClass);
+    const updatedCourses = courses.map(c => {
+      if (c.id === courseId) {
+        c.extraClasses = [...(c.extraClasses || []), newExtraClass];
+      }
+      return c;
+    });
+    setCourses(updatedCourses);
   };
 
-  const clearData = async () => {
-    try {
-      await AsyncStorage.removeItem("courses");
-      await AsyncStorage.removeItem("theme");
-      setCourses([]);
-      setTheme("light");
-    } catch (error) {
-      console.error("Failed to clear data", error);
-    }
+  const clearData = () => {
+    db.clearAllData();
+    setCourses([]);
+    setTheme('light');
+    setNotificationTime(10);
+    setNotificationsEnabled(false);
+    setIs24Hour(false);
   };
 
   const archiveCourse = async (courseId: string) => {
     await cancelCourseNotifications(courseId);
-    setCourses((prevCourses) =>
-      prevCourses.map((course) =>
-        course.id.toLowerCase() === courseId.toLowerCase()
-          ? { ...course, isArchived: true }
-          : course
-      )
-    );
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      const updatedCourse = { ...course, isArchived: true };
+      updateCourse(updatedCourse);
+    }
   };
 
   const unarchiveCourse = async (courseId: string) => {
-    const courseToUnarchive = courses.find((course) => course.id.toLowerCase() === courseId.toLowerCase());
-    if (courseToUnarchive) {
-      await scheduleCourseNotifications(courseToUnarchive, notificationTime);
-    }
-    setCourses((prevCourses) =>
-      prevCourses.map((course) =>
-        course.id.toLowerCase() === courseId.toLowerCase()
-          ? { ...course, isArchived: false }
-          : course
-      )
-    );
-  }
-
-  const addAttendance = async (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
-    setCourses((prevCourses) =>
-      prevCourses.map((course) => {
-        if (course.id.toLowerCase() === courseId.toLowerCase()) {
-          const updatedCourse = { ...course };
-          const newRecord: AttendanceRecord = {
-            id: Date.now().toString(),
-            data: new Date().toISOString(),
-            Status: status,
-            isExtraClass: isExtraClass,
-            scheduleItemId: scheduleId,
-          };
-          updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
-
-          if (status === 'present') {
-            updatedCourse.presents = (updatedCourse.presents || 0) + 1;
-          } else if (status === 'absent') {
-            updatedCourse.absents = (updatedCourse.absents || 0) + 1;
-          } else if (status === 'cancelled') {
-            updatedCourse.cancelled = (updatedCourse.cancelled || 0) + 1;
-          }
-
-          const totalClasses = updatedCourse.presents + updatedCourse.absents;
-          updatedCourse.attendancePercentage =
-            totalClasses === 0
-              ? 100
-              : Math.round((updatedCourse.presents / totalClasses) * 100);
-
-          updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
-
-          return updatedCourse;
-        }
-        return course;
-      })
-    );
-
-    const storedMarkedClasses = await AsyncStorage.getItem('markedClasses');
-    const markedClasses = storedMarkedClasses ? JSON.parse(storedMarkedClasses) : [];
-    const classId = isExtraClass ? `${courseId}-extra-${scheduleId}` : `${courseId}-${scheduleId}`;
-    if (!markedClasses.includes(classId)) {
-      const newMarkedClasses = [...markedClasses, classId];
-      await AsyncStorage.setItem('markedClasses', JSON.stringify(newMarkedClasses));
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      await scheduleCourseNotifications(course, notificationTime);
+      const updatedCourse = { ...course, isArchived: false };
+      updateCourse(updatedCourse);
     }
   };
 
-  useEffect(() => {
-    const saveTheme = async () => {
-      try {
-        await AsyncStorage.setItem("theme", theme);
-      } catch (error) {
-        console.error("Failed to save theme", error);
-      }
+  const addAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
+
+    const newRecord: AttendanceRecord = {
+      id: Date.now().toString(),
+      course_id: courseId,
+      date: new Date().toISOString(),
+      status: status,
+      isExtraClass: isExtraClass,
+      scheduleItemId: scheduleId,
     };
+    db.addAttendanceRecord(newRecord);
 
-    saveTheme();
-  }, [theme]);
+    const updatedCourse = { ...course };
+    updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
 
-  const rescheduleAllNotifications = async () => {
-    await cancelAllNotifications();
-    for (const course of courses) {
-      if (!course.isArchived) {
-        await scheduleCourseNotifications(course, notificationTime);
-      }
+    updateCourse(updatedCourse);
+  };
+
+  const updateCourseCounts = (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
+    const course = courses.find(c => c.id === courseId);
+    if (course) {
+      const updatedCourse = { ...course, [countType]: newValue };
+      updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents, updatedCourse.absents);
+      updateCourse(updatedCourse);
     }
+  };
+
+  const save = async () => {
+    // Save all settings
+    db.updateSetting('theme', theme);
+    db.updateSetting('notificationTime', notificationTime.toString());
+    db.updateSetting('notificationsEnabled', notificationsEnabled.toString());
+    db.updateSetting('is24Hour', is24Hour.toString());
+
+    // Save all course data
+    courses.forEach(course => {
+      db.updateCourse(course);
+    });
   };
 
   useEffect(() => {
     if (!loading) {
+      const rescheduleAllNotifications = async () => {
+        await cancelAllNotifications();
+        for (const course of courses) {
+          if (!course.isArchived) {
+            await scheduleCourseNotifications(course, notificationTime);
+          }
+        }
+      };
       rescheduleAllNotifications();
     }
   }, [courses, loading, notificationTime]);
-
-  const updateNotificationTime = (time: number) => {
-    setNotificationTime(time);
-  };
 
   return (
     <AppContext.Provider
@@ -567,43 +352,20 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         toggleNotifications,
         addCourse,
         editCourse: updateCourse,
-        getCourse: (courseId: string) => {
-          return Promise.resolve(courses.find((course) => course.id === courseId));
-        },
+        getCourse: (courseId: string) => courses.find((course) => course.id === courseId),
         updateCourse,
         deleteCourse,
         changeAttendanceRecord,
         isValidCourseId,
         markAttendance,
-        addScheduleItem: addScheduleItem,
-        addExtraClass: addExtraClass,
+        addScheduleItem,
+        addExtraClass,
         clearData,
-        archiveCourse, // Add archive function to context value
+        archiveCourse,
         unarchiveCourse,
         addAttendance,
-        updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
-          setCourses((prevCourses) =>
-            prevCourses.map((course) => {
-              if (course.id.toLowerCase() === courseId.toLowerCase()) {
-                const updatedCourse = { ...course };
-                updatedCourse[countType] = newValue;
-
-                // Calculate attendance percentage
-                const totalClasses = updatedCourse.presents + updatedCourse.absents;
-                updatedCourse.attendancePercentage =
-                  totalClasses === 0
-                    ? 100
-                    : Math.round((updatedCourse.presents / totalClasses) * 100);
-
-                // Ensure attendancePercentage is not NaN
-                updatedCourse.attendancePercentage = isNaN(updatedCourse.attendancePercentage) ? 100 : updatedCourse.attendancePercentage;
-
-                return updatedCourse;
-              }
-              return course;
-            })
-          );
-        },
+        updateCourseCounts,
+        save,
       }}
     >
       {children}

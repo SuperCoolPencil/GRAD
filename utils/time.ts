@@ -1,4 +1,7 @@
 export const formatTime = (time: string, is24Hour: boolean): string => {
+  if (typeof time !== 'string' || !time.includes(':')) {
+    return 'Invalid Time';
+  }
   const [hours, minutes] = time.split(':');
   let hour = parseInt(hours, 10);
   const minute = parseInt(minutes, 10);

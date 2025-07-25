@@ -27,10 +27,23 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AppProvider>
+        <AlertProvider>
+          <RootLayoutShell />
+        </AlertProvider>
+      </AppProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function RootLayoutShell() {
+  const colorScheme = useColorScheme();
+  const { courses, addAttendance } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const { courses, addAttendance } = useContext(AppContext);
 
   useEffect(() => {
     if (loaded) {
@@ -53,45 +66,29 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, [addAttendance, courses]);
 
-  return (
-    <SafeAreaProvider>
-      <AppProvider>
-        <AlertProvider>
-          <ThemeProvider value={useColorScheme() === 'dark' ? DarkTheme : DefaultTheme}>
-            <RootLayoutShell loaded={loaded}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="add-extra-class" options={{ headerShown: false }} />
-                <Stack.Screen name="add-course" options={{ headerShown: false }} />
-                <Stack.Screen name="archived-courses" options={{ headerShown: false }} />
-                <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-                <Stack.Screen name="edit-course/[id]" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            </RootLayoutShell>
-          </ThemeProvider>
-        </AlertProvider>
-      </AppProvider>
-    </SafeAreaProvider>
-  );
-}
-
-function RootLayoutShell({ children, loaded }: { children: React.ReactNode; loaded: boolean }) {
-  const colorScheme = useColorScheme();
-
   if (!loaded) {
     return null;
   }
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: Colors[colorScheme ?? 'light'].background,
-      }}
-    >
-      <StatusBar style="auto" />
-      {children}
-    </View>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+        }}
+      >
+        <StatusBar style="auto" />
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="add-extra-class" options={{ headerShown: false }} />
+          <Stack.Screen name="add-course" options={{ headerShown: false }} />
+          <Stack.Screen name="archived-courses" options={{ headerShown: false }} />
+          <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-course/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </View>
+    </ThemeProvider>
   );
 }

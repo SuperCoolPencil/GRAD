@@ -81,7 +81,7 @@ export default function CourseDetailScreen() {
     const record = course.attendanceRecords?.find(r => r.id === recordId);
     if (!record) return;
 
-    switch (record.Status) {
+    switch (record.status) {
       case 'present':
         newStatus = 'absent';
         break;
@@ -348,7 +348,7 @@ export default function CourseDetailScreen() {
             <ThemedText type="subtitle" style={styles.cardTitle}>
               Weekly Schedule
             </ThemedText>
-            {course.weeklySchedule.map((item: ScheduleItem) => (
+            {course.weeklySchedule.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ScheduleItem) => (
               <View key={item.id} style={styles.scheduleItem}>
                 <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
                 <ThemedText style={styles.scheduleText}>
@@ -364,7 +364,7 @@ export default function CourseDetailScreen() {
             <ThemedText type="subtitle" style={styles.cardTitle}>
               Extra Classes
             </ThemedText>
-            {course.extraClasses.map((item: ExtraClass) => (
+            {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => (
               <View key={item.id} style={styles.scheduleItem}>
                 <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
                 <ThemedText style={styles.scheduleText}>
@@ -381,9 +381,9 @@ export default function CourseDetailScreen() {
               Attendance History
             </ThemedText>
             {[...course.attendanceRecords]
-              .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((record) => {
-                const recordDate = new Date(record.data);
+                const recordDate = new Date(record.date);
                 const formattedDate = recordDate.toLocaleDateString(undefined, {
                   year: 'numeric', month: 'long', day: 'numeric'
                 });
@@ -391,7 +391,7 @@ export default function CourseDetailScreen() {
                 let statusColor = Colors[colorScheme].text;
                 let displayStatusText = 'Unknown';
 
-                switch (record.Status) {
+                switch (record.status) {
                   case 'present':
                     statusIcon = 'checkmark-circle-outline';
                     statusColor = Colors[colorScheme].success;

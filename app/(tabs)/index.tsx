@@ -232,14 +232,17 @@ function TodaysClassesContent({
       });
     });
 
+    // Filter out any classes that might have invalid time data to prevent crashes
+    const validClasses = classesForToday.filter(c => typeof c.timeStart === 'string' && typeof c.timeEnd === 'string');
+
     // Sort classes by start time.
-    classesForToday.sort((a, b) => {
+    validClasses.sort((a, b) => {
       const [hourA, minuteA] = a.timeStart.split(':').map(Number);
       const [hourB, minuteB] = b.timeStart.split(':').map(Number);
       return hourA !== hourB ? hourA - hourB : minuteA - minuteB;
     });
 
-    setTodaysClasses(classesForToday);
+    setTodaysClasses(validClasses);
   }, [courses, loading]);
 
   const handleMarkAttendance = (
