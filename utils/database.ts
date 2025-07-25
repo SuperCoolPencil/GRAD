@@ -225,6 +225,14 @@ export const updateCourse = (course: Course) => {
   });
 };
 
+export const updateAttendanceRecord = (record: AttendanceRecord) => {
+  console.log(`Updating attendance record ${record.id} for course: ${record.course_id}`);
+  db.runSync(
+    'UPDATE attendance_records SET status = ? WHERE id = ?',
+    record.status, record.id
+  );
+};
+
 export const deleteCourse = (courseId: string) => {
   console.log(`Deleting course: ${courseId}`);
   db.runSync('DELETE FROM courses WHERE id = ?', courseId);

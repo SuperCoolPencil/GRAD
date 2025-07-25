@@ -10,7 +10,6 @@ import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 import { AppProvider, AppContext } from '../context/AppContext';
 import { AlertProvider } from '../context/AlertContext';
-
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '../constants/Colors';
 
@@ -44,6 +43,7 @@ function RootLayoutShell() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
 
   useEffect(() => {
     if (loaded) {

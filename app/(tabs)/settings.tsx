@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollV
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
 import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
@@ -23,7 +24,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, reloadData } = useContext(AppContext); // Added reloadData
   const [isModalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const { colors } = useTheme();
@@ -71,6 +72,44 @@ export default function SettingsScreen() {
       showAlert("Error", "Failed to share the database file.");
     } finally {
       reopenDatabase(); // Reopen the database after sharing is complete
+    }
+  };
+
+  const handleImportData = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/octet-stream', // For .db files
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      if (result.assets && result.assets.length > 0) {
+        const fileUri = result.assets[0].uri;
+        const dbPath = FileSystem.documentDirectory + 'SQLite/grad.db';
+
+        // Close the current database connection
+        db.closeSync();
+
+        // Overwrite the existing database file
+        await FileSystem.copyAsync({
+          from: fileUri,
+          to: dbPath,
+        });
+
+        // Reopen the database and reload data
+        reopenDatabase();
+        if (reloadData) {
+          reloadData();
+        }
+
+        showAlert("Success", "Database imported successfully. Please restart the app if you encounter any issues.");
+      }
+    } catch (error) {
+      console.error("Failed to import database:", error);
+      showAlert("Error", "Failed to import the database file.");
+      reopenDatabase(); // Reopen the database even if import fails
     }
   };
 
@@ -184,6 +223,13 @@ export default function SettingsScreen() {
             onPress={handleExportData}
             title="Export Database"
             iconName="download-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+          <SettingsButton
+            onPress={handleImportData}
+            title="Import Database"
+            iconName="cloud-upload-outline"
             backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
             textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />

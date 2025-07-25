@@ -47,6 +47,7 @@ interface AppContextType {
   unarchiveCourse: (courseId: string) => void;
   addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
   save: () => Promise<void>;
+  reloadData: () => void; // New function to reload data
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -76,6 +77,7 @@ export const AppContext = createContext<AppContextType>({
   unarchiveCourse: () => { },
   addAttendance: () => { },
   save: () => Promise.resolve(),
+  reloadData: () => { }, // Add default value for reloadData
 });
 
 interface AppProviderProps {
@@ -90,23 +92,26 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
 
-  useEffect(() => {
-    const loadData = () => {
-      try {
-        const settings = db.getSettings();
-        setTheme(settings.theme || 'light');
-        setNotificationTime(parseInt(settings.notificationTime || '10', 10));
-        setNotificationsEnabled(settings.notificationsEnabled === 'true');
-        setIs24Hour(settings.is24Hour === 'true');
+  const loadData = () => {
+    setLoading(true);
+    try {
+      const settings = db.getSettings();
+      setTheme(settings.theme || 'light');
+      setNotificationTime(parseInt(settings.notificationTime || '10', 10));
+      setNotificationsEnabled(settings.notificationsEnabled === 'true');
+      setIs24Hour(settings.is24Hour === 'true');
 
-        const loadedCourses = db.getCourses();
-        setCourses(loadedCourses);
-      } catch (error) {
-        console.error("Failed to load data from database", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const loadedCourses = db.getCourses();
+      setCourses(loadedCourses);
+    } catch (error) {
+      console.error("Failed to load data from database", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    db.initDatabase();
     loadData();
   }, []);
 
@@ -179,7 +184,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     const todayDateString = new Date().toISOString().slice(0, 10);
     const existingRecord = course.attendanceRecords?.find(
       (record) =>
-        new Date(record.date).toISOString().slice(0, 10) === todayDateString &&
+        record.date === todayDateString &&
         record.isExtraClass === isExtraClass &&
         record.scheduleItemId === scheduleItemId
     );
@@ -191,6 +196,16 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       oldStatus = existingRecord.status;
       if (oldStatus !== status) {
         existingRecord.status = status;
+        db.updateAttendanceRecord(existingRecord); // Update the record in the DB
+
+        // Decrement the old status count and increment the new one
+        if (oldStatus) {
+          const key = (oldStatus === 'cancelled' ? 'cancelled' : oldStatus + 's') as keyof Course;
+          (updatedCourse[key] as number) = ((updatedCourse[key] as number) || 0) - 1;
+        }
+        const newKey = (status === 'cancelled' ? 'cancelled' : status + 's') as keyof Course;
+        (updatedCourse[newKey] as number) = ((updatedCourse[newKey] as number) || 0) + 1;
+
       } else {
         return; // No change
       }
@@ -198,14 +213,21 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       const newRecord: AttendanceRecord = {
         id: Date.now().toString(),
         course_id: courseId,
-        date: new Date().toISOString(),
+        date: new Date().toISOString().slice(0, 10),
         status: status,
         isExtraClass: isExtraClass,
         scheduleItemId: scheduleItemId,
       };
       updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
       db.addAttendanceRecord(newRecord);
+
+      // Increment the new status count
+      const newKey = (status === 'cancelled' ? 'cancelled' : status + 's') as keyof Course;
+      (updatedCourse[newKey] as number) = ((updatedCourse[newKey] as number) || 0) + 1;
     }
+
+    // Recalculate attendance percentage
+    updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents, updatedCourse.absents);
 
     updateCourse(updatedCourse);
   };
@@ -221,7 +243,18 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (oldStatus === newStatus) return;
 
     const updatedCourse = { ...course };
+
+    // Decrement the old status count and increment the new one
+    const oldKey = (oldStatus === 'cancelled' ? 'cancelled' : oldStatus + 's') as keyof Course;
+    (updatedCourse[oldKey] as number) = ((updatedCourse[oldKey] as number) || 0) - 1;
+    const newKey = (newStatus === 'cancelled' ? 'cancelled' : newStatus + 's') as keyof Course;
+    (updatedCourse[newKey] as number) = ((updatedCourse[newKey] as number) || 0) + 1;
+
     record.status = newStatus;
+    db.updateAttendanceRecord(record);
+
+    // Recalculate attendance percentage
+    updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents, updatedCourse.absents);
 
     updateCourse(updatedCourse);
   };
@@ -288,7 +321,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     const newRecord: AttendanceRecord = {
       id: Date.now().toString(),
       course_id: courseId,
-      date: new Date().toISOString(),
+      date: new Date().toISOString().slice(0, 10), // Store date in YYYY-MM-DD format
       status: status,
       isExtraClass: isExtraClass,
       scheduleItemId: scheduleId,
@@ -366,6 +399,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         addAttendance,
         updateCourseCounts,
         save,
+        reloadData: loadData, // Pass the reloadData function
       }}
     >
       {children}

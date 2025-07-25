@@ -249,12 +249,14 @@ function TodaysClassesContent({
     courseId: string,
     status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
-    scheduleItemId?: string
+    itemId: string
   ) => {
-    markAttendance(courseId, status, isExtraClass, scheduleItemId);
+    const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
+    const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
+
+    markAttendance(courseId, status, isExtraClass, scheduleItemId || extraClassId);
     setMarkedClasses((prevMarkedClasses) => {
-      const classId = scheduleItemId || `${courseId}-extra-${scheduleItemId}`;
-      return { ...prevMarkedClasses, [classId]: status };
+      return { ...prevMarkedClasses, [itemId]: status };
     });
   };
 

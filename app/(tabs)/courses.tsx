@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Platform } from 'react-native'; // Import Platform
+import { StyleSheet, FlatList, TouchableOpacity, View, Platform, ScrollView } from 'react-native'; // Import Platform, ScrollView
 import { useContext } from 'react';
 import { Link, useRouter } from 'expo-router';
 import Constants from 'expo-constants'; // Import Constants
@@ -76,12 +76,14 @@ export default function CoursesScreen() {
           </TouchableOpacity>
         </Link>
       </ThemedView>
-      {/* Pass props to Content */}
-      <CoursesContent
-        courses={courses}
-        colorScheme={colorScheme}
-        router={router}
-      />
+      <ScrollView style={{ flex: 1 }}>
+        {/* Pass props to Content */}
+        <CoursesContent
+          courses={courses}
+          colorScheme={colorScheme}
+          router={router}
+        />
+      </ScrollView>
     </View>
   );
 }
