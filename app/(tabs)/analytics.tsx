@@ -1,6 +1,7 @@
 import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, Dimensions, FlatList, Text, TouchableOpacity, Modal, useColorScheme } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useCustomAlert } from '@/context/AlertContext';
 import { RadarChart } from '@salmonco/react-native-radar-chart';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +32,8 @@ const formatMonthRange = (date: Date): string => {
 }
 
 export default function AnalyticsScreen() {
-  const { courses, getCoursesWithRecordsInRange } = useContext(AppContext);
+  const { courses, getCoursesWithRecordsInRange, changeAttendanceRecord } = useContext(AppContext);
+  const { showAlert } = useCustomAlert();
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
@@ -46,6 +48,40 @@ export default function AnalyticsScreen() {
 
   // State for heatmap pagination
   const [displayMonth, setDisplayMonth] = useState(new Date());
+
+  const handleAttendanceClick = (courseId: string, recordId: string) => {
+    const course = courses.find(c => c.id === courseId);
+    const record = course?.attendanceRecords?.find(r => r.id === recordId);
+    if (!record || !course) return;
+
+    const recordDate = new Date(record.date);
+    const formattedDate = recordDate.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    showAlert(
+      'Change Attendance Status',
+      `Select the new status for ${course.name} on ${formattedDate}.`,
+      [
+        {
+          text: 'Present',
+          onPress: () => changeAttendanceRecord(courseId, recordId, 'present'),
+        },
+        {
+          text: 'Absent',
+          onPress: () => changeAttendanceRecord(courseId, recordId, 'absent'),
+        },
+        {
+          text: 'Cancelled',
+          onPress: () =>
+            changeAttendanceRecord(courseId, recordId, 'cancelled'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
 
   const chartData = courses.map(course => ({
     label: course.name,
@@ -252,13 +288,13 @@ export default function AnalyticsScreen() {
                 break;
             }
             return (
-              <View style={styles.historyItem}>
+              <TouchableOpacity style={styles.historyItem} onPress={() => handleAttendanceClick(item.courseId, item.id)}>
                 <Ionicons name={statusIcon} size={18} color={statusColor} />
                 <ThemedText style={[styles.historyText, { color: statusColor }]}>
                   {item.courseName} - {displayStatusText}
                 </ThemedText>
                 <ThemedText style={styles.historyDateText}>on {formattedDate}</ThemedText>
-              </View>
+              </TouchableOpacity>
             );
           }}
           ListEmptyComponent={<Text style={{ color: colors.text }}>No records found.</Text>}
