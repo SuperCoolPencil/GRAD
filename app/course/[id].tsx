@@ -77,25 +77,36 @@ export default function CourseDetailScreen() {
   const handleAttendanceClick = (recordId: string) => {
     if (!course) return;
 
-    let newStatus: "present" | "absent" | "cancelled";
-    const record = course.attendanceRecords?.find(r => r.id === recordId);
+    const record = course.attendanceRecords?.find((r) => r.id === recordId);
     if (!record) return;
 
-    switch (record.status) {
-      case 'present':
-        newStatus = 'absent';
-        break;
-      case 'absent':
-        newStatus = 'cancelled';
-        break;
-      case 'cancelled':
-        newStatus = 'present';
-        break;
-      default:
-        newStatus = 'present';
-    }
+    const recordDate = new Date(record.date);
+    const formattedDate = recordDate.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
 
-    changeAttendanceRecord(course.id, recordId, newStatus);
+    showAlert(
+      'Change Attendance Status',
+      `Select the new status for ${formattedDate}.`,
+      [
+        {
+          text: 'Present',
+          onPress: () => changeAttendanceRecord(course.id, recordId, 'present'),
+        },
+        {
+          text: 'Absent',
+          onPress: () => changeAttendanceRecord(course.id, recordId, 'absent'),
+        },
+        {
+          text: 'Cancelled',
+          onPress: () =>
+            changeAttendanceRecord(course.id, recordId, 'cancelled'),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   useEffect(() => {

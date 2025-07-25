@@ -33,22 +33,22 @@ export function CustomAlert({
   const destructiveColor = useThemeColor({}, 'alertDestructive'); // For destructive button
   const tintColor = useThemeColor({}, 'tint'); // For destructive button
 
+  const isColumnLayout = alertButtons.length > 2;
 
   return (
     <Modal
-      animationType="fade" // Using fade animation like react-native-modal's fadeOut
-      transparent={true} // Required for overlay effect
+      animationType="fade"
+      transparent={true}
       visible={isVisible}
-      onRequestClose={onClose} // Handle hardware back button press
+      onRequestClose={onClose}
     >
-      <BlurView
-        intensity={25}
-        style={styles.blurView}
-        tint="dark"
-      >
+      <BlurView intensity={25} style={styles.blurView} tint="dark">
         <View style={styles.centeredView}>
-          {/* Modal content view with styling from the example */}
-          <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
+          <ThemedView
+            style={[styles.modalView, { borderColor }]}
+            lightColor={Colors.light.alert}
+            darkColor={Colors.dark.alert}
+          >
             {title && (
               <ThemedText type="subtitle" style={styles.titleText}>
                 {title}
@@ -59,18 +59,24 @@ export function CustomAlert({
                 {message}
               </ThemedText>
             )}
-            <View style={styles.buttonRow}>
+            <View style={[styles.buttonContainer, isColumnLayout && styles.buttonColumn]}>
               {alertButtons.map((button, index) => (
                 <Pressable
                   key={index}
                   style={({ pressed }) => [
-                    styles.basicButton,
+                    styles.button,
+                    isColumnLayout && styles.buttonFullWidth,
                     {
-                      backgroundColor: button.style === 'destructive' ? destructiveColor : (button.style === 'cancel' ? 'transparent' : primaryColor),
+                      backgroundColor:
+                        button.style === 'destructive'
+                          ? destructiveColor
+                          : button.style === 'cancel'
+                          ? 'transparent'
+                          : primaryColor,
                       opacity: pressed ? 0.7 : 1,
-                      marginLeft: index > 0 ? 10 : 0, // Add margin between buttons
-                      borderWidth: button.style === 'cancel' ? 1 : 0, // Add border to cancel button
-                      borderColor: button.style === 'cancel' ? (button.style === 'cancel' ? tintColor : borderColor) : 'transparent', // Use theme border color
+                      borderWidth: button.style === 'cancel' ? 1 : 0,
+                      borderColor:
+                        button.style === 'cancel' ? tintColor : 'transparent',
                       elevation: button.style === 'cancel' ? 0 : 2,
                     },
                   ]}
@@ -78,16 +84,20 @@ export function CustomAlert({
                     if (button.onPress) {
                       button.onPress();
                     }
-                    onClose(); // Close the modal
+                    onClose();
                   }}
                 >
                   <ThemedText
                     style={[
                       styles.buttonText,
                       {
-                        color: button.style === 'destructive' ? '#fff' : (button.style === 'cancel' ? tintColor : '#fff'), // Use default text color for cancel
+                        color:
+                          button.style === 'destructive'
+                            ? '#fff'
+                            : button.style === 'cancel'
+                            ? tintColor
+                            : '#fff',
                         fontWeight: button.style === 'cancel' ? 'normal' : 'bold',
-                        textAlign: 'center',
                       },
                     ]}
                   >
@@ -141,21 +151,28 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  buttonRow: {
+  buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     width: '100%',
     marginTop: 20,
   },
-  basicButton: {
-    borderRadius: 12, // Keep previous border radius
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    minWidth: 80,
-    alignItems: 'center',
+  buttonColumn: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
-  buttonMargin: {
-    marginLeft: 10,
+  button: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    minWidth: 100,
+    alignItems: 'center',
+    marginHorizontal: 8,
+    marginVertical: 5,
+  },
+  buttonFullWidth: {
+    width: '100%',
+    marginHorizontal: 0,
   },
   buttonText: {
     fontSize: 16,
