@@ -3,8 +3,14 @@ import { ScrollView, StyleSheet, View, Text, useColorScheme } from 'react-native
 import { useTheme } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
 
+interface HeatmapData {
+  date: Date;
+  value: number;
+  isFirstDayOfMonth: boolean;
+}
+
 interface HeatmapComponentProps {
-  data: { date: Date; value: number }[];
+  data: HeatmapData[];
 }
 
 const CELL_SIZE = 20;
@@ -56,8 +62,12 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     const firstDate = data[0].date;
     const dayOfWeek = (firstDate.getDay() + 6) % 7;
 
-    const numericData = data.map(d => d.value);
-    const paddedData = [...Array(dayOfWeek).fill(-2), ...numericData];
+    const processedData = data.map((d, i) => ({
+      value: d.value,
+      isFirstDayOfMonth: d.date.getDate() === 1,
+    }));
+
+    const paddedData = [...Array(dayOfWeek).fill({ value: -2, isFirstDayOfMonth: false }), ...processedData];
 
     const chunkedColumns = [];
     for (let i = 0; i < paddedData.length; i += 7) {
@@ -95,36 +105,39 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
   // the second item to the second day, and so on.
   // The `paddedData` ensures that the first piece of actual data aligns with its correct day of the week.
 
-  const getCellStyle = (value: number) => {
+  const getCellStyle = (item: { value: number; isFirstDayOfMonth: boolean }) => {
+    const { value, isFirstDayOfMonth } = item;
+    const style: any[] = [styles.cell];
+
     if (value === -2) {
       return styles.paddingCell; // Padding cell
     }
+
     if (value === -1) {
-      return [styles.cell, { borderColor: colors.border, borderWidth: 1 }]; // No class
-    }
-    if (value === 100) {
-      return [styles.cell, { backgroundColor: themeColors.success }]; // Perfect attendance
-    }
-
-    // For partial attendance, calculate a color on a gradient from red to a lighter red.
-    // The start of the gradient (0% attendance).
-    const startColor = '#ff0000'; // This is a deep red.
-    // The end of the gradient (100% attendance, though 100% has its own color).
-    const endColor = '#ffff00'; // A yellow.
-
-    // The 'factor' determines where on the gradient the color should be.
-    // It's calculated from the attendance value (0-100) to a 0-1 scale.
-    const factor = value / 100; 
-
-    // Get the specific color for the current value.
-    const interpolatedColor = interpolateColor(startColor, endColor, factor);
-
-    if (interpolatedColor) {
-      return [styles.cell, { backgroundColor: interpolatedColor }];
+      style.push({ borderColor: colors.border, borderWidth: 1 }); // No class
+    } else if (value === 100) {
+      style.push({ backgroundColor: themeColors.success }); // Perfect attendance
+    } else {
+      // For partial attendance, calculate a color on a gradient from red to a lighter red.
+      const startColor = '#ff0000'; // This is a deep red.
+      const endColor = '#ffff00'; // A yellow.
+      const factor = value / 100;
+      const interpolatedColor = interpolateColor(startColor, endColor, factor);
+      if (interpolatedColor) {
+        style.push({ backgroundColor: interpolatedColor });
+      } else {
+        style.push({ borderColor: colors.border, borderWidth: 1 });
+      }
     }
 
-    // Fallback style
-    return [styles.cell, { borderColor: colors.border, borderWidth: 1 }];
+    if (isFirstDayOfMonth) {
+      style.push({
+        borderWidth: 2,
+        borderColor: themeColors.tint,
+      });
+    }
+
+    return style;
   };
 
   return (
@@ -135,26 +148,24 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
         ))}
       </View>
       <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View>
-            <View style={styles.gridContainer}>
-              {columns.map((column, colIndex) => (
-                <View key={colIndex} style={styles.column}>
-                  {column.map((value, rowIndex) => (
-                    <View key={rowIndex} style={getCellStyle(value)} />
-                  ))}
-                </View>
-              ))}
-            </View>
-            <View style={styles.monthsContainer}>
-              {months.map((month, index) => (
-                <Text key={index} style={[styles.monthLabel, { color: colors.text, width: (CELL_SIZE + CELL_MARGIN) * (month.columnCount / 7) }]}>
-                  {month.name}
-                </Text>
-              ))}
-            </View>
+        <View>
+          <View style={styles.gridContainer}>
+            {columns.map((column, colIndex) => (
+              <View key={colIndex} style={styles.column}>
+                {column.map((item, rowIndex) => (
+                  <View key={rowIndex} style={getCellStyle(item)} />
+                ))}
+              </View>
+            ))}
           </View>
-        </ScrollView>
+          <View style={styles.monthsContainer}>
+            {months.map((month, index) => (
+              <Text key={index} style={[styles.monthLabel, { color: colors.text, width: (CELL_SIZE + CELL_MARGIN) * (month.columnCount / 7) }]}>
+                {month.name}
+              </Text>
+            ))}
+          </View>
+        </View>
       </View>
     </View>
   );

@@ -19,7 +19,7 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
 };
 
 
-export const generateHeatmapData = (courses: Course[], startDate: Date, endDate: Date): { date: Date; value: number }[] => {
+export const generateHeatmapData = (courses: Course[], startDate: Date, endDate: Date): { date: Date; value: number; isFirstDayOfMonth: boolean }[] => {
   const dateMap: { [key: string]: { presents: number; absents: number } } = {};
 
   courses.forEach(course => {
@@ -38,23 +38,24 @@ export const generateHeatmapData = (courses: Course[], startDate: Date, endDate:
     }
   });
 
-  const heatmapData: { date: Date; value: number }[] = [];
+  const heatmapData: { date: Date; value: number; isFirstDayOfMonth: boolean }[] = [];
   
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const date = new Date(d);
     const dateString = date.toISOString().slice(0, 10);
 
+    const isFirstDayOfMonth = date.getDate() === 1;
     if (dateMap[dateString]) {
       const { presents, absents } = dateMap[dateString];
       const total = presents + absents;
       if (total === 0) {
-        heatmapData.push({ date, value: -1 }); // No classes with attendance marked
+        heatmapData.push({ date, value: -1, isFirstDayOfMonth }); // No classes with attendance marked
       } else {
         const percentage = (presents / total) * 100;
-        heatmapData.push({ date, value: Math.round(percentage) });
+        heatmapData.push({ date, value: Math.round(percentage), isFirstDayOfMonth });
       }
     } else {
-      heatmapData.push({ date, value: -1 }); // No classes on this day
+      heatmapData.push({ date, value: -1, isFirstDayOfMonth }); // No classes on this day
     }
   }
 

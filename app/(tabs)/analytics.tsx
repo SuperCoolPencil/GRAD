@@ -217,7 +217,9 @@ export default function AnalyticsScreen() {
             <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
           </TouchableOpacity>
         </View>
-        <HeatmapComponent data={heatmapData} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <HeatmapComponent data={heatmapData} />
+        </ScrollView>
         <View style={styles.inputGroup}>
           <ThemedText style={styles.label}>Course:</ThemedText>
           <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsHeatmapPickerVisible(true)}>
