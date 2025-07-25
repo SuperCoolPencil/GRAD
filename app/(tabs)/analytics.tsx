@@ -63,7 +63,7 @@ export default function AnalyticsScreen() {
 
     showAlert(
       'Change Attendance Status',
-      `Select the new status for ${course.name} on ${formattedDate}.`,
+      `Change status for ${course.name} on ${formattedDate}.`,
       [
         {
           text: 'Present',
