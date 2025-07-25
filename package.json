@@ -19,7 +19,6 @@
     "@emotion/styled": "^11.14.1",
     "@expo/vector-icons": "^14.0.2",
     "@mui/material": "^7.2.0",
-    "@ncuhomeclub/react-native-heatmap": "^0.2.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/datetimepicker": "^8.4.1",
     "@react-native-community/slider": "^4.5.6",

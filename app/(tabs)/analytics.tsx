@@ -6,10 +6,15 @@ import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { AppContext } from '@/context/AppContext';
-import { calculateAttendancePercentage, generateHeatmapData } from '@/utils/attendance';
+import { calculateAttendancePercentage, generateHeatmapData, getOldestRecordDate } from '@/utils/attendance';
 import { useTheme } from '@react-navigation/native';
 import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
+
+// Constants from HeatmapComponent to calculate layout
+const CELL_SIZE = 20;
+const CELL_MARGIN = 4;
+const WEEKDAY_LABEL_WIDTH = 40; // Approx width for "Sun", "Mon", etc. labels
 
 export default function AnalyticsScreen() {
   const { courses } = useContext(AppContext);
@@ -17,21 +22,57 @@ export default function AnalyticsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  const [date, setDate] = useState(new Date()); // State for the selected date
-  const [showDatePicker, setShowDatePicker] = useState(false); // State for date picker visibility
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isPickerVisible, setIsPickerVisible] = useState(false);
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(10);
+
+  // State for heatmap pagination
+  const [currentPage, setCurrentPage] = useState(0);
 
   const chartData = courses.map(course => ({
     label: course.name,
     value: calculateAttendancePercentage(course.presents, course.absents),
   }));
 
-  const heatmapData = generateHeatmapData(courses);
+  const oldestRecordDate = useMemo(() => getOldestRecordDate(courses), [courses]);
 
-  const allAttendanceRecords = courses.flatMap(course =>
-    (course.attendanceRecords || []).map(record => ({ ...record, courseName: course.name, courseId: course.id }))
-  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const { heatmapData, totalPages } = useMemo(() => {
+    if (!oldestRecordDate) {
+      return { heatmapData: [], totalPages: 0 };
+    }
+
+    const screenWidth = Dimensions.get('window').width;
+    const availableWidth = screenWidth - WEEKDAY_LABEL_WIDTH - 32; // 32 for card padding
+    const weekWidth = CELL_SIZE + CELL_MARGIN;
+    const weeksPerPage = Math.floor(availableWidth / weekWidth);
+
+    const today = new Date();
+    const totalDays = Math.ceil((today.getTime() - oldestRecordDate.getTime()) / (1000 * 3600 * 24)) + 1;
+    const totalWeeks = Math.ceil(totalDays / 7);
+    const calculatedTotalPages = Math.ceil(totalWeeks / weeksPerPage);
+
+    const startWeek = currentPage * weeksPerPage;
+    const endWeek = startWeek + weeksPerPage;
+
+    const startDate = new Date(oldestRecordDate);
+    startDate.setDate(startDate.getDate() + (startWeek * 7));
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (weeksPerPage * 7) - 1);
+
+    const data = generateHeatmapData(courses, startDate, new Date(Math.min(endDate.getTime(), today.getTime())));
+    
+    return { heatmapData: data, totalPages: calculatedTotalPages };
+  }, [courses, oldestRecordDate, currentPage]);
+
+  const handlePrevPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -48,10 +89,13 @@ export default function AnalyticsScreen() {
     }
   };
 
-  const filteredHistory = allAttendanceRecords.filter(record => {
+  const filteredHistory = courses.flatMap(course =>
+    (course.attendanceRecords || []).map(record => ({ ...record, courseName: course.name, courseId: course.id }))
+  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+   .filter(record => {
     const courseMatch = selectedCourse ? record.courseId === selectedCourse : true;
     const recordDate = new Date(record.date);
-    const dateMatch = date.toDateString() === recordDate.toDateString(); // Compare dates without time
+    const dateMatch = date.toDateString() === recordDate.toDateString();
     return courseMatch && dateMatch;
   });
 
@@ -60,9 +104,7 @@ export default function AnalyticsScreen() {
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">
-          Analytics
-        </ThemedText>
+        <ThemedText type="title">Analytics</ThemedText>
       </ThemedView>
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.background }}
@@ -73,11 +115,7 @@ export default function AnalyticsScreen() {
           <RadarChart
             data={chartData}
             maxValue={100}
-            gradientColor={{
-              startColor: '#393939',
-              endColor: '#393939',
-              count: 5,
-            }}
+            gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
             stroke={['#666', '#666', '#666', '#666', '#666']}
             strokeWidth={[1, 1, 1, 1, 1]}
             strokeOpacity={[1, 1, 1, 1, 1]}
@@ -89,21 +127,26 @@ export default function AnalyticsScreen() {
           />
         </ThemedView>
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-          <ThemedText style={styles.sectionTitle} type="subtitle">Daily Activity</ThemedText>
+          <View style={styles.heatmapHeader}>
+            <TouchableOpacity onPress={handlePrevPage} disabled={currentPage === 0}>
+              <Ionicons name="chevron-back" size={24} color={currentPage === 0 ? colors.border : colors.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.sectionTitle} type="subtitle">
+              Page {currentPage + 1} of {totalPages}
+            </ThemedText>
+            <TouchableOpacity onPress={handleNextPage} disabled={currentPage >= totalPages - 1}>
+              <Ionicons name="chevron-forward" size={24} color={currentPage >= totalPages - 1 ? colors.border : colors.text} />
+            </TouchableOpacity>
+          </View>
           <HeatmapComponent data={heatmapData} />
         </ThemedView>
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
           <ThemedText style={styles.sectionTitle} type="subtitle">Attendance History</ThemedText>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Course:</ThemedText>
-            <TouchableOpacity
-              style={styles.pickerTrigger}
-              onPress={() => setIsPickerVisible(true)}
-            >
+            <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsPickerVisible(true)}>
               <ThemedText style={styles.pickerTriggerText}>
-                {selectedCourse
-                  ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...'
-                  : 'Select a course...'}
+                {selectedCourse ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...' : 'Select a course...'}
               </ThemedText>
               <Ionicons name="chevron-down" size={20} color={colors.text} />
             </TouchableOpacity>
@@ -113,26 +156,17 @@ export default function AnalyticsScreen() {
               animationType="fade"
               onRequestClose={() => setIsPickerVisible(false)}
             >
-              <TouchableOpacity
-                style={styles.modalContainer}
-                activeOpacity={1}
-                onPressOut={() => setIsPickerVisible(false)}
-              >
+              <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPressOut={() => setIsPickerVisible(false)}>
                 <View style={styles.modalContent}>
                   <FlatList
                     data={[{ id: null, name: 'All Courses' }, ...courses]}
                     keyExtractor={(item) => item.id || 'all-courses'}
                     renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.modalItem}
-                        onPress={() => {
-                          setSelectedCourse(item.id);
-                          setIsPickerVisible(false);
-                        }}
-                      >
-                        <ThemedText style={styles.modalItemText}>
-                          {item.name}
-                        </ThemedText>
+                      <TouchableOpacity style={styles.modalItem} onPress={() => {
+                        setSelectedCourse(item.id);
+                        setIsPickerVisible(false);
+                      }}>
+                        <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
                       </TouchableOpacity>
                     )}
                   />
@@ -142,20 +176,11 @@ export default function AnalyticsScreen() {
           </View>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Date:</ThemedText>
-            <TouchableOpacity
-              style={styles.datePickerButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <ThemedText style={styles.datePickerText}>
-                {formatDate(date)}
-              </ThemedText>
+            <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker(true)}>
+              <ThemedText style={styles.datePickerText}>{formatDate(date)}</ThemedText>
             </TouchableOpacity>
             {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                onChange={handleDateChange}
-              />
+              <DateTimePicker value={date} mode="date" onChange={handleDateChange} />
             )}
           </View>
           <FlatList
@@ -163,9 +188,7 @@ export default function AnalyticsScreen() {
             keyExtractor={(item, index) => `${item.courseName}-${item.date}-${index}`}
             renderItem={({ item }) => {
               const recordDate = new Date(item.date);
-              const formattedDate = recordDate.toLocaleDateString(undefined, {
-                year: 'numeric', month: 'long', day: 'numeric'
-              });
+              const formattedDate = recordDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
               let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
               let statusColor = colors.text;
               let displayStatusText = 'Unknown';
@@ -193,19 +216,14 @@ export default function AnalyticsScreen() {
                   <ThemedText style={[styles.historyText, { color: statusColor }]}>
                     {item.courseName} - {displayStatusText}
                   </ThemedText>
-                  <ThemedText style={styles.historyDateText}>
-                    on {formattedDate}
-                  </ThemedText>
+                  <ThemedText style={styles.historyDateText}>on {formattedDate}</ThemedText>
                 </View>
-              )
+              );
             }}
             ListEmptyComponent={<Text style={{ color: colors.text }}>No records found.</Text>}
             ListFooterComponent={
               filteredHistory.length > visibleHistoryCount ? (
-                <TouchableOpacity
-                  style={styles.showMoreButton}
-                  onPress={() => setVisibleHistoryCount(prev => prev + 10)}
-                >
+                <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleHistoryCount(prev => prev + 10)}>
                   <ThemedText style={styles.showMoreButtonText}>Show More</ThemedText>
                 </TouchableOpacity>
               ) : null
@@ -244,6 +262,13 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   },
   sectionTitle: {
     marginBottom: 12,
+    textAlign: 'center',
+  },
+  heatmapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   historyItem: {
     flexDirection: 'row',

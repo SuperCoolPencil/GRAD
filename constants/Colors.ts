@@ -46,7 +46,7 @@ export const Colors = {
     border: '#666666', 
     inputBackground: '#1c1c1e',
     buttonText: '#FFFFFF',
-    card: '#1c1c1e',
+    card: '#151515',
     alert:'#262626',
     alertPrimary: '#0096FF',
     alertDestructive: '#c93d33',

@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   },
   // Outer container for the card, with color-coded accent on the left.
   classCardContainer: {
-    borderLeftWidth: 4, // Accent thickness
+    //borderLeftWidth: 4, // Accent thickness
     borderRadius: 16,
     marginBottom: 0, // Reduced margin
     // Shadows for iOS:

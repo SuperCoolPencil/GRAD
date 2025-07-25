@@ -9,7 +9,16 @@ export const calculateAttendancePercentage = (presents: number, absents: number)
   return Math.round(percentage);
 };
 
-export const generateHeatmapData = (courses: Course[]) => {
+export const getOldestRecordDate = (courses: Course[]): Date | null => {
+  if (courses.length === 0) return null;
+
+  const allDates = courses.flatMap(c => c.attendanceRecords?.map(r => new Date(r.date)) ?? []);
+  if (allDates.length === 0) return null;
+
+  return new Date(Math.min(...allDates.map(d => d.getTime())));
+};
+
+export const generateHeatmapData = (courses: Course[], startDate: Date, endDate: Date): { date: Date; value: number }[] => {
   const dateMap: { [key: string]: { presents: number; absents: number } } = {};
 
   courses.forEach(course => {
@@ -28,29 +37,23 @@ export const generateHeatmapData = (courses: Course[]) => {
     }
   });
 
-  const heatmapData = [];
-  const today = new Date();
-  for (let i = 365; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(today.getDate() - i);
+  const heatmapData: { date: Date; value: number }[] = [];
+  
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const date = new Date(d);
     const dateString = date.toISOString().slice(0, 10);
 
     if (dateMap[dateString]) {
       const { presents, absents } = dateMap[dateString];
       const total = presents + absents;
       if (total === 0) {
-        heatmapData.push(0); // No classes with attendance marked
+        heatmapData.push({ date, value: -1 }); // No classes with attendance marked
       } else {
-        const percentage = presents / total;
-        if (percentage === 1) {
-          heatmapData.push(101); // Special value for 100%
-        } else {
-          // +1 to shift 0-99 range to 1-100. 0 is for no class.
-          heatmapData.push(Math.floor(percentage * 100) + 1);
-        }
+        const percentage = (presents / total) * 100;
+        heatmapData.push({ date, value: Math.round(percentage) });
       }
     } else {
-      heatmapData.push(0); // No classes on this day
+      heatmapData.push({ date, value: -1 }); // No classes on this day
     }
   }
 
