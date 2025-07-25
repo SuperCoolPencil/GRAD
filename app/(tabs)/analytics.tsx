@@ -342,60 +342,7 @@ export default function AnalyticsScreen() {
             <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={paginatedHistory}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(item, index) => `${item.courseName}-${item.date}-${index}`}
-          renderItem={({ item }) => {
-            const recordDate = new Date(item.date);
-            const formattedDate = recordDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-            let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
-            let statusColor = colors.text;
-            let displayStatusText = 'Unknown';
-
-            switch (item.status) {
-              case 'present':
-                statusIcon = 'checkmark-circle-outline';
-                statusColor = Colors[colorScheme].success;
-                displayStatusText = 'Present';
-                break;
-              case 'absent':
-                statusIcon = 'close-circle-outline';
-                statusColor = Colors[colorScheme].error;
-                displayStatusText = 'Absent';
-                break;
-              case 'cancelled':
-                statusIcon = 'remove-circle-outline';
-                statusColor = Colors[colorScheme].warning;
-                displayStatusText = 'Cancelled';
-                break;
-            }
-            return (
-              <TouchableOpacity style={styles.historyItem} onPress={() => handleAttendanceClick(item.courseId, item.id)}>
-                <Ionicons name={statusIcon} size={18} color={statusColor} />
-                <ThemedText style={[styles.historyText, { color: statusColor }]}>
-                  {item.courseName} - {displayStatusText}
-                </ThemedText>
-                <ThemedText style={styles.historyDateText}>on {formattedDate}</ThemedText>
-              </TouchableOpacity>
-            );
-          }}
-          ListEmptyComponent={<Text style={{ color: colors.text }}>No records found.</Text>}
-          ListFooterComponent={
-            <View>
-              {filteredHistory.length > visibleHistoryCount && (
-                <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleHistoryCount(prev => prev + 10)}>
-                  <ThemedText style={styles.showMoreButtonText}>Show More</ThemedText>
-                </TouchableOpacity>
-              )}
-              {visibleHistoryCount > 10 && (
-                <TouchableOpacity style={styles.showLessButton} onPress={() => setVisibleHistoryCount(prev => Math.max(10, prev - 10))}>
-                  <ThemedText style={styles.showLessButtonText}>Show Less</ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          }
-        />
+        <View />
       </ThemedView>
     </>
   ));
@@ -405,12 +352,62 @@ export default function AnalyticsScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Analytics</ThemedText>
       </ThemedView>
-      <ScrollView
+      <FlatList
+        data={paginatedHistory}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
-      >
-        <ListHeader />
-      </ScrollView>
+        keyExtractor={(item, index) => `${item.courseName}-${item.date}-${index}`}
+        ListHeaderComponent={<ListHeader />}
+        renderItem={({ item }) => {
+          const recordDate = new Date(item.date);
+          const formattedDate = recordDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+          let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
+          let statusColor = colors.text;
+          let displayStatusText = 'Unknown';
+
+          switch (item.status) {
+            case 'present':
+              statusIcon = 'checkmark-circle-outline';
+              statusColor = Colors[colorScheme].success;
+              displayStatusText = 'Present';
+              break;
+            case 'absent':
+              statusIcon = 'close-circle-outline';
+              statusColor = Colors[colorScheme].error;
+              displayStatusText = 'Absent';
+              break;
+            case 'cancelled':
+              statusIcon = 'remove-circle-outline';
+              statusColor = Colors[colorScheme].warning;
+              displayStatusText = 'Cancelled';
+              break;
+          }
+          return (
+            <TouchableOpacity style={styles.historyItem} onPress={() => handleAttendanceClick(item.courseId, item.id)}>
+              <Ionicons name={statusIcon} size={18} color={statusColor} />
+              <ThemedText style={[styles.historyText, { color: statusColor }]}>
+                {item.courseName} - {displayStatusText}
+              </ThemedText>
+              <ThemedText style={styles.historyDateText}>on {formattedDate}</ThemedText>
+            </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={<Text style={{ color: colors.text }}>No records found.</Text>}
+        ListFooterComponent={
+          <View>
+            {filteredHistory.length > visibleHistoryCount && (
+              <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleHistoryCount(prev => prev + 10)}>
+                <ThemedText style={styles.showMoreButtonText}>Show More</ThemedText>
+              </TouchableOpacity>
+            )}
+            {visibleHistoryCount > 10 && (
+              <TouchableOpacity style={styles.showLessButton} onPress={() => setVisibleHistoryCount(prev => Math.max(10, prev - 10))}>
+                <ThemedText style={styles.showLessButtonText}>Show Less</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
+        }
+      />
     </ThemedView>
   );
 }
@@ -456,6 +453,11 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(128, 128, 128, 0.1)',
+    marginBottom: 0,
+    paddingHorizontal: 8,
+    backgroundColor: Colors[colorScheme].card,
+    borderRadius: 10,
+    
   },
   historyText: {
     marginLeft: 8,
