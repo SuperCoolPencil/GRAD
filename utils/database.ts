@@ -89,7 +89,23 @@ export const updateSetting = (key: string, value: string) => {
   db.runSync('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, value);
 };
 
-const getCourseFromDbRow = (c: any): Course => {
+const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: string, endDate: string): AttendanceRecord[] => {
+  return db.getAllSync(
+    'SELECT * FROM attendance_records WHERE course_id = ? AND class_date BETWEEN ? AND ?',
+    courseId,
+    startDate,
+    endDate
+  ).map((r: any) => ({
+    id: r.id,
+    course_id: r.course_id,
+    date: r.class_date,
+    status: r.status,
+    isExtraClass: r.is_extra_class === 1,
+    scheduleItemId: r.schedule_item_id,
+  }));
+};
+
+const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: string }): Course => {
   const weeklySchedule = db.getAllSync('SELECT * FROM weekly_schedules WHERE course_id = ?', c.id).map((s: any) => ({
     id: s.id,
     day: s.day,
@@ -104,14 +120,16 @@ const getCourseFromDbRow = (c: any): Course => {
     timeEnd: e.time_end,
   }));
 
-  const attendanceRecords = db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ?', c.id).map((r: any) => ({
-    id: r.id,
-    course_id: r.course_id,
-    date: r.class_date,
-    status: r.status,
-    isExtraClass: r.is_extra_class === 1,
-    scheduleItemId: r.schedule_item_id,
-  }));
+  const attendanceRecords = dateRange
+    ? getAttendanceRecordsForCourseInRange(c.id, dateRange.startDate, dateRange.endDate)
+    : db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ?', c.id).map((r: any) => ({
+        id: r.id,
+        course_id: r.course_id,
+        date: r.class_date,
+        status: r.status,
+        isExtraClass: r.is_extra_class === 1,
+        scheduleItemId: r.schedule_item_id,
+      }));
 
   const presents = c.presents;
   const absents = c.absents;
@@ -137,8 +155,14 @@ const getCourseFromDbRow = (c: any): Course => {
 export const getCourses = (): Course[] => {
   console.log('Getting all courses');
   const coursesFromDb = db.getAllSync('SELECT * FROM courses');
-  return coursesFromDb.map(getCourseFromDbRow);
+  return coursesFromDb.map(c => getCourseFromDbRow(c));
 };
+
+export const getCoursesWithRecordsInRange = (startDate: string, endDate: string): Course[] => {
+  console.log(`Getting courses with records between ${startDate} and ${endDate}`);
+  const coursesFromDb = db.getAllSync('SELECT * FROM courses');
+  return coursesFromDb.map(c => getCourseFromDbRow(c, { startDate, endDate }));
+}
 
 export const updateCourseCounts = (courseId: string, presents: number, absents: number, cancelled: number) => {
   console.log(`Updating counts for course: ${courseId}`);
@@ -154,7 +178,7 @@ export const getCourseById = (courseId: string): Course | null => {
   if (!courseFromDb) {
     return null;
   }
-  return getCourseFromDbRow(courseFromDb);
+  return getCourseFromDbRow(courseFromDb, undefined);
 }
 
 export const addCourse = (course: Course) => {

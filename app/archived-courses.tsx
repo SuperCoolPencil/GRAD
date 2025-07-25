@@ -67,8 +67,8 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
     let absentCount = 0;
     let cancelledCount = 0;
 
-    if (item.classes) {
-      item.classes.forEach((cls: any) => {
+    if (item.attendanceRecords) {
+      item.attendanceRecords.forEach((cls: any) => {
         if (cls.status === 'present') {
           presentCount++;
         } else if (cls.status === 'absent') {
@@ -126,6 +126,7 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
   return (
     <FlatList
       data={archivedCourses}
+      showsVerticalScrollIndicator={false}
       renderItem={renderCourseItem}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}

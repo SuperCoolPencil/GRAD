@@ -5,6 +5,7 @@ import { Colors } from '@/constants/Colors';
 
 interface HeatmapComponentProps {
   data: { date: Date; value: number }[];
+  activeDays: number[];
 }
 
 const CELL_SIZE = 20;
@@ -23,28 +24,75 @@ const hexToRgb = (hex: string) => {
     : null;
 };
 
-const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
+// Helper function to interpolate between two colors.
+// It calculates a color between color1 and color2 based on a factor.
+// A factor of 0 returns color1, a factor of 1 returns color2, and 0.5 returns a color halfway between.
+const interpolateColor = (color1: string, color2: string, factor: number) => {
+  // Convert HEX colors to RGB objects.
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+
+  if (rgb1 && rgb2) {
+    // Linearly interpolate each color channel (R, G, B).
+    const r = Math.round(rgb1.r + factor * (rgb2.r - rgb1.r));
+    const g = Math.round(rgb1.g + factor * (rgb2.g - rgb1.g));
+    const b = Math.round(rgb1.b + factor * (rgb2.b - rgb1.b));
+    // Return the result as an RGB string.
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  // Return null if color conversion fails.
+  return null;
+};
+
+const HeatmapComponent = ({ data, activeDays }: HeatmapComponentProps) => {
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const themeColors = Colors[colorScheme];
 
-  const { columns } = useMemo(() => {
-    if (!data || data.length === 0) {
-      return { columns: [] };
+  const displayWeekDays = useMemo(() => {
+    return WEEK_DAYS.filter((_, index) => activeDays.includes(index));
+  }, [activeDays]);
+
+  const { columns, months } = useMemo(() => {
+    if (!data || data.length === 0 || activeDays.length === 0) {
+      return { columns: [], months: [] };
     }
 
-    const firstDate = data[0].date;
-    const dayOfWeek = firstDate.getDay(); // 0 = Sunday
+    const filteredData = data.filter(d => activeDays.includes(d.date.getDay()));
+    if (filteredData.length === 0) {
+      return { columns: [], months: [] };
+    }
 
-    const numericData = data.map(d => d.value);
-    const paddedData = [...Array(dayOfWeek).fill(-2), ...numericData]; // -2 for padding
+    const firstDate = filteredData[0].date;
+    const dayOfWeek = activeDays.indexOf(firstDate.getDay());
+
+    const numericData = filteredData.map(d => d.value);
+    const paddedData = [...Array(dayOfWeek).fill(-2), ...numericData];
 
     const chunkedColumns = [];
-    for (let i = 0; i < paddedData.length; i += 7) {
-      chunkedColumns.push(paddedData.slice(i, i + 7));
+    for (let i = 0; i < paddedData.length; i += activeDays.length) {
+      chunkedColumns.push(paddedData.slice(i, i + activeDays.length));
     }
-    return { columns: chunkedColumns };
-  }, [data]);
+
+    const monthLabels: { name: string, columnCount: number }[] = [];
+    let lastMonth = -1;
+    filteredData.forEach(d => {
+      const month = d.date.getMonth();
+      if (month !== lastMonth) {
+        monthLabels.push({ name: d.date.toLocaleString('default', { month: 'short' }), columnCount: 1 });
+        lastMonth = month;
+      } else {
+        monthLabels[monthLabels.length - 1].columnCount++;
+      }
+    });
+
+    return { columns: chunkedColumns, months: monthLabels };
+  }, [data, activeDays]);
+
+  // The day labels are rendered from the `displayWeekDays` array.
+  // The data columns are constructed such that the first item in each column corresponds to the first day in `displayWeekDays`,
+  // the second item to the second day, and so on.
+  // The `paddedData` ensures that the first piece of actual data aligns with its correct day of the week.
 
   const getCellStyle = (value: number) => {
     if (value === -2) {
@@ -56,12 +104,22 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     if (value === 100) {
       return [styles.cell, { backgroundColor: themeColors.success }]; // Perfect attendance
     }
-    
-    // For partial attendance, use the theme's error color with opacity
-    const rgbErrorColor = hexToRgb(themeColors.error);
-    if (rgbErrorColor) {
-      const opacity = Math.max(0.1, value / 100);
-      return [styles.cell, { backgroundColor: `rgba(${rgbErrorColor.r}, ${rgbErrorColor.g}, ${rgbErrorColor.b}, ${opacity})` }];
+
+    // For partial attendance, calculate a color on a gradient from red to a lighter red.
+    // The start of the gradient (0% attendance).
+    const startColor = '#ff0000'; // This is a deep red.
+    // The end of the gradient (100% attendance, though 100% has its own color).
+    const endColor = '#ffff00'; // A yellow.
+
+    // The 'factor' determines where on the gradient the color should be.
+    // It's calculated from the attendance value (0-100) to a 0-1 scale.
+    const factor = value / 100; 
+
+    // Get the specific color for the current value.
+    const interpolatedColor = interpolateColor(startColor, endColor, factor);
+
+    if (interpolatedColor) {
+      return [styles.cell, { backgroundColor: interpolatedColor }];
     }
 
     // Fallback style
@@ -71,21 +129,32 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
   return (
     <View style={styles.container}>
       <View style={styles.weekdaysContainer}>
-        {WEEK_DAYS.map(day => (
+        {displayWeekDays.map(day => (
           <Text key={day} style={[styles.weekday, { color: colors.text }]}>{day}</Text>
         ))}
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.gridContainer}>
-          {columns.map((column, colIndex) => (
-            <View key={colIndex} style={styles.column}>
-              {column.map((value, rowIndex) => (
-                <View key={rowIndex} style={getCellStyle(value)} />
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View>
+            <View style={styles.gridContainer}>
+              {columns.map((column, colIndex) => (
+                <View key={colIndex} style={styles.column}>
+                  {column.map((value, rowIndex) => (
+                    <View key={rowIndex} style={getCellStyle(value)} />
+                  ))}
+                </View>
               ))}
             </View>
-          ))}
-        </View>
-      </ScrollView>
+            <View style={styles.monthsContainer}>
+              {months.map((month, index) => (
+                <Text key={index} style={[styles.monthLabel, { color: colors.text, width: (CELL_SIZE + CELL_MARGIN) * (month.columnCount / activeDays.length) }]}>
+                  {month.name}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </View>
   );
 };
@@ -94,7 +163,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   weekdaysContainer: {
     marginRight: 10,
@@ -108,6 +177,14 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flexDirection: 'row',
+  },
+  monthsContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  monthLabel: {
+    fontSize: 12,
+    textAlign: 'center',
   },
   column: {
     flexDirection: 'column',

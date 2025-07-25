@@ -141,6 +141,7 @@ export default function SettingsScreen() {
         </ThemedText>
       </ThemedView>
       <ScrollView
+        showsVerticalScrollIndicator={false}
         style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={styles.contentContainer}
       >

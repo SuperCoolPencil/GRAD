@@ -48,6 +48,7 @@ interface AppContextType {
   addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
   save: () => Promise<void>;
   reloadData: () => void; // New function to reload data
+  getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -78,6 +79,7 @@ export const AppContext = createContext<AppContextType>({
   addAttendance: () => { },
   save: () => Promise.resolve(),
   reloadData: () => { }, // Add default value for reloadData
+  getCoursesWithRecordsInRange: () => Promise.resolve([]),
 });
 
 interface AppProviderProps {
@@ -370,6 +372,19 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   }, [courses, loading, notificationTime]);
 
+  const getCoursesWithRecordsInRange = async (startDate: string, endDate: string): Promise<Course[]> => {
+    setLoading(true);
+    try {
+      const loadedCourses = db.getCoursesWithRecordsInRange(startDate, endDate);
+      return loadedCourses;
+    } catch (error) {
+      console.error("Failed to load courses with date range from database", error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -400,6 +415,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateCourseCounts,
         save,
         reloadData: loadData, // Pass the reloadData function
+        getCoursesWithRecordsInRange,
       }}
     >
       {children}

@@ -76,7 +76,7 @@ export default function CoursesScreen() {
           </TouchableOpacity>
         </Link>
       </ThemedView>
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* Pass props to Content */}
         <CoursesContent
           courses={courses}
@@ -147,6 +147,7 @@ function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; c
   return (
     <FlatList
       data={activeCourses} // Use the filtered list
+      showsVerticalScrollIndicator={false}
       renderItem={renderCourseItem}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}
