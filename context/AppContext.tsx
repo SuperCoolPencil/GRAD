@@ -20,6 +20,8 @@ interface AppContextType {
   theme: string;
   notificationTime: number;
   notificationsEnabled: boolean;
+  is24Hour: boolean;
+  toggle24Hour: () => void;
   updateNotificationTime: (time: number) => void;
   toggleTheme: () => void;
   toggleNotifications: () => void;
@@ -56,6 +58,8 @@ export const AppContext = createContext<AppContextType>({
   theme: "light",
   notificationTime: 10,
   notificationsEnabled: false,
+  is24Hour: false,
+  toggle24Hour: () => { },
   updateNotificationTime: () => { },
   toggleTheme: () => { },
   toggleNotifications: () => { },
@@ -86,6 +90,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [theme, setTheme] = useState<string>("light");
   const [notificationTime, setNotificationTime] = useState(10);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [is24Hour, setIs24Hour] = useState(false);
+
+  const toggle24Hour = () => {
+    setIs24Hour(prevState => !prevState);
+  };
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
@@ -102,6 +111,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         const storedTheme = await AsyncStorage.getItem("theme");
         const storedNotificationTime = await AsyncStorage.getItem("notificationTime");
         const storedNotificationsEnabled = await AsyncStorage.getItem("notificationsEnabled");
+        const storedIs24Hour = await AsyncStorage.getItem("is24Hour");
         if (storedCourses) {
           setCourses(JSON.parse(storedCourses));
         }
@@ -113,6 +123,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         }
         if (storedNotificationsEnabled) {
           setNotificationsEnabled(JSON.parse(storedNotificationsEnabled));
+        }
+        if (storedIs24Hour) {
+          setIs24Hour(JSON.parse(storedIs24Hour));
         }
       } catch (error) {
         console.error("Failed to load data", error);
@@ -131,6 +144,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         await AsyncStorage.setItem("theme", theme);
         await AsyncStorage.setItem("notificationTime", JSON.stringify(notificationTime));
         await AsyncStorage.setItem("notificationsEnabled", JSON.stringify(notificationsEnabled));
+        await AsyncStorage.setItem("is24Hour", JSON.stringify(is24Hour));
       } catch (error) {
         console.error("Failed to save data", error);
       }
@@ -139,7 +153,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (!loading) {
       saveData();
     }
-  }, [courses, loading, theme, notificationTime, notificationsEnabled]);
+  }, [courses, loading, theme, notificationTime, notificationsEnabled, is24Hour]);
 
   const addCourse = (newCourse: Course) => {
     const courseId = newCourse.id.trim();
@@ -546,6 +560,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         theme,
         notificationTime,
         notificationsEnabled,
+        is24Hour,
+        toggle24Hour,
         updateNotificationTime,
         toggleTheme,
         toggleNotifications,

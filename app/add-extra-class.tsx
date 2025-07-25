@@ -21,6 +21,7 @@ import { useCustomAlert } from '@/context/AlertContext'; // Import the custom al
 import { useNavigation } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
 import CustomHeader from '@/components/CustomHeader';
+import { formatTime as formatTimeUtil } from '@/utils/time';
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -28,7 +29,7 @@ const truncate = (str: string, n: number) => {
 
 const AddExtraClassScreen = () => {
   const router = useRouter();
-  const { addExtraClass, courses } = useContext(AppContext);
+  const { addExtraClass, courses, is24Hour } = useContext(AppContext);
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
@@ -59,11 +60,12 @@ const AddExtraClassScreen = () => {
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
+    const timeString = date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
+      hour12: false,
     });
+    return formatTimeUtil(timeString, is24Hour);
   };
 
   const getTimeForStorage = (date: Date) => {
@@ -253,7 +255,7 @@ const AddExtraClassScreen = () => {
                 <DateTimePicker
                   value={startTime || new Date()}
                   mode="time"
-                  is24Hour={false}
+                  is24Hour={is24Hour}
                   onChange={handleStartTimeChange}
                 />
               )}
@@ -273,7 +275,7 @@ const AddExtraClassScreen = () => {
                 <DateTimePicker
                   value={endTime || new Date()}
                   mode="time"
-                  is24Hour={false}
+                  is24Hour={is24Hour}
                   onChange={handleEndTimeChange}
                 />
               )}

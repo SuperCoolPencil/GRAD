@@ -20,7 +20,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const router = useRouter();
   const { colors } = useTheme();
@@ -119,6 +119,18 @@ export default function SettingsScreen() {
               textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
             />
           )}
+        </View>
+
+        {/* General Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>General</ThemedText>
+          <View style={styles.notificationSetting}>
+            <ThemedText>24-Hour Clock</ThemedText>
+            <Switch
+              value={is24Hour}
+              onValueChange={toggle24Hour}
+            />
+          </View>
         </View>
 
         <NotificationTimeModal
