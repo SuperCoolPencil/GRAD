@@ -183,6 +183,31 @@ export const getCoursesWithRecordsInRange = (startDate: string, endDate: string)
   return coursesFromDb.map(c => getCourseFromDbRow(c, { startDate, endDate }));
 }
 
+export const getWeeklySchedule = (): (ScheduleItem & { course: Course })[] => {
+  console.log('Getting weekly schedule');
+  const scheduleFromDb = db.getAllSync(`
+    SELECT ws.*, c.id as course_id, c.name as course_name, c.required_attendance, c.is_archived, c.presents, c.absents, c.cancelled
+    FROM weekly_schedules ws
+    JOIN courses c ON ws.course_id = c.id
+    WHERE c.is_archived = 0
+  `);
+  return scheduleFromDb.map((s: any) => ({
+    id: s.id,
+    day: s.day,
+    timeStart: s.time_start,
+    timeEnd: s.time_end,
+    course: {
+      id: s.course_id,
+      name: s.course_name,
+      requiredAttendance: s.required_attendance,
+      isArchived: s.is_archived === 1,
+      presents: s.presents,
+      absents: s.absents,
+      cancelled: s.cancelled,
+    }
+  }));
+};
+
 export const updateCourseCounts = (courseId: string, presents: number, absents: number, cancelled: number) => {
   console.log(`Updating counts for course: ${courseId}`);
   db.runSync(
@@ -274,6 +299,29 @@ export const updateAttendanceRecord = (record: AttendanceRecord) => {
     'UPDATE attendance_records SET status = ? WHERE id = ?',
     record.status, record.id
   );
+};
+
+export const deleteAttendanceRecord = (recordId: string) => {
+  console.log(`Deleting attendance record: ${recordId}`);
+  const record = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
+  if (!record) return;
+
+  db.withTransactionSync(() => {
+    db.runSync('DELETE FROM attendance_records WHERE id = ?', recordId);
+
+    let updateColumn = '';
+    if (record.status === 'present') {
+      updateColumn = 'presents';
+    } else if (record.status === 'absent') {
+      updateColumn = 'absents';
+    } else if (record.status === 'cancelled') {
+      updateColumn = 'cancelled';
+    }
+
+    if (updateColumn) {
+      db.runSync(`UPDATE courses SET ${updateColumn} = ${updateColumn} - 1 WHERE id = ?`, record.course_id);
+    }
+  });
 };
 
 export const deleteCourse = (courseId: string) => {
