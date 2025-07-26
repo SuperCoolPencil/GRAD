@@ -47,7 +47,7 @@ interface AppContextType {
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void;
   unarchiveCourse: (courseId: string) => void;
-  addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string) => void;
+  upsertAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
   save: () => Promise<void>;
   reloadData: () => void; // New function to reload data
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
@@ -78,7 +78,7 @@ export const AppContext = createContext<AppContextType>({
   updateCourseCounts: () => { },
   archiveCourse: () => { },
   unarchiveCourse: () => { },
-  addAttendance: () => { },
+  upsertAttendance: () => { },
   save: () => Promise.resolve(),
   reloadData: () => { }, // Add default value for reloadData
   getCoursesWithRecordsInRange: () => Promise.resolve([]),
@@ -118,6 +118,25 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.initDatabase();
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const colorPalette = [
+        '#F08080', '#ADD8E6', '#6495ED', '#FFBF00', '#DE3163',
+        '#DA70D6', '#CCCCFF', '#FF7F50', '#FFC0CB', '#FFA07A'
+      ];
+      const allCourseIds = courses.map(c => c.id);
+      courses.forEach(course => {
+        if (!course.color) {
+          const index = allCourseIds.indexOf(course.id);
+          const color = colorPalette[index % colorPalette.length];
+          const updatedCourse = { ...course, color };
+          db.updateCourse(updatedCourse);
+          setCourses(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
+        }
+      });
+    }
+  }, [loading]);
 
   const toggle24Hour = () => {
     const newIs24Hour = !is24Hour;
@@ -322,26 +341,41 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const addAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string) => {
+  const upsertAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => {
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
-
-    const newRecord: AttendanceRecord = {
-      id: Date.now().toString(),
-      course_id: courseId,
-      date: new Date().toISOString().slice(0, 10), // Store date in YYYY-MM-DD format
-      status: status,
-      isExtraClass: isExtraClass,
-      scheduleItemId: scheduleId,
-      timeStart,
-      timeEnd,
-    };
-    db.addAttendanceRecord(newRecord);
-
-    const updatedCourse = { ...course };
-    updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
-
-    updateCourse(updatedCourse);
+  
+    const existingRecord = course.attendanceRecords?.find(
+      r => r.date === date && r.scheduleItemId === scheduleId && r.isExtraClass === isExtraClass
+    );
+  
+    if (existingRecord) {
+      // This is an update
+      changeAttendanceRecord(courseId, existingRecord.id, status);
+    } else {
+      // This is an insert
+      const newRecord: AttendanceRecord = {
+        id: `${Date.now()}-${Math.random()}`, // More robust unique ID
+        course_id: courseId,
+        date: date,
+        status: status,
+        isExtraClass: isExtraClass,
+        scheduleItemId: scheduleId,
+        timeStart,
+        timeEnd,
+      };
+      db.addAttendanceRecord(newRecord);
+  
+      const updatedCourse = { ...course };
+      updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
+      
+      // Manually update counts
+      const key = (status === 'cancelled' ? 'cancelled' : status + 's') as keyof Course;
+      (updatedCourse[key] as number) = ((updatedCourse[key] as number) || 0) + 1;
+      updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents, updatedCourse.absents);
+  
+      updateCourse(updatedCourse);
+    }
   };
 
   const updateCourseCounts = (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
@@ -419,7 +453,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         clearData,
         archiveCourse,
         unarchiveCourse,
-        addAttendance,
+        upsertAttendance,
         updateCourseCounts,
         save,
         reloadData: loadData, // Pass the reloadData function

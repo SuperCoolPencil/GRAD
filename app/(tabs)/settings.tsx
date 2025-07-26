@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
 import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
-import { db, reopenDatabase } from '@/utils/database';
+import { db, reopenDatabase, clearCourseColors } from '@/utils/database';
 import {
   requestPermissions,
   scheduleCourseNotifications,
@@ -239,6 +239,19 @@ export default function SettingsScreen() {
             title="Clear All Data"
             iconName="trash-outline"
             backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
+          />
+          <SettingsButton
+            onPress={() => {
+              clearCourseColors();
+              if (reloadData) {
+                reloadData();
+              }
+              showAlert("Colors Refreshed", "Course colors have been updated.");
+            }}
+            title="Refresh Course Colors"
+            iconName="refresh-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
         </View>
       </ScrollView>

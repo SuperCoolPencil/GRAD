@@ -26,6 +26,7 @@ export interface ExtraClass {
 export interface Course {
   id: string;
   name: string;
+  color?: string;
   requiredAttendance: number;
   presents: number;
   absents: number;

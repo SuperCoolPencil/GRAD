@@ -1,388 +1,267 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, useColorScheme, Dimensions } from 'react-native';
+import React, { useState, useCallback, useMemo, useContext } from 'react';
+import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator } from 'react-native';
+import { AppContext } from '@/context/AppContext';
+import { format } from 'date-fns';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
-import { getWeeklySchedule, getCourses, addAttendanceRecord, updateAttendanceRecord, deleteAttendanceRecord } from '@/utils/database';
-import { Course, ScheduleItem, AttendanceRecord } from '@/types';
-import { useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-
-type AttendanceStatus = 'present' | 'absent';
-type ModalAttendanceStatus = AttendanceStatus | 'unmarked';
-
-interface ClassItem {
-  course: Course;
-  schedule: ScheduleItem;
-  attendance?: AttendanceRecord;
-}
+import { useAttendanceData, ClassItem } from '@/hooks/useAttendanceData';
+import { useAttendanceActions } from '@/hooks/useAttendanceActions';
+import TimeAxis from '@/components/AttendanceTracker/TimeAxis';
+import DayColumn from '@/components/AttendanceTracker/DayColumn';
 
 export default function VisualAttendanceTracker() {
+  const { is24Hour } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
   const [startDate, setStartDate] = useState(new Date());
-  const [weeklySchedule, setWeeklySchedule] = useState<(ScheduleItem & { course: Course })[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [courseColors, setCourseColors] = useState<Record<string, string>>({});
-  const [startHour, setStartHour] = useState(8);
-  const [endHour, setEndHour] = useState(23);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const generateColor = (id: string) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  const { classes, courseColors, startHour, endHour, loading, error, refetch } = useAttendanceData(startDate);
+  const { handleSelectClass } = useAttendanceActions(refetch);
+
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setStartDate(subDaysFromDate(selectedDate, 3));
     }
-    const c = (hash & 0x00FFFFFF)
-      .toString(16)
-      .toUpperCase();
-    return "#" + "00000".substring(0, 6 - c.length) + c;
   };
 
-  const fetchCoursesAndSchedule = () => {
-    const allCourses = getCourses();
-    const schedule = getWeeklySchedule();
-    setCourses(allCourses);
-    setWeeklySchedule(schedule);
-
-    if (schedule.length > 0) {
-      let minHour = 23;
-      let maxHour = 0;
-      schedule.forEach(item => {
-        const start = new Date(`1970-01-01T${item.timeStart}:00`);
-        const end = new Date(`1970-01-01T${item.timeEnd}:00`);
-        if (start.getHours() < minHour) minHour = start.getHours();
-        if (end.getHours() > maxHour) maxHour = end.getHours();
-      });
-      setStartHour(Math.max(0, minHour - 1));
-      setEndHour(Math.min(23, maxHour + 1));
-    }
-
-    const newColors: Record<string, string> = {};
-    allCourses.forEach(course => {
-      if (!course.isArchived) {
-        newColors[course.id] = generateColor(course.id);
-      }
-    });
-    setCourseColors(newColors);
+  const handlePrevDay = () => {
+    setStartDate(prevDate => subDaysFromDate(prevDate, 1));
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchCoursesAndSchedule();
-    }, [])
+  const handleNextDay = () => {
+    setStartDate(prevDate => addDaysToDate(prevDate, 1));
+  };
+
+  const HOUR_HEIGHT = 60;
+  const hourCount = Math.ceil(endHour) - startHour;
+  const scheduleHeight = hourCount * HOUR_HEIGHT;
+  const dayColumnWidth = (screenWidth - 70) / 7;
+
+  const timeSlots = useMemo(() => 
+    Array.from({ length: hourCount + 1 }, (_, i) => i + startHour),
+    [hourCount, startHour]
   );
 
-  useEffect(() => {
-    const newClasses: Record<string, ClassItem[]> = {};
-    const date = new Date(startDate);
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors[colorScheme].background,
+    },
+    titleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+      paddingTop: 64,
+      backgroundColor: "transparent",
+    },
+    dateNavigator: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingBottom: 10,
+    },
+    dateText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: Colors[colorScheme].text,
+    },
+    scheduleContainer: {
+      flexDirection: 'row',
+      flex: 1,
+      overflow: 'visible',
+      paddingBottom: 12,
+      marginTop: 50,
+    },
+    timeAxis: {
+      width: 50,
+      alignItems: 'center',
+      paddingBottom: 12,
+    },
+    timeText: {
+      fontSize: 10,
+      textAlign: 'center',
+    },
+    timeLabel: {
+      height: HOUR_HEIGHT,
+      justifyContent: 'flex-start',
+    },
+    timeLabelContainer: {
+      height: 20,
+      justifyContent: 'center',
+      marginTop: -10,
+    },
+    schedule: {
+      flex: 1,
+      flexDirection: 'row',
+      position: 'relative',
+      borderRightWidth: 1,
+      borderRightColor: Colors[colorScheme].border,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors[colorScheme].border,
+      backgroundColor: Colors[colorScheme].card,
+    },
+    dayColumn: {
+      width: dayColumnWidth,
+      borderLeftWidth: 1,
+      borderLeftColor: Colors[colorScheme].border,
+      overflow: 'visible',
+    },
+    dayColumnHeader: {
+      alignItems: 'center',
+      paddingVertical: 5,
+      height: 50,
+      position: 'absolute',
+      top: -50,
+      left: 0,
+      right: 0,
+    },
+    dayInitialText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    dateNumberText: {
+      fontSize: 12,
+    },
+    dayColumnContent: {
+      flex: 1,
+      position: 'relative',
+    },
+    gridLine: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: 1,
+      backgroundColor: Colors[colorScheme].border,
+    },
+    classBlock: {
+      position: 'absolute',
+      left: 4,
+      right: 4,
+      borderRadius: 8,
+      borderWidth: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    verticalTextContainer: {
+      position: 'absolute',
+      transform: [{ rotate: '-90deg' }],
+    },
+    presentBlock: {
+      borderColor: Colors[colorScheme].success,
+      borderWidth: 3,
+    },
+    absentBlock: {
+      borderColor: Colors[colorScheme].error,
+      borderWidth: 3,
+      borderStyle: 'dashed',
+    },
+    cancelledBlock: {
+      opacity: 0.5,
+      backgroundColor: Colors[colorScheme].border,
+    },
+    unmarkedBlock: {
+      opacity: 0.7,
+    },
+    courseCode: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center',
+    },
+  }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
 
-    for (let i = 0; i < 7; i++) {
-      const dayOfWeek = date.toLocaleString('en-US', { weekday: 'long' });
-      const dateString = date.toISOString().split('T')[0];
-      newClasses[dateString] = [];
-
-      weeklySchedule.forEach(item => {
-        if (item.day === dayOfWeek) {
-          const attendance = courses.find(c => c.id === item.course.id)?.attendanceRecords?.find(
-            r => r.date === dateString && r.scheduleItemId === item.id
-          );
-          newClasses[dateString].push({ course: item.course, schedule: item, attendance });
-        }
-      });
-
-      courses.forEach(course => {
-        course.extraClasses?.forEach(extraClass => {
-          if (extraClass.date === dateString) {
-            const attendance = course.attendanceRecords?.find(
-              r => r.date === dateString && r.isExtraClass
-            );
-            newClasses[dateString].push({ course, schedule: { ...extraClass, day: dayOfWeek }, attendance });
-          }
-        });
-      });
-
-      newClasses[dateString].sort((a, b) => a.schedule.timeStart.localeCompare(b.schedule.timeStart));
-      date.setDate(date.getDate() + 1);
-    }
-    setClasses(newClasses);
-  }, [courses, weeklySchedule, startDate]);
-
-  const handlePrevWeek = () => {
-    setStartDate(prevDate => {
-      const newDate = new Date(prevDate);
-      newDate.setDate(newDate.getDate() - 7);
-      return newDate;
-    });
-  };
-
-  const handleNextWeek = () => {
-    setStartDate(prevDate => {
-      const newDate = new Date(prevDate);
-      newDate.setDate(newDate.getDate() + 7);
-      return newDate;
-    });
-  };
-
-  const handleSelectClass = (classItem: ClassItem, date: Date) => {
-    setSelectedClass(classItem);
-    setSelectedDate(date);
-    setModalVisible(true);
-  };
-
-  const handleMarkAttendance = (status: ModalAttendanceStatus) => {
-    if (!selectedClass) return;
-
-    const { course, schedule, attendance } = selectedClass;
-    const dateString = selectedDate.toISOString().split('T')[0];
-
-    if (status === 'unmarked') {
-      if (attendance) {
-        deleteAttendanceRecord(attendance.id);
-      }
-    } else {
-      if (attendance) {
-        // If the status is the same, do nothing
-        if (attendance.status === status) {
-          setModalVisible(false);
-          setSelectedClass(null);
-          return;
-        }
-        updateAttendanceRecord({ ...attendance, status });
-      } else {
-        const newRecord: AttendanceRecord = {
-          id: crypto.randomUUID(),
-          course_id: course.id,
-          date: dateString,
-          status,
-          isExtraClass: !!(schedule as any).date,
-          scheduleItemId: schedule.id,
-        };
-        addAttendanceRecord(newRecord);
-      }
-    }
-
-    fetchCoursesAndSchedule(); // Refetch to update UI
-    setModalVisible(false);
-    setSelectedClass(null);
-  };
-
-  const styles = getStyles(colorScheme, startHour, endHour);
-  const getBlockStyle = (classItem: ClassItem) => {
-    const status = classItem.attendance?.status || 'unmarked';
+  const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
     const courseColor = courseColors[classItem.course.id] || Colors[colorScheme].card;
+    const baseStyle = { ...styles.classBlock, backgroundColor: courseColor };
 
-    switch (status) {
-      case 'present':
-        return [styles.presentBlock, { backgroundColor: courseColor, borderColor: courseColor }];
-      case 'absent':
-        return [styles.absentBlock, { borderColor: courseColor }];
-      default:
-        return [styles.unmarkedBlock, { backgroundColor: courseColor, borderColor: courseColor }];
+    if (isDateInPast(date)) {
+      const status = classItem.attendance?.status;
+      if (status === 'present') {
+        return { ...baseStyle, ...styles.presentBlock };
+      } else if (status === 'absent') {
+        return { ...baseStyle, ...styles.absentBlock };
+      } else if (status === 'cancelled') {
+        return { ...baseStyle, ...styles.cancelledBlock };
+      }
     }
-  };
+    
+    return { ...baseStyle, ...styles.unmarkedBlock, borderColor: courseColor };
+  }, [courseColors, colorScheme, styles]);
 
   return (
     <ThemedView style={styles.container}>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">Tracker</ThemedText>
+      </ThemedView>
       <View style={styles.dateNavigator}>
-        <TouchableOpacity onPress={handlePrevWeek}>
+        <TouchableOpacity onPress={handlePrevDay} disabled={loading}>
           <Ionicons name="chevron-back" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
-        <ThemedText style={styles.dateText}>
-          {`${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
-        </ThemedText>
-        <TouchableOpacity onPress={handleNextWeek}>
+        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+          <ThemedText style={styles.dateText}>
+            {format(addDaysToDate(startDate, 3), 'MMMM d, yyyy')}
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleNextDay} disabled={loading}>
           <Ionicons name="chevron-forward" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
       </View>
-      <View style={styles.scheduleContainer}>
-        <View style={styles.timeAxis}>
-          {Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour).map(hour => (
-            <View key={hour} style={styles.timeLabel}>
-              <View style={styles.verticalTimeContainer}>
-                <ThemedText style={styles.timeText}>{`${hour}:00`}</ThemedText>
+      {showDatePicker && (
+        <DateTimePicker
+          value={addDaysToDate(startDate, 3)}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+      {loading && <ActivityIndicator size="large" color={Colors[colorScheme].tint} style={{ marginVertical: 20 }} />}
+        {error && <ThemedText style={{ color: Colors[colorScheme].error, textAlign: 'center', marginVertical: 20 }}>{error}</ThemedText>}
+        {!loading && !error && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 16 }}
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            <View style={styles.scheduleContainer}>
+              <TimeAxis timeSlots={timeSlots} styles={styles} is24Hour={is24Hour} />
+              <View style={styles.schedule}>
+                {Object.keys(classes).map(dateString => (
+                  <DayColumn
+                    key={dateString}
+                    dateString={dateString}
+                    classes={classes[dateString]}
+                    timeSlots={timeSlots}
+                    startHour={startHour}
+                    styles={{...styles, endHour}}
+                    getBlockStyle={getBlockStyle}
+                    handleSelectClass={handleSelectClass}
+                    courseColors={courseColors}
+                  />
+                ))}
               </View>
             </View>
-          ))}
-        </View>
-        <View style={styles.schedule}>
-          {Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour).map(hour => (
-            <View key={hour} style={[styles.gridLine, { top: (hour - startHour) * styles.timeLabel.height }]} />
-          ))}
-          {Object.keys(classes).map((dateString) => {
-            const date = new Date(dateString);
-            date.setUTCHours(0,0,0,0);
-            return (
-            <View key={dateString} style={styles.dayColumn}>
-              <ThemedText style={{textAlign: 'center', paddingVertical: 5, fontSize: 12}}>{date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</ThemedText>
-              {classes[dateString].map((classItem, index) => {
-                const start = new Date(`1970-01-01T${classItem.schedule.timeStart}:00`);
-                const end = new Date(`1970-01-01T${classItem.schedule.timeEnd}:00`);
-                if (start.getHours() < startHour || end.getHours() > endHour) return null;
-
-                const duration = (end.getTime() - start.getTime()) / (1000 * 60);
-                const top = (start.getHours() - startHour + start.getMinutes() / 60) * (styles.timeLabel.height);
-                const height = (duration / 60) * (styles.timeLabel.height);
-
-                return (
-                  <TouchableOpacity
-                    key={`${classItem.course.id}-${index}`}
-                    style={[
-                      styles.classBlock,
-                      getBlockStyle(classItem),
-                      { top: top + 35, height },
-                    ]}
-                    onPress={() => handleSelectClass(classItem, date)}
-                  >
-                    <View style={styles.verticalTextContainer}>
-                      <ThemedText style={styles.courseCode} numberOfLines={1}>{classItem.course.name}</ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )})}
-        </View>
-      </View>
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => handleMarkAttendance('present')}
-            >
-              <ThemedText>Mark Present</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => handleMarkAttendance('absent')}
-            >
-              <ThemedText>Mark Absent</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => handleMarkAttendance('unmarked')}
-            >
-              <ThemedText>Clear Status</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+          </ScrollView>
+        </ScrollView>
+      )}
     </ThemedView>
   );
 }
-
-const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
-const scheduleHeight = screenHeight - 150; // Adjust 150 for header and other UI elements
-const dayColumnWidth = (screenWidth - 60) / 7;
-
-const getStyles = (colorScheme: 'light' | 'dark', startHour: number, endHour: number) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors[colorScheme].background,
-  },
-  dateNavigator: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-  dateText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors[colorScheme].text,
-  },
-  scheduleContainer: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  timeAxis: {
-    width: 30,
-    alignItems: 'center',
-  },
-  verticalTimeContainer: {
-    transform: [{ rotate: '-90deg' }],
-    width: 50,
-  },
-  timeText: {
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  timeLabel: {
-    height: (scheduleHeight - 40) / (endHour - startHour + 1),
-    justifyContent: 'center',
-  },
-  schedule: {
-    flex: 1,
-    flexDirection: 'row',
-    position: 'relative',
-  },
-  dayColumn: {
-    width: dayColumnWidth,
-    borderLeftWidth: 1,
-    borderLeftColor: Colors[colorScheme].border,
-    position: 'relative',
-  },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: Colors[colorScheme].border,
-  },
-  classBlock: {
-    position: 'absolute',
-    left: 2,
-    right: 2,
-    borderRadius: 5,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  verticalTextContainer: {
-    position: 'absolute',
-    transform: [{ rotate: '-90deg' }],
-  },
-  presentBlock: {
-    opacity: 1,
-  },
-  absentBlock: {
-    backgroundColor: Colors[colorScheme].background,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-  },
-  unmarkedBlock: {
-    opacity: 0.5,
-  },
-  courseCode: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: Colors[colorScheme].text,
-    textAlign: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: Colors[colorScheme].card,
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-  },
-  modalButton: {
-    padding: 15,
-    alignItems: 'center',
-  },
-});

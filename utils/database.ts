@@ -21,7 +21,8 @@ export const initDatabase = () => {
       is_archived BOOLEAN NOT NULL DEFAULT 0,
       presents INTEGER NOT NULL DEFAULT 0,
       absents INTEGER NOT NULL DEFAULT 0,
-      cancelled INTEGER NOT NULL DEFAULT 0
+      cancelled INTEGER NOT NULL DEFAULT 0,
+      color TEXT
     );
     CREATE TABLE IF NOT EXISTS weekly_schedules (
       id TEXT PRIMARY KEY,
@@ -84,6 +85,11 @@ export const initDatabase = () => {
   if (!columnNames.includes('cancelled')) {
     console.log('Migrating database: adding cancelled column');
     db.execSync('ALTER TABLE courses ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0');
+  }
+
+  if (!columnNames.includes('color')) {
+    console.log('Migrating database: adding color column');
+    db.execSync('ALTER TABLE courses ADD COLUMN color TEXT');
   }
 
   console.log('Database initialized successfully');
@@ -159,6 +165,7 @@ const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: st
   return {
     id: c.id,
     name: c.name,
+    color: c.color,
     requiredAttendance: c.required_attendance,
     isArchived: c.is_archived === 1,
     weeklySchedule,
@@ -229,8 +236,8 @@ export const addCourse = (course: Course) => {
   console.log(`Adding course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0
+      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null
     );
     course.weeklySchedule?.forEach(item => {
       db.runSync(
@@ -245,8 +252,8 @@ export const updateCourse = (course: Course) => {
   console.log(`Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ?, color = ? WHERE id = ?',
+      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.color || null, course.id
     );
 
     // Update weekly schedules
@@ -371,6 +378,11 @@ export const addExtraClass = (courseId: string, item: ExtraClass) => {
     'INSERT INTO extra_classes (id, course_id, date, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
     item.id, courseId, item.date, item.timeStart, item.timeEnd
   );
+};
+
+export const clearCourseColors = () => {
+  console.log('Clearing course colors');
+  db.runSync('UPDATE courses SET color = NULL');
 };
 
 export const clearAllData = () => {
