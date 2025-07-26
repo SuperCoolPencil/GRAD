@@ -249,12 +249,14 @@ function TodaysClassesContent({
     courseId: string,
     status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
-    itemId: string
+    itemId: string,
+    timeStart: string,
+    timeEnd: string
   ) => {
     const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
     const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
 
-    markAttendance(courseId, status, isExtraClass, scheduleItemId || extraClassId);
+    markAttendance(courseId, status, isExtraClass, scheduleItemId || extraClassId, timeStart, timeEnd);
     setMarkedClasses((prevMarkedClasses) => {
       return { ...prevMarkedClasses, [itemId]: status };
     });
@@ -341,7 +343,7 @@ function TodaysClassesContent({
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id)
+                handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
               }
             >
               <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
@@ -351,7 +353,7 @@ function TodaysClassesContent({
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id)
+                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
               }
             >
               <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
@@ -361,7 +363,7 @@ function TodaysClassesContent({
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
               onPress={() =>
-                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id)
+                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
               }
             >
               <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />

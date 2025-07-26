@@ -32,7 +32,9 @@ interface AppContextType {
     courseId: string,
     status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
-    scheduleItemId?: string
+    scheduleItemId: string | undefined,
+    timeStart: string,
+    timeEnd: string
   ) => void;
   addScheduleItem: (courseId: string, newScheduleItem: ScheduleItem) => void;
   addExtraClass: (
@@ -45,7 +47,7 @@ interface AppContextType {
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void;
   unarchiveCourse: (courseId: string) => void;
-  addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => void;
+  addAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string) => void;
   save: () => Promise<void>;
   reloadData: () => void; // New function to reload data
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
@@ -178,7 +180,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     courseId: string,
     status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
-    scheduleItemId?: string
+    scheduleItemId: string | undefined,
+    timeStart: string,
+    timeEnd: string
   ) => {
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
@@ -219,6 +223,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         status: status,
         isExtraClass: isExtraClass,
         scheduleItemId: scheduleItemId,
+        timeStart,
+        timeEnd,
       };
       updatedCourse.attendanceRecords = [...(updatedCourse.attendanceRecords || []), newRecord];
       db.addAttendanceRecord(newRecord);
@@ -316,7 +322,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const addAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean) => {
+  const addAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string) => {
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
 
@@ -327,6 +333,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       status: status,
       isExtraClass: isExtraClass,
       scheduleItemId: scheduleId,
+      timeStart,
+      timeEnd,
     };
     db.addAttendanceRecord(newRecord);
 

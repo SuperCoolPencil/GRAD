@@ -43,6 +43,8 @@ export const initDatabase = () => {
       id TEXT PRIMARY KEY,
       course_id TEXT NOT NULL,
       class_date TEXT NOT NULL,
+      time_start TEXT NOT NULL,
+      time_end TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'cancelled')),
       is_extra_class BOOLEAN NOT NULL,
       schedule_item_id TEXT,
@@ -51,6 +53,19 @@ export const initDatabase = () => {
   `);
 
   // Migration for older schemas
+  const attendanceColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(attendance_records)');
+  const attendanceColumnNames = attendanceColumns.map(c => c.name);
+
+  if (!attendanceColumnNames.includes('time_start')) {
+    console.log('Migrating database: adding time_start column to attendance_records');
+    db.execSync('ALTER TABLE attendance_records ADD COLUMN time_start TEXT NOT NULL DEFAULT "00:00"');
+  }
+
+  if (!attendanceColumnNames.includes('time_end')) {
+    console.log('Migrating database: adding time_end column to attendance_records');
+    db.execSync('ALTER TABLE attendance_records ADD COLUMN time_end TEXT NOT NULL DEFAULT "00:00"');
+  }
+
   const columns = db.getAllSync<{ name: string }>('PRAGMA table_info(courses)');
   const columnNames = columns.map(c => c.name);
 
@@ -102,6 +117,8 @@ const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: strin
     status: r.status,
     isExtraClass: r.is_extra_class === 1,
     scheduleItemId: r.schedule_item_id,
+    timeStart: r.time_start,
+    timeEnd: r.time_end,
   }));
 };
 
@@ -129,6 +146,8 @@ const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: st
         status: r.status,
         isExtraClass: r.is_extra_class === 1,
         scheduleItemId: r.schedule_item_id,
+        timeStart: r.time_start,
+        timeEnd: r.time_end,
       }));
 
   const presents = c.presents;
@@ -242,8 +261,8 @@ export const updateCourse = (course: Course) => {
     }
     course.attendanceRecords?.forEach(record => {
       db.runSync(
-        'INSERT OR REPLACE INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id) VALUES (?, ?, ?, ?, ?, ?)',
-        record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null
+        'INSERT OR REPLACE INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
       );
     });
   });
@@ -266,8 +285,8 @@ export const addAttendanceRecord = (record: AttendanceRecord) => {
   console.log(`Adding attendance record for course: ${record.course_id}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id) VALUES (?, ?, ?, ?, ?, ?)',
-      record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null
+      'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
     );
 
     let updateColumn = '';
