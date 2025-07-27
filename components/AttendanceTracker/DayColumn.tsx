@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TouchableOpacity, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { format } from 'date-fns';
@@ -27,6 +27,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   handleSelectClass,
   courseColors,
 }) => {
+  const [widths, setWidths] = useState<Record<string, number>>({});
   const date = parseISOToDate(dateString);
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -58,9 +59,17 @@ const DayColumn: React.FC<DayColumnProps> = ({
               ]}
               onPress={() => handleSelectClass(classItem, date)}
               disabled={!isDateInPast(date)}
+              onLayout={(event) => {
+                const { width } = event.nativeEvent.layout;
+                setWidths((prev) => ({ ...prev, [`${classItem.course.id}-${index}`]: width }));
+              }}
             >
               <View style={styles.verticalTextContainer}>
-                <ThemedText style={[styles.courseCode, { color: 'white' }]} numberOfLines={1}>{classItem.course.name}</ThemedText>
+                <ThemedText style={[styles.courseCode, { color: 'white' }]} numberOfLines={1}>
+                  {(widths[`${classItem.course.id}-${index}`] || 100) > 35
+                    ? classItem.course.name
+                    : classItem.course.id}
+                </ThemedText>
               </View>
               {isDateInPast(date) && (classItem.attendance?.status === 'present' || classItem.attendance?.status === 'absent') && (
                 <View

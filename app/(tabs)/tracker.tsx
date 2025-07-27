@@ -16,7 +16,7 @@ import DayColumn from '@/components/AttendanceTracker/DayColumn';
 export default function VisualAttendanceTracker() {
   const { is24Hour } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(subDaysFromDate(new Date(), 3));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 

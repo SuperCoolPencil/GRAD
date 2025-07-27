@@ -53,6 +53,9 @@ interface AppContextType {
   save: () => Promise<void>;
   reloadData: () => void; // New function to reload data
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
+  getPaginatedAttendanceRecords: (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => void;
+  attendanceRecords: AttendanceRecord[];
+  totalRecords: number;
 }
 
 export const AppContext = createContext<AppContextType>({
@@ -86,6 +89,9 @@ export const AppContext = createContext<AppContextType>({
   save: () => Promise.resolve(),
   reloadData: () => { }, // Add default value for reloadData
   getCoursesWithRecordsInRange: () => Promise.resolve([]),
+  getPaginatedAttendanceRecords: () => { },
+  attendanceRecords: [],
+  totalRecords: 0,
 });
 
 interface AppProviderProps {
@@ -100,6 +106,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
   const [settings, setSettings] = useState<{ [key: string]: any }>({});
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const updateSetting = (key: string, value: any) => {
     db.updateSetting(key, value);
@@ -274,10 +282,37 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   const changeAttendanceRecord = (courseId: string, recordId: string, newStatus: "present" | "absent" | "cancelled") => {
     const course = courses.find(c => c.id === courseId);
-    if (!course || !course.attendanceRecords) return;
+    if (!course) return;
 
-    const record = course.attendanceRecords.find(r => r.id === recordId);
-    if (!record) return;
+    const record = attendanceRecords.find(r => r.id === recordId);
+    if (!record) {
+      // Fallback to searching in the full course object if not in paginated view
+      const fullCourse = courses.find(c => c.id === courseId);
+      const fullRecord = fullCourse?.attendanceRecords?.find(r => r.id === recordId);
+      if (!fullRecord) return;
+
+      const oldStatus = fullRecord.status;
+      if (oldStatus === newStatus) return;
+
+      const updatedCourse = { ...fullCourse };
+      const oldKey = (oldStatus === 'cancelled' ? 'cancelled' : oldStatus + 's') as keyof Course;
+      (updatedCourse[oldKey] as number) = ((updatedCourse[oldKey] as number) || 0) - 1;
+      const newKey = (newStatus === 'cancelled' ? 'cancelled' : newStatus + 's') as keyof Course;
+      (updatedCourse[newKey] as number) = ((updatedCourse[newKey] as number) || 0) + 1;
+
+      fullRecord.status = newStatus;
+      db.updateAttendanceRecord(fullRecord);
+
+      updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents ?? 0, updatedCourse.absents ?? 0);
+      if (updatedCourse.id) {
+        updateCourse(updatedCourse as Course);
+      }
+      
+      setAttendanceRecords(prevRecords =>
+        prevRecords.map(r => (r.id === recordId ? { ...r, status: newStatus } : r))
+      );
+      return;
+    }
 
     const oldStatus = record.status;
     if (oldStatus === newStatus) return;
@@ -297,6 +332,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     updatedCourse.attendancePercentage = calculateAttendancePercentage(updatedCourse.presents, updatedCourse.absents);
 
     updateCourse(updatedCourse);
+
+    // Also update the paginated attendance records state
+    setAttendanceRecords(prevRecords =>
+      prevRecords.map(r => (r.id === recordId ? { ...r, status: newStatus } : r))
+    );
   };
 
   const addScheduleItem = (courseId: string, newScheduleItem: ScheduleItem) => {
@@ -440,6 +480,21 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
+  const getPaginatedAttendanceRecords = (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => {
+    setLoading(true);
+    try {
+      const offset = (page - 1) * limit;
+      const records = db.getAttendanceRecords(limit, offset, courseId, startDate, endDate);
+      const total = db.getAttendanceRecordsCount(courseId, startDate, endDate);
+      setAttendanceRecords(records);
+      setTotalRecords(total);
+    } catch (error) {
+      console.error("Failed to load paginated attendance records from database", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -473,6 +528,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         save,
         reloadData: loadData, // Pass the reloadData function
         getCoursesWithRecordsInRange,
+        getPaginatedAttendanceRecords,
+        attendanceRecords,
+        totalRecords,
       }}
     >
       {children}

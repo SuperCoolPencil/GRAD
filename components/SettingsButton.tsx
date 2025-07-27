@@ -1,40 +1,50 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View, Switch, useColorScheme } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from './ThemedText';
 import { useTheme } from '@react-navigation/native';
-import { Colors } from '@/constants/Colors';
 
 type SettingsButtonProps = {
-  label: string;
-  value: boolean | undefined;
-  onValueChange: (value: boolean) => void;
+  onPress: () => void;
+  title: string;
+  iconName: keyof typeof Ionicons.glyphMap;
+  backgroundColor: string;
+  textColor?: string;
 };
 
-export default function SettingsButton({ label, value, onValueChange }: SettingsButtonProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+export default function SettingsButton({ onPress, title, iconName, backgroundColor, textColor = '#fff' }: SettingsButtonProps) {
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#767577', true: Colors[colorScheme].tint }}
-        thumbColor={'#f4f3f4'}
-      />
-    </View>
+    <TouchableOpacity
+      style={[styles.button, { backgroundColor }]}
+      onPress={onPress}
+    >
+      <View style={styles.buttonContent}>
+        <Ionicons name={iconName} size={20} color={textColor} style={styles.icon} />
+        <ThemedText style={[styles.buttonText, { color: textColor }]}>{title}</ThemedText>
+      </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'flex-start',
+    marginTop: 8,
   },
-  label: {
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 10,
+  },
+  buttonText: {
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });

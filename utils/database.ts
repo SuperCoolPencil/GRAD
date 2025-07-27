@@ -142,7 +142,7 @@ export const updateSetting = (key: string, value: string) => {
 
 const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: string, endDate: string): AttendanceRecord[] => {
   return db.getAllSync(
-    'SELECT * FROM attendance_records WHERE course_id = ? AND class_date BETWEEN ? AND ?',
+    'SELECT * FROM attendance_records WHERE course_id = ? AND class_date BETWEEN ? AND ? ORDER BY class_date ASC, time_start ASC',
     courseId,
     startDate,
     endDate
@@ -175,7 +175,7 @@ const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: st
 
   const attendanceRecords = dateRange
     ? getAttendanceRecordsForCourseInRange(c.id, dateRange.startDate, dateRange.endDate)
-    : db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ?', c.id).map((r: any) => ({
+    : db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date ASC, time_start ASC', c.id).map((r: any) => ({
         id: r.id,
         course_id: r.course_id,
         date: r.class_date,
@@ -319,17 +319,28 @@ export const updateCourse = (course: Course) => {
     });
 
     // Update attendance records
-    const existingAttendanceRecordIds = db.getAllSync<{ id: string }>('SELECT id FROM attendance_records WHERE course_id = ?', course.id).map(r => r.id);
-    const newAttendanceRecordIds = course.attendanceRecords?.map(r => r.id) || [];
-    const attendanceRecordsToDelete = existingAttendanceRecordIds.filter(id => !newAttendanceRecordIds.includes(id));
-    if (attendanceRecordsToDelete.length > 0) {
-      db.runSync(`DELETE FROM attendance_records WHERE id IN (${attendanceRecordsToDelete.map(() => '?').join(',')})`, ...attendanceRecordsToDelete);
+    const newAttendanceRecordIds = new Set(course.attendanceRecords?.map(r => r.id) || []);
+    const existingAttendanceRecordIds = new Set(db.getAllSync<{ id: string }>('SELECT id FROM attendance_records WHERE course_id = ?', course.id).map(r => r.id));
+
+    const recordsToDelete = [...existingAttendanceRecordIds].filter(id => !newAttendanceRecordIds.has(id));
+    if (recordsToDelete.length > 0) {
+        db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
     }
+
     course.attendanceRecords?.forEach(record => {
-      db.runSync(
-        'INSERT OR REPLACE INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
-      );
+        if (existingAttendanceRecordIds.has(record.id)) {
+            // Update existing record
+            db.runSync(
+                'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
+                record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
+            );
+        } else {
+            // Insert new record
+            db.runSync(
+                'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
+            );
+        }
     });
   });
 };
@@ -403,6 +414,79 @@ export const bulkAddAttendanceRecords = (records: AttendanceRecord[]) => {
     }
     statement.finalizeSync();
   });
+};
+
+export const getAttendanceRecords = (
+  limit: number,
+  offset: number,
+  courseId?: string,
+  startDate?: string,
+  endDate?: string
+): AttendanceRecord[] => {
+  let query = 'SELECT * FROM attendance_records';
+  const params: any[] = [];
+
+  if (courseId || startDate || endDate) {
+    query += ' WHERE';
+    let conditions: string[] = [];
+    if (courseId) {
+      conditions.push('course_id = ?');
+      params.push(courseId);
+    }
+    if (startDate) {
+      conditions.push('class_date >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push('class_date <= ?');
+      params.push(endDate);
+    }
+    query += ' ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY class_date DESC LIMIT ? OFFSET ?';
+  params.push(limit, offset);
+
+  return db.getAllSync(query, ...params).map((r: any) => ({
+    id: r.id,
+    course_id: r.course_id,
+    date: r.class_date,
+    status: r.status,
+    isExtraClass: r.is_extra_class === 1,
+    scheduleItemId: r.schedule_item_id,
+    timeStart: r.time_start,
+    timeEnd: r.time_end,
+  }));
+};
+
+export const getAttendanceRecordsCount = (
+  courseId?: string,
+  startDate?: string,
+  endDate?: string
+): number => {
+  let query = 'SELECT COUNT(*) as count FROM attendance_records';
+  const params: any[] = [];
+
+  if (courseId || startDate || endDate) {
+    query += ' WHERE';
+    let conditions: string[] = [];
+    if (courseId) {
+      conditions.push('course_id = ?');
+      params.push(courseId);
+    }
+    if (startDate) {
+      conditions.push('class_date >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push('class_date <= ?');
+      params.push(endDate);
+    }
+    query += ' ' + conditions.join(' AND ');
+  }
+
+  const result = db.getFirstSync<{ count: number }>(query, ...params);
+  return result ? result.count : 0;
 };
 
 export const bulkUpdateCourseCounts = (courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } }) => {
