@@ -17,6 +17,8 @@ interface AttendanceHistoryProps {
   totalRecords: number;
   recordsPerPage: number;
   onPageChange: (page: number) => void;
+  ListFooterComponent?: React.ReactElement;
+  ItemSeparatorComponent?: React.ComponentType<any> | null;
 }
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
@@ -29,6 +31,8 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   totalRecords,
   recordsPerPage,
   onPageChange,
+  ListFooterComponent,
+  ItemSeparatorComponent,
 }) => {
   const colorScheme = useColorScheme() ?? 'light';
   const styles = getStyles(colorScheme);
@@ -43,6 +47,8 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
     let statusColor = Colors[colorScheme].text;
     let displayStatusText = 'Unknown';
+
+    console.log(`[ATTEND] Rendering record: ${item.id} for course: ${item.course_id}`);
 
     if (courseId && item.course_id !== courseId) {
       return null; // Skip records that don't match the courseId
@@ -105,13 +111,16 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListFooterComponent={
-          <PaginationControls
-            currentPage={currentPage}
-            totalRecords={totalRecords}
-            recordsPerPage={recordsPerPage}
-            onPageChange={onPageChange}
-          />
+          ListFooterComponent || (
+            <PaginationControls
+              currentPage={currentPage}
+              totalRecords={totalRecords}
+              recordsPerPage={recordsPerPage}
+              onPageChange={onPageChange}
+            />
+          )
         }
+        ItemSeparatorComponent={ItemSeparatorComponent}
         ListEmptyComponent={<ThemedText style={styles.emptyText}>No records found.</ThemedText>}
         contentContainerStyle={styles.container}
       />

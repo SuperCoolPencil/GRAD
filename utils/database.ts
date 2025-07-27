@@ -158,33 +158,42 @@ const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: strin
   }));
 };
 
-const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: string }): Course => {
-  const weeklySchedule = db.getAllSync('SELECT * FROM weekly_schedules WHERE course_id = ?', c.id).map((s: any) => ({
-    id: s.id,
-    day: s.day,
-    timeStart: s.time_start,
-    timeEnd: s.time_end,
-  }));
+const getCourseFromDbRow = (
+  c: any,
+  allSchedules: any[],
+  allExtraClasses: any[],
+  allAttendanceRecords: any[]
+): Course => {
+  const weeklySchedule = allSchedules
+    .filter(s => s.course_id === c.id)
+    .map((s: any) => ({
+      id: s.id,
+      day: s.day,
+      timeStart: s.time_start,
+      timeEnd: s.time_end,
+    }));
 
-  const extraClasses = db.getAllSync('SELECT * FROM extra_classes WHERE course_id = ?', c.id).map((e: any) => ({
-    id: e.id,
-    date: e.date,
-    timeStart: e.time_start,
-    timeEnd: e.time_end,
-  }));
+  const extraClasses = allExtraClasses
+    .filter(e => e.course_id === c.id)
+    .map((e: any) => ({
+      id: e.id,
+      date: e.date,
+      timeStart: e.time_start,
+      timeEnd: e.time_end,
+    }));
 
-  const attendanceRecords = dateRange
-    ? getAttendanceRecordsForCourseInRange(c.id, dateRange.startDate, dateRange.endDate)
-    : db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date ASC, time_start ASC', c.id).map((r: any) => ({
-        id: r.id,
-        course_id: r.course_id,
-        date: r.class_date,
-        status: r.status,
-        isExtraClass: r.is_extra_class === 1,
-        scheduleItemId: r.schedule_item_id,
-        timeStart: r.time_start,
-        timeEnd: r.time_end,
-      }));
+  const attendanceRecords = allAttendanceRecords
+    .filter(r => r.course_id === c.id)
+    .map((r: any) => ({
+      id: r.id,
+      course_id: r.course_id,
+      date: r.class_date,
+      status: r.status,
+      isExtraClass: r.is_extra_class === 1,
+      scheduleItemId: r.schedule_item_id,
+      timeStart: r.time_start,
+      timeEnd: r.time_end,
+    }));
 
   const presents = c.presents;
   const absents = c.absents;
@@ -214,14 +223,30 @@ const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: st
 
 export const getCourses = (): Course[] => {
   console.log('Getting all courses');
-  const coursesFromDb = db.getAllSync('SELECT * FROM courses');
-  return coursesFromDb.map(c => getCourseFromDbRow(c));
+  const coursesFromDb = db.getAllSync<any>('SELECT * FROM courses');
+  const courseIds = coursesFromDb.map((c: any) => c.id);
+
+  if (courseIds.length === 0) return [];
+
+  const allSchedules = db.getAllSync(`SELECT * FROM weekly_schedules WHERE course_id IN (${courseIds.map(() => '?').join(',')})`, ...courseIds);
+  const allExtraClasses = db.getAllSync(`SELECT * FROM extra_classes WHERE course_id IN (${courseIds.map(() => '?').join(',')})`, ...courseIds);
+  const allAttendanceRecords = db.getAllSync(`SELECT * FROM attendance_records WHERE course_id IN (${courseIds.map(() => '?').join(',')}) ORDER BY class_date ASC, time_start ASC`, ...courseIds);
+
+  return coursesFromDb.map((c: any) => getCourseFromDbRow(c, allSchedules, allExtraClasses, allAttendanceRecords));
 };
 
 export const getCoursesWithRecordsInRange = (startDate: string, endDate: string): Course[] => {
   console.log(`Getting courses with records between ${startDate} and ${endDate}`);
-  const coursesFromDb = db.getAllSync('SELECT * FROM courses');
-  return coursesFromDb.map(c => getCourseFromDbRow(c, { startDate, endDate }));
+  const coursesFromDb = db.getAllSync<any>('SELECT * FROM courses');
+  const courseIds = coursesFromDb.map((c: any) => c.id);
+
+  if (courseIds.length === 0) return [];
+
+  const allSchedules = db.getAllSync(`SELECT * FROM weekly_schedules WHERE course_id IN (${courseIds.map(() => '?').join(',')})`, ...courseIds);
+  const allExtraClasses = db.getAllSync(`SELECT * FROM extra_classes WHERE course_id IN (${courseIds.map(() => '?').join(',')})`, ...courseIds);
+  const allAttendanceRecords = db.getAllSync(`SELECT * FROM attendance_records WHERE course_id IN (${courseIds.map(() => '?').join(',')}) AND class_date BETWEEN ? AND ? ORDER BY class_date ASC, time_start ASC`, ...courseIds, startDate, endDate);
+
+  return coursesFromDb.map((c: any) => getCourseFromDbRow(c, allSchedules, allExtraClasses, allAttendanceRecords));
 }
 
 export const getWeeklySchedule = (): (ScheduleItem & { course: Course })[] => {
@@ -263,7 +288,10 @@ export const getCourseById = (courseId: string): Course | null => {
   if (!courseFromDb) {
     return null;
   }
-  return getCourseFromDbRow(courseFromDb, undefined);
+  const allSchedules = db.getAllSync('SELECT * FROM weekly_schedules WHERE course_id = ?', courseId);
+  const allExtraClasses = db.getAllSync('SELECT * FROM extra_classes WHERE course_id = ?', courseId);
+  const allAttendanceRecords = db.getAllSync('SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date ASC, time_start ASC', courseId);
+  return getCourseFromDbRow(courseFromDb, allSchedules, allExtraClasses, allAttendanceRecords);
 }
 
 export const addCourse = (course: Course) => {
@@ -283,11 +311,11 @@ export const addCourse = (course: Course) => {
 };
 
 export const updateCourse = (course: Course) => {
-  console.log(`Updating course: ${course.name}`);
+  console.log(`[DB] Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ?, archived_at = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.isArchived ? new Date().toISOString() : null, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ? WHERE id = ?',
+      course.name, course.requiredAttendance, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.id
     );
 
     // Update weekly schedules
@@ -354,9 +382,12 @@ export const updateAttendanceRecord = (record: AttendanceRecord) => {
 };
 
 export const deleteAttendanceRecord = (recordId: string) => {
-  console.log(`Deleting attendance record: ${recordId}`);
+  console.log(`[DB] Deleting attendance record: ${recordId}`);
   const record = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
-  if (!record) return;
+  if (!record) {
+    console.log(`[DB] Attendance record not found: ${recordId}`);
+    return;
+  }
 
   db.withTransactionSync(() => {
     db.runSync('DELETE FROM attendance_records WHERE id = ?', recordId);
@@ -377,12 +408,12 @@ export const deleteAttendanceRecord = (recordId: string) => {
 };
 
 export const deleteCourse = (courseId: string) => {
-  console.log(`Deleting course: ${courseId}`);
+  console.log(`[DB] Deleting course: ${courseId}`);
   db.runSync('DELETE FROM courses WHERE id = ?', courseId);
 };
 
 export const addAttendanceRecord = (record: AttendanceRecord) => {
-  console.log(`Adding attendance record for course: ${record.course_id}`);
+  console.log(`[DB] Adding attendance record for course: ${record.course_id}`);
   db.withTransactionSync(() => {
     db.runSync(
       'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -523,11 +554,48 @@ export const addExtraClass = (courseId: string, item: ExtraClass) => {
   );
 };
 
+export const archiveCourse = (courseId: string) => {
+  console.log(`[DB] Archiving course: ${courseId}`);
+  db.runSync('UPDATE courses SET is_archived = 1, archived_at = ? WHERE id = ?', new Date().toISOString(), courseId);
+};
+
+export const unarchiveCourse = (courseId: string) => {
+  console.log(`[DB] Unarchiving course: ${courseId}`);
+  db.runSync('UPDATE courses SET is_archived = 0, archived_at = NULL WHERE id = ?', courseId);
+};
+
 export const clearCourseColors = () => {
   console.log('Clearing course colors');
-  db.runSync('ALTER TABLE courses DROP COLUMN color');
-  db.runSync('ALTER TABLE courses ADD COLUMN color TEXT');
   db.runSync('UPDATE courses SET color = NULL');
+};
+
+export const recalculateCourseCounts = (courseId: string): { presents: number, absents: number, cancelled: number } => {
+  console.log(`Recalculating counts for course: ${courseId}`);
+  const counts = db.getFirstSync<{
+    presents: number,
+    absents: number,
+    cancelled: number
+  }>(`
+    SELECT
+      SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as presents,
+      SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absents,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
+    FROM attendance_records
+    WHERE course_id = ?
+  `, courseId);
+
+  const newCounts = {
+    presents: counts?.presents || 0,
+    absents: counts?.absents || 0,
+    cancelled: counts?.cancelled || 0,
+  };
+
+  db.runSync(
+    'UPDATE courses SET presents = ?, absents = ?, cancelled = ? WHERE id = ?',
+    newCounts.presents, newCounts.absents, newCounts.cancelled, courseId
+  );
+
+  return newCounts;
 };
 
 export const clearAllData = () => {

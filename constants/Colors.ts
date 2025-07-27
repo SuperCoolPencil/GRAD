@@ -29,6 +29,7 @@ export const Colors = {
     alert: '#fff',
     alertPrimary: '#0196FF',
     alertDestructive: '#fb1e08',
+    separator: 'rgba(128, 128, 128, 0.2)',
   },
   dark: {
     white: '#FFFFFF',
@@ -50,5 +51,6 @@ export const Colors = {
     alert:'#262626',
     alertPrimary: '#0096FF',
     alertDestructive: '#c93d33',
+    separator: 'rgba(128, 128, 128, 0.2)',
   },
 };

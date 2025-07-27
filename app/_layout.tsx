@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -39,7 +40,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { courses, addAttendance } = useContext(AppContext);
+  const { courses, markAttendance } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -58,13 +59,19 @@ function RootLayoutShell() {
 
       if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
         const course = courses.find(c => c.id === courseId);
-        const isExtraClass = course?.extraClasses?.some(ec => ec.id === scheduleId) || false;
-        addAttendance(courseId, scheduleId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass);
+        if (course) {
+          const isExtraClass = course.extraClasses?.some(ec => ec.id === scheduleId) || false;
+          const scheduleItem = course.weeklySchedule?.find(s => s.id === scheduleId);
+          const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
+          const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
+          const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
+          markAttendance(courseId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, scheduleId, timeStart, timeEnd);
+        }
       }
     });
 
     return () => subscription.remove();
-  }, [addAttendance, courses]);
+  }, [markAttendance, courses]);
 
   if (!loaded) {
     return null;

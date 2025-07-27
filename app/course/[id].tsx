@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
-  ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme as useNativeColorScheme,
@@ -23,6 +22,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
 import AttendanceHistory from '@/components/AttendanceHistory';
+import PaginationControls from '@/components/PaginationControls';
 
 const getAttendanceDelta = (
   presents: number,
@@ -199,6 +199,10 @@ export default function CourseDetailScreen() {
   const delta = getAttendanceDelta(presents, absents, requiredAttendance);
   const deltaColor = getDeltaColor(delta, colorScheme);
 
+  const separator = () => (
+    <View style={{height: 0.8, width: '100%', backgroundColor: Colors[colorScheme].separator}} />
+  );
+
   let attendanceNote = 'Meeting required attendance';
   if (delta > 0) {
     attendanceNote = `Need to Attend: ${delta} more class${delta === 1 ? '' : 'es'}`;
@@ -237,194 +241,198 @@ export default function CourseDetailScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView
-        style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
-        contentContainerStyle={styles.contentContainer}
-      >
-        {course && (
-          <ConfigurationModal
-            isVisible={configModalVisible}
-            onClose={() => setConfigModalVisible(false)}
-            course={course}
-            onUpdateCourse={(updatedCourse) => {
-              setCourse(updatedCourse);
-              updateCourse(updatedCourse);
-            }}
+      <AttendanceHistory
+        title="Attendance History"
+        courseId={course.id}
+        records={attendanceRecords}
+        onRecordClick={handleAttendanceClick}
+        currentPage={page}
+        totalRecords={totalRecords}
+        recordsPerPage={recordsPerPage}
+        onPageChange={setPage}
+        ItemSeparatorComponent={separator}
+        ListFooterComponent={
+          <PaginationControls
+            currentPage={page}
+            totalRecords={totalRecords}
+            recordsPerPage={recordsPerPage}
+            onPageChange={setPage}
           />
-        )}
-        <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
-          <ThemedText type="subtitle" style={styles.cardTitle}>
-            Attendance Summary
-          </ThemedText>
-
-          <View style={styles.attendanceRow}>
-            <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
-            <ThemedText style={styles.attendanceText}>
-              Current: <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> (Required: {requiredAttendance}%)
-            </ThemedText>
-          </View>
-
-          <View style={styles.attendanceRow}>
-            <Ionicons
-              name={delta <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
-              size={20}
-              color={deltaColor}
-            />
-            <ThemedText style={[styles.attendanceText, { color: deltaColor }]}>
-              {attendanceNote}
-            </ThemedText>
-          </View>
-
-          <View style={styles.attendanceDetailRow}>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
-              <Pressable onPress={() => {
-                setCountType("presents");
-                setInputValue(String(presents));
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
-              </Pressable>
-            </View>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
-              <Pressable onPress={() => {
-                setCountType("absents");
-                setInputValue(String(absents));
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
-              </Pressable>
-            </View>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
-              <Pressable onPress={() => {
-                setCountType("cancelled");
-                setInputValue(String(cancelled));
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
-              </Pressable>
-            </View>
-          </View>
-        </ThemedView>
-
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={onClose}
-        >
-          <View style={styles.centeredView}>
-            <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
-              <ThemedText type="subtitle" style={styles.modalTitle}>
-                Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  {
-                    color: textColor,
-                    borderColor: borderColor,
-                    backgroundColor: Colors[colorScheme].inputBackground,
-                  },
-                ]}
-                keyboardType="number-pad"
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Enter new count"
-                placeholderTextColor={textColor}
+        }
+        ListHeaderComponent={
+          <View style={styles.contentContainer}>
+            {course && (
+              <ConfigurationModal
+                isVisible={configModalVisible}
+                onClose={() => setConfigModalVisible(false)}
+                course={course}
+                onUpdateCourse={(updatedCourse) => {
+                  setCourse(updatedCourse);
+                  updateCourse(updatedCourse);
+                }}
               />
-              <View style={styles.buttonRow}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.basicButton,
-                    {
-                      backgroundColor: 'transparent',
-                      borderWidth: 1,
-                      borderColor: tintColor,
-                      opacity: pressed ? 0.7 : 1,
-                      marginLeft: 0,
-                      elevation: 0,
-                    },
-                  ]}
-                  onPress={onClose}
-                >
-                  <ThemedText style={[styles.buttonText, { color: tintColor }]}>Cancel</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.basicButton,
-                    {
-                      backgroundColor: primaryColor,
-                      opacity: pressed ? 0.7 : 1,
-                      marginLeft: 10,
-                      elevation: 2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setModalVisible(false);
-                    const newValue = parseInt(inputValue, 10);
-                    if (!isNaN(newValue) && newValue >= 0) {
-                      updateCourseCounts(course.id, countType, newValue);
-                    } else {
-                      showAlert('Invalid Input', 'Please enter a valid non-negative number.');
-                    }
-                  }}
-                >
-                  <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Submit</ThemedText>
-                </Pressable>
+            )}
+            <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Attendance Summary
+              </ThemedText>
+
+              <View style={styles.attendanceRow}>
+                <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
+                <ThemedText style={styles.attendanceText}>
+                  Current: <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> (Required: {requiredAttendance}%)
+                </ThemedText>
+              </View>
+
+              <View style={styles.attendanceRow}>
+                <Ionicons
+                  name={delta <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+                  size={20}
+                  color={deltaColor}
+                />
+                <ThemedText style={[styles.attendanceText, { color: deltaColor }]}>
+                  {attendanceNote}
+                </ThemedText>
+              </View>
+
+              <View style={styles.attendanceDetailRow}>
+                <View style={styles.attendanceDetailItem}>
+                  <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
+                  <Pressable onPress={() => {
+                    setCountType("presents");
+                    setInputValue(String(presents));
+                    setModalVisible(true);
+                  }}>
+                    <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
+                  </Pressable>
+                </View>
+                <View style={styles.attendanceDetailItem}>
+                  <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
+                  <Pressable onPress={() => {
+                    setCountType("absents");
+                    setInputValue(String(absents));
+                    setModalVisible(true);
+                  }}>
+                    <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
+                  </Pressable>
+                </View>
+                <View style={styles.attendanceDetailItem}>
+                  <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
+                  <Pressable onPress={() => {
+                    setCountType("cancelled");
+                    setInputValue(String(cancelled));
+                    setModalVisible(true);
+                  }}>
+                    <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
+                  </Pressable>
+                </View>
               </View>
             </ThemedView>
+
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={onClose}
+            >
+              <View style={styles.centeredView}>
+                <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
+                  <ThemedText type="subtitle" style={styles.modalTitle}>
+                    Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
+                  </ThemedText>
+                  <TextInput
+                    style={[
+                      styles.modalTextInput,
+                      {
+                        color: textColor,
+                        borderColor: borderColor,
+                        backgroundColor: Colors[colorScheme].inputBackground,
+                      },
+                    ]}
+                    keyboardType="number-pad"
+                    value={inputValue}
+                    onChangeText={setInputValue}
+                    placeholder="Enter new count"
+                    placeholderTextColor={textColor}
+                  />
+                  <View style={styles.buttonRow}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.basicButton,
+                        {
+                          backgroundColor: 'transparent',
+                          borderWidth: 1,
+                          borderColor: tintColor,
+                          opacity: pressed ? 0.7 : 1,
+                          marginLeft: 0,
+                          elevation: 0,
+                        },
+                      ]}
+                      onPress={onClose}
+                    >
+                      <ThemedText style={[styles.buttonText, { color: tintColor }]}>Cancel</ThemedText>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.basicButton,
+                        {
+                          backgroundColor: primaryColor,
+                          opacity: pressed ? 0.7 : 1,
+                          marginLeft: 10,
+                          elevation: 2,
+                        },
+                      ]}
+                      onPress={() => {
+                        setModalVisible(false);
+                        const newValue = parseInt(inputValue, 10);
+                        if (!isNaN(newValue) && newValue >= 0) {
+                          updateCourseCounts(course.id, countType, newValue);
+                        } else {
+                          showAlert('Invalid Input', 'Please enter a valid non-negative number.');
+                        }
+                      }}
+                    >
+                      <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Submit</ThemedText>
+                    </Pressable>
+                  </View>
+                </ThemedView>
+              </View>
+            </Modal>
+
+            {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
+              <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+                <ThemedText type="subtitle" style={styles.cardTitle}>
+                  Weekly Schedule
+                </ThemedText>
+                {course.weeklySchedule.map((item: ScheduleItem) => (
+                  <View key={item.id} style={styles.scheduleItem}>
+                    <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].tint} />
+                    <ThemedText style={styles.scheduleText}>
+                      <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
+                    </ThemedText>
+                  </View>
+                ))}
+              </ThemedView>
+            )}
+
+            {(course.extraClasses && course.extraClasses.length > 0) && (
+              <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+                <ThemedText type="subtitle" style={styles.cardTitle}>
+                  Extra Classes
+                </ThemedText>
+                {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => (
+                  <View key={item.id} style={styles.scheduleItem}>
+                    <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
+                    <ThemedText style={styles.scheduleText}>
+                      <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
+                    </ThemedText>
+                  </View>
+                ))}
+              </ThemedView>
+            )}
           </View>
-        </Modal>
-
-        {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
-          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Weekly Schedule
-            </ThemedText>
-            {course.weeklySchedule.map((item: ScheduleItem) => (
-              <View key={item.id} style={styles.scheduleItem}>
-                <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].tint} />
-                <ThemedText style={styles.scheduleText}>
-                  <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
-                </ThemedText>
-              </View>
-            ))}
-          </ThemedView>
-        )}
-
-        {(course.extraClasses && course.extraClasses.length > 0) && (
-          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Extra Classes
-            </ThemedText>
-            {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => (
-              <View key={item.id} style={styles.scheduleItem}>
-                <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
-                <ThemedText style={styles.scheduleText}>
-                  <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
-                </ThemedText>
-              </View>
-            ))}
-          </ThemedView>
-        )}
-
-
-        <AttendanceHistory
-          title="Attendance History"
-          courseId={course.id}
-          records={attendanceRecords}
-          onRecordClick={handleAttendanceClick}
-          currentPage={page}
-          totalRecords={totalRecords}
-          recordsPerPage={recordsPerPage}
-          onPageChange={setPage}
-        />
-
-        <View style={{ height: 20 }} />
-      </ScrollView>
+        }
+      />
     </>
   );
 }
@@ -440,7 +448,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingVertical: 20,
+    paddingBottom: 20,
     paddingHorizontal: 16,
   },
   card: {

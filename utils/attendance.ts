@@ -1,30 +1,106 @@
 import { Course, AttendanceRecord, ScheduleItem } from '@/types';
-import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts } from './database';
+import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts, getCourses } from './database';
+
+const getDayOfWeek = (date: Date): string => {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days[date.getDay()];
+};
+
+const processWeeklySchedule = (
+  course: any,
+  lastRecordDate: Date,
+  endDate: Date,
+  now: Date,
+  existingRecordIds: Set<unknown>,
+  newRecords: AttendanceRecord[],
+  courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
+  defaultStatus: string
+) => {
+  
+  let currentDate = new Date(lastRecordDate);
+  while (currentDate <= endDate) {
+    const dayOfWeek = getDayOfWeek(currentDate);
+    for (const schedule of course.weeklySchedule) {
+      if (schedule.day.toLowerCase() === dayOfWeek) {
+        const [hours, minutes] = schedule.timeEnd.split(':').map(Number);
+        // Build new Date with the same Y/M/D but custom time
+        const classDateTime = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          hours,
+          minutes
+        );
+        if (classDateTime > lastRecordDate && classDateTime <= now) {
+          const dateString = currentDate.toISOString().split('T')[0];
+          const attendanceId = `${course.id}-${schedule.id}-${dateString}`;
+
+          if (!existingRecordIds.has(attendanceId)) {
+            newRecords.push({
+              id: attendanceId,
+              course_id: course.id,
+              date: dateString,
+              status: defaultStatus as 'present' | 'absent' | 'cancelled',
+              isExtraClass: false,
+              scheduleItemId: schedule.id,
+              timeStart: schedule.timeStart,
+              timeEnd: schedule.timeEnd,
+            });
+            if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+            if (defaultStatus === 'present') courseCounts[course.id].presents++;
+            else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
+            else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+          }
+        }
+      }
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+};
+
+const processExtraClasses = (
+  course: any,
+  lastRecordDate: Date,
+  endDate: Date,
+  existingRecordIds: Set<unknown>,
+  newRecords: AttendanceRecord[],
+  courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
+  defaultStatus: string
+) => {
+  for (const extraClass of course.extraClasses) {
+    if (extraClass.date && extraClass.timeEnd) {
+      const [year, month, day] = extraClass.date.split('-').map(Number);
+      const [hour, minute] = extraClass.timeEnd.split(':').map(Number);
+      const extraClassDateTime = new Date(year, month - 1, day, hour, minute);
+      if (extraClassDateTime > lastRecordDate && extraClassDateTime <= endDate) {
+        const attendanceId = `${course.id}-${extraClass.id}-${extraClass.date}`;
+        if (!existingRecordIds.has(attendanceId)) {
+          newRecords.push({
+            id: attendanceId,
+            course_id: course.id,
+            date: extraClass.date,
+            status: defaultStatus as 'present' | 'absent' | 'cancelled',
+            isExtraClass: true,
+            scheduleItemId: extraClass.id,
+            timeStart: extraClass.timeStart,
+            timeEnd: extraClass.timeEnd,
+          });
+          if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+          if (defaultStatus === 'present') courseCounts[course.id].presents++;
+          else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
+          else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+        }
+      }
+    }
+  }
+};
 
 export const createMissingAttendanceRecords = () => {
-  console.log('Starting to create missing attendance records...');
+  console.log('[ATTEND] Starting to create missing attendance records...');
   const now = new Date();
-  const courses = db.getAllSync('SELECT * FROM courses').map((c: any) => ({
-    id: c.id,
-    name: c.name,
-    createdAt: c.created_at,
-    archivedAt: c.archived_at,
-    isArchived: c.is_archived,
-    weeklySchedule: db.getAllSync('SELECT * FROM weekly_schedules WHERE course_id = ?', c.id).map((s: any) => ({
-      id: s.id,
-      day: s.day,
-      timeStart: s.time_start,
-      timeEnd: s.time_end,
-    })),
-    extraClasses: db.getAllSync('SELECT * FROM extra_classes WHERE course_id = ?', c.id).map((e: any) => ({
-      id: e.id,
-      date: e.date,
-      timeStart: e.time_start,
-      timeEnd: e.time_end,
-    })),
-  }));
+  const courses = getCourses();
 
-  console.log(`Found ${courses.length} courses to process.`);
+  console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
   const defaultStatus = getSetting('defaultAttendanceStatus') || 'absent';
   const allAttendanceRecords = db.getAllSync('SELECT id FROM attendance_records');
@@ -33,7 +109,7 @@ export const createMissingAttendanceRecords = () => {
   const courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } } = {};
 
   for (const course of courses) {
-    console.log(`Processing course: ${course.name} (${course.id})`);
+    console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
     const lastRecord = db.getFirstSync<AttendanceRecord>(
       'SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date DESC, time_end DESC LIMIT 1',
       course.id
@@ -47,76 +123,19 @@ export const createMissingAttendanceRecords = () => {
     } else if (course.createdAt) {
       lastRecordDate = new Date(course.createdAt);
     }
-    console.log(`Last record date for course ${course.name}: ${lastRecordDate}`);
+    console.log(`[ATTEND] Last record date for course ${course.name}: ${lastRecordDate}`);
 
     const endDate = course.isArchived && course.archivedAt ? new Date(course.archivedAt) : now;
-    console.log(`Processing records up to ${endDate}`);
+    console.log(`[ATTEND] Processing records up to ${endDate}`);
 
-    // Weekly schedule
-    let currentDate = new Date(lastRecordDate);
-    while (currentDate <= endDate) {
-      const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      for (const schedule of course.weeklySchedule) {
-        if (schedule.day.toLowerCase() === dayOfWeek) {
-          const classDateTime = new Date(currentDate.toDateString() + ' ' + schedule.timeEnd);
-          if (classDateTime > lastRecordDate && classDateTime <= now) {
-            const dateString = currentDate.toISOString().split('T')[0];
-            const attendanceId = `${course.id}-${schedule.id}-${dateString}`;
-            if (!existingRecordIds.has(attendanceId)) {
-              newRecords.push({
-                id: attendanceId,
-                course_id: course.id,
-                date: dateString,
-                status: defaultStatus as 'present' | 'absent' | 'cancelled',
-                isExtraClass: false,
-                scheduleItemId: schedule.id,
-                timeStart: schedule.timeStart,
-                timeEnd: schedule.timeEnd,
-              });
-              if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-              if (defaultStatus === 'present') courseCounts[course.id].presents++;
-              else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-              else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
-            }
-          }
-        }
-      }
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Extra classes
-    for (const extraClass of course.extraClasses) {
-      if (extraClass.date && extraClass.timeEnd) {
-        const [year, month, day] = extraClass.date.split('-').map(Number);
-        const [hour, minute] = extraClass.timeEnd.split(':').map(Number);
-        const extraClassDateTime = new Date(year, month - 1, day, hour, minute);
-        if (extraClassDateTime > lastRecordDate && extraClassDateTime <= endDate) {
-          const attendanceId = `${course.id}-${extraClass.id}-${extraClass.date}`;
-          if (!existingRecordIds.has(attendanceId)) {
-            newRecords.push({
-              id: attendanceId,
-              course_id: course.id,
-              date: extraClass.date,
-              status: defaultStatus as 'present' | 'absent' | 'cancelled',
-              isExtraClass: true,
-              scheduleItemId: extraClass.id,
-              timeStart: extraClass.timeStart,
-              timeEnd: extraClass.timeEnd,
-            });
-            if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-            if (defaultStatus === 'present') courseCounts[course.id].presents++;
-            else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-            else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
-          }
-        }
-      }
-    }
+    processWeeklySchedule(course, lastRecordDate, endDate, now, existingRecordIds, newRecords, courseCounts, defaultStatus);
+    processExtraClasses(course, lastRecordDate, endDate, existingRecordIds, newRecords, courseCounts, defaultStatus);
   }
 
-  console.log(`Found ${newRecords.length} new attendance records to create.`);
+  console.log(`[ATTEND] Found ${newRecords.length} new attendance records to create.`);
   bulkAddAttendanceRecords(newRecords);
   bulkUpdateCourseCounts(courseCounts);
-  console.log('Finished creating missing attendance records.');
+  console.log('[ATTEND] Finished creating missing attendance records.');
 };
 
 export const calculateAttendancePercentage = (presents: number, absents: number): number => {
