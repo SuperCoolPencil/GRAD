@@ -3,7 +3,7 @@ import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
-import { calculateAttendancePercentage } from "@/utils/attendance";
+import { calculateAttendancePercentage, createMissingAttendanceRecords } from "@/utils/attendance";
 
 const isValidCourseId = (courseId: string) => {
   const regex = /^[a-zA-Z0-9]*$/;
@@ -17,6 +17,8 @@ interface AppContextType {
   notificationTime: number;
   notificationsEnabled: boolean;
   is24Hour: boolean;
+  settings: { [key: string]: any };
+  updateSetting: (key: string, value: any) => void;
   toggle24Hour: () => void;
   updateNotificationTime: (time: number) => void;
   toggleTheme: () => void;
@@ -60,6 +62,8 @@ export const AppContext = createContext<AppContextType>({
   notificationTime: 10,
   notificationsEnabled: false,
   is24Hour: false,
+  settings: {},
+  updateSetting: () => { },
   toggle24Hour: () => { },
   updateNotificationTime: () => { },
   toggleTheme: () => { },
@@ -95,15 +99,22 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [notificationTime, setNotificationTime] = useState(10);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
+  const [settings, setSettings] = useState<{ [key: string]: any }>({});
+
+  const updateSetting = (key: string, value: any) => {
+    db.updateSetting(key, value);
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
 
   const loadData = () => {
     setLoading(true);
     try {
-      const settings = db.getSettings();
-      setTheme(settings.theme || 'light');
-      setNotificationTime(parseInt(settings.notificationTime || '10', 10));
-      setNotificationsEnabled(settings.notificationsEnabled === 'true');
-      setIs24Hour(settings.is24Hour === 'true');
+      const loadedSettings = db.getSettings();
+      setSettings(loadedSettings);
+      setTheme(loadedSettings.theme || 'light');
+      setNotificationTime(parseInt(loadedSettings.notificationTime || '10', 10));
+      setNotificationsEnabled(loadedSettings.notificationsEnabled === 'true');
+      setIs24Hour(loadedSettings.is24Hour === 'true');
 
       const loadedCourses = db.getCourses();
       setCourses(loadedCourses);
@@ -116,6 +127,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   useEffect(() => {
     db.initDatabase();
+    createMissingAttendanceRecords();
     loadData();
   }, []);
 
@@ -327,7 +339,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     await cancelCourseNotifications(courseId);
     const course = courses.find(c => c.id === courseId);
     if (course) {
-      const updatedCourse = { ...course, isArchived: true };
+      const updatedCourse = { ...course, isArchived: true, archivedAt: new Date().toISOString() };
       updateCourse(updatedCourse);
     }
   };
@@ -336,7 +348,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     const course = courses.find(c => c.id === courseId);
     if (course) {
       await scheduleCourseNotifications(course, notificationTime);
-      const updatedCourse = { ...course, isArchived: false };
+      const updatedCourse = { ...course, isArchived: false, archivedAt: undefined };
       updateCourse(updatedCourse);
     }
   };
@@ -436,6 +448,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         notificationTime,
         notificationsEnabled,
         is24Hour,
+        settings,
+        updateSetting,
         toggle24Hour,
         updateNotificationTime,
         toggleTheme,

@@ -54,41 +54,6 @@ export default function CoursesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
-  return (
-    // Add background color to the main container, consistent with settings.tsx
-    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      {/* Move Title Container Here */}
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          numberOfLines={1}
-          style={[{ color: Colors[colorScheme].text }]}
-        >
-          My Courses
-        </ThemedText>
-        <Link href="/add-course" asChild>
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons
-              name="add-circle-outline"
-              size={28}
-              color={Colors[colorScheme].tint}
-            />
-          </TouchableOpacity>
-        </Link>
-      </ThemedView>
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {/* Pass props to Content */}
-        <CoursesContent
-          courses={courses}
-          colorScheme={colorScheme}
-          router={router}
-        />
-      </ScrollView>
-    </View>
-  );
-}
-
-function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; colorScheme: 'light' | 'dark'; router: any }) {
   // Filter out archived courses
   const activeCourses = courses.filter(course => !course.isArchived);
 
@@ -145,21 +110,43 @@ function CoursesContent({ courses, colorScheme, router }: { courses: Course[]; c
   };
 
   return (
-    <FlatList
-      data={activeCourses} // Use the filtered list
-      showsVerticalScrollIndicator={false}
-      renderItem={renderCourseItem}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.coursesList}
-      ListEmptyComponent={() => (
-        <ThemedView style={styles.emptyContainer}>
-          <ThemedText style={styles.emptyText}>
-            No courses added yet.
-          </ThemedText>
-        </ThemedView>
-      )}
-      removeClippedSubviews={false}
-    />
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+      <FlatList
+        data={activeCourses}
+        showsVerticalScrollIndicator={false}
+        renderItem={renderCourseItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.coursesList}
+        ListHeaderComponent={
+          <ThemedView style={styles.titleContainer}>
+            <ThemedText
+              type="title"
+              numberOfLines={1}
+              style={[{ color: Colors[colorScheme].text }]}
+            >
+              My Courses
+            </ThemedText>
+            <Link href="/add-course" asChild>
+              <TouchableOpacity style={styles.addButton}>
+                <Ionicons
+                  name="add-circle-outline"
+                  size={28}
+                  color={Colors[colorScheme].tint}
+                />
+              </TouchableOpacity>
+            </Link>
+          </ThemedView>
+        }
+        ListEmptyComponent={() => (
+          <ThemedView style={styles.emptyContainer}>
+            <ThemedText style={styles.emptyText}>
+              No courses added yet.
+            </ThemedText>
+          </ThemedView>
+        )}
+        removeClippedSubviews={false}
+      />
+    </View>
   );
 }
 

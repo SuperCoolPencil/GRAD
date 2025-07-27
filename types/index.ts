@@ -35,7 +35,10 @@ export interface Course {
   extraClasses?: ExtraClass[];
   attendanceRecords?: AttendanceRecord[];
   attendancePercentage?: number;
+  showInTracker?: boolean;
   isArchived?: boolean;
+  createdAt?: string;
+  archivedAt?: string;
 }
 
 export interface ClassItem {
@@ -55,4 +58,12 @@ export interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+}
+
+export interface Settings {
+  theme: 'light' | 'dark';
+  notificationTime: number;
+  notificationsEnabled: boolean;
+  is24Hour: boolean;
+  defaultAttendanceStatus: 'present' | 'absent' | 'cancelled';
 }

@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollView } from 'react-native';
+import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollView, TouchableOpacity } from 'react-native';
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -24,8 +24,20 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, reloadData } = useContext(AppContext); // Added reloadData
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, reloadData, settings, updateSetting } = useContext(AppContext); // Added reloadData
   const [isModalVisible, setModalVisible] = useState(false);
+  const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
+
+  useEffect(() => {
+    if (settings.defaultAttendanceStatus) {
+      setDefaultAttendanceStatus(settings.defaultAttendanceStatus);
+    }
+  }, [settings.defaultAttendanceStatus]);
+
+  const handleDefaultStatusChange = (status: 'present' | 'absent' | 'cancelled') => {
+    setDefaultAttendanceStatus(status);
+    updateSetting('defaultAttendanceStatus', status);
+  };
   const router = useRouter();
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
@@ -200,6 +212,27 @@ export default function SettingsScreen() {
               onValueChange={toggle24Hour}
             />
           </View>
+          <ThemedText type="subtitle" style={{ marginTop: 16 }}>Default Attendance Status</ThemedText>
+          <View style={styles.statusButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.statusButton, defaultAttendanceStatus === 'present' && styles.selectedButton]}
+              onPress={() => handleDefaultStatusChange('present')}
+            >
+              <ThemedText style={defaultAttendanceStatus === 'present' ? styles.selectedButtonText : {}}>Present</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statusButton, defaultAttendanceStatus === 'absent' && styles.selectedButton]}
+              onPress={() => handleDefaultStatusChange('absent')}
+            >
+              <ThemedText style={defaultAttendanceStatus === 'absent' ? styles.selectedButtonText : {}}>Absent</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.statusButton, defaultAttendanceStatus === 'cancelled' && styles.selectedButton]}
+              onPress={() => handleDefaultStatusChange('cancelled')}
+            >
+              <ThemedText style={defaultAttendanceStatus === 'cancelled' ? styles.selectedButtonText : {}}>Cancelled</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <NotificationTimeModal
@@ -293,5 +326,23 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: 12,
+  },
+  statusButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  statusButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.tint,
+  },
+  selectedButton: {
+    backgroundColor: Colors.light.tint,
+  },
+  selectedButtonText: {
+    color: '#fff',
   },
 });

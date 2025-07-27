@@ -9,6 +9,7 @@ import {
   Alert,
   Pressable,
   TextInput,
+  Switch,
 } from 'react-native';
 import { Modal } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
@@ -56,6 +57,7 @@ export default function CourseDetailScreen() {
     loading,
     deleteCourse,
     changeAttendanceRecord,
+    updateCourse,
     updateCourseCounts,
     archiveCourse, // Import archiveCourse
     is24Hour,
@@ -281,6 +283,38 @@ export default function CourseDetailScreen() {
                 <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
               </Pressable>
             </View>
+          </View>
+          {course.createdAt && (
+            <View style={styles.attendanceRow}>
+              <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.detailText}>
+                Created on: {new Date(course.createdAt).toLocaleDateString()}
+              </ThemedText>
+            </View>
+          )}
+          {course.archivedAt && (
+            <View style={styles.attendanceRow}>
+              <Ionicons name="archive-outline" size={18} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.detailText}>
+                Archived on: {new Date(course.archivedAt).toLocaleDateString()}
+              </ThemedText>
+            </View>
+          )}
+        </ThemedView>
+
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <ThemedText type="subtitle">Show in Tracker</ThemedText>
+            <Switch
+              value={course.showInTracker}
+              onValueChange={(newValue) => {
+                const updatedCourse = { ...course, showInTracker: newValue };
+                setCourse(updatedCourse);
+                updateCourse(updatedCourse);
+              }}
+              trackColor={{ false: '#767577', true: Colors[colorScheme].tint }}
+              thumbColor={course.showInTracker ? Colors[colorScheme].background : '#f4f3f4'}
+            />
           </View>
         </ThemedView>
 

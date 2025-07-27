@@ -22,7 +22,7 @@ export interface ClassItem {
   attendance?: AttendanceRecord;
 }
 
-export const useAttendanceData = (startDate: Date) => {
+export const useAttendanceData = (startDate: Date, filterCourses = false) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
   const [courseColors, setCourseColors] = useState<Record<string, string>>({});
@@ -58,10 +58,15 @@ export const useAttendanceData = (startDate: Date) => {
       const currentStartDate = startDate;
       const currentEndDate = addDaysToDate(startDate, 6);
 
-      const allCourses = getCoursesWithRecordsInRange(
+      let allCourses = getCoursesWithRecordsInRange(
         formatDateToISO(currentStartDate),
         formatDateToISO(currentEndDate)
       );
+
+      if (filterCourses) {
+        allCourses = allCourses.filter(course => course.showInTracker);
+      }
+      
       setCourses(allCourses);
 
       const allCoursesList = getCourses();
@@ -87,6 +92,8 @@ export const useAttendanceData = (startDate: Date) => {
 
   useEffect(() => {
     const newClasses: Record<string, ClassItem[]> = {};
+    const schedule = getWeeklySchedule();
+    console.log('Weekly Schedule:', schedule);
 
     for (let i = 0; i < 7; i++) {
       const date = addDaysToDate(startDate, i);
@@ -94,24 +101,29 @@ export const useAttendanceData = (startDate: Date) => {
       newClasses[dateString] = [];
 
       const dayOfWeek = dayIndexToName(date.getDay());
-      const schedule = getWeeklySchedule();
 
       // Process regular weekly schedule
-      schedule.forEach(item => {
-        if (item.day === dayOfWeek) {
-          const course = courses.find(c => c.id === (item as any).course_id);
-          if (course) {
-            const attendance = course.attendanceRecords?.find(
+      if (!isDateInPast(date)) {
+        const dailySchedule = schedule.filter(item => item.day === dayOfWeek);
+        console.log(`[${dayOfWeek}] Daily Schedule:`, dailySchedule);
+
+        dailySchedule.forEach(item => {
+          const course = item.course;
+          if (course && !course.isArchived) {
+            const fullCourse = courses.find(c => c.id === course.id);
+            const attendance = fullCourse?.attendanceRecords?.find(
               r => r.date === dateString && r.scheduleItemId === item.id && !r.isExtraClass
             );
-            newClasses[dateString].push({
-              course,
+            const classItem = {
+              course: fullCourse || course,
               schedule: { ...item, isExtraClass: false },
               attendance,
-            });
+            };
+            newClasses[dateString].push(classItem);
+            console.log(`[${dayOfWeek}] Added Class:`, classItem);
           }
-        }
-      });
+        });
+      }
 
       // Process extra classes
       courses.forEach(course => {

@@ -22,7 +22,10 @@ export const initDatabase = () => {
       presents INTEGER NOT NULL DEFAULT 0,
       absents INTEGER NOT NULL DEFAULT 0,
       cancelled INTEGER NOT NULL DEFAULT 0,
-      color TEXT
+      color TEXT,
+      show_in_tracker BOOLEAN NOT NULL DEFAULT 1,
+      created_at TEXT,
+      archived_at TEXT
     );
     CREATE TABLE IF NOT EXISTS weekly_schedules (
       id TEXT PRIMARY KEY,
@@ -92,6 +95,21 @@ export const initDatabase = () => {
     db.execSync('ALTER TABLE courses ADD COLUMN color TEXT');
   }
 
+  if (!columnNames.includes('created_at')) {
+    console.log('Migrating database: adding created_at column');
+    db.execSync('ALTER TABLE courses ADD COLUMN created_at TEXT');
+  }
+
+  if (!columnNames.includes('archived_at')) {
+    console.log('Migrating database: adding archived_at column');
+    db.execSync('ALTER TABLE courses ADD COLUMN archived_at TEXT');
+  }
+
+  if (!columnNames.includes('show_in_tracker')) {
+    console.log('Migrating database: adding show_in_tracker column');
+    db.execSync('ALTER TABLE courses ADD COLUMN show_in_tracker BOOLEAN NOT NULL DEFAULT 1');
+  }
+
   console.log('Database initialized successfully');
 };
 
@@ -103,6 +121,12 @@ export const getSettings = (): { [key: string]: string } => {
     settings[row.key] = row.value;
   }
   return settings;
+};
+
+export const getSetting = (key: string): string | null => {
+  console.log(`Getting setting: ${key}`);
+  const result = db.getFirstSync<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key);
+  return result ? result.value : null;
 };
 
 export const updateSetting = (key: string, value: string) => {
@@ -175,6 +199,9 @@ const getCourseFromDbRow = (c: any, dateRange?: { startDate: string, endDate: st
     absents,
     cancelled,
     attendancePercentage,
+    showInTracker: c.show_in_tracker === 1,
+    createdAt: c.created_at,
+    archivedAt: c.archived_at,
   };
 }
 
@@ -236,8 +263,8 @@ export const addCourse = (course: Course) => {
   console.log(`Adding course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null
+      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color, show_in_tracker, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null, course.showInTracker ? 1 : 0, new Date().toISOString()
     );
     course.weeklySchedule?.forEach(item => {
       db.runSync(
@@ -252,8 +279,8 @@ export const updateCourse = (course: Course) => {
   console.log(`Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ?, color = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.color || null, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, is_archived = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, archived_at = ? WHERE id = ?',
+      course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.isArchived ? new Date().toISOString() : null, course.id
     );
 
     // Update weekly schedules
@@ -359,6 +386,31 @@ export const addAttendanceRecord = (record: AttendanceRecord) => {
   });
 };
 
+export const bulkAddAttendanceRecords = (records: AttendanceRecord[]) => {
+  if (records.length === 0) return;
+  console.log(`Bulk adding ${records.length} attendance records`);
+  db.withTransactionSync(() => {
+    const statement = db.prepareSync('INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const record of records) {
+      statement.executeSync(record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd);
+    }
+    statement.finalizeSync();
+  });
+};
+
+export const bulkUpdateCourseCounts = (courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } }) => {
+  if (Object.keys(courseCounts).length === 0) return;
+  console.log(`Bulk updating counts for ${Object.keys(courseCounts).length} courses`);
+  db.withTransactionSync(() => {
+    const statement = db.prepareSync('UPDATE courses SET presents = presents + ?, absents = absents + ?, cancelled = cancelled + ? WHERE id = ?');
+    for (const courseId in courseCounts) {
+      const counts = courseCounts[courseId];
+      statement.executeSync(counts.presents, counts.absents, counts.cancelled, courseId);
+    }
+    statement.finalizeSync();
+  });
+};
+
 export const addScheduleItem = (courseId: string, item: ScheduleItem) => {
   console.log(`Adding schedule item for course: ${courseId}`);
   db.runSync(
@@ -382,6 +434,8 @@ export const addExtraClass = (courseId: string, item: ExtraClass) => {
 
 export const clearCourseColors = () => {
   console.log('Clearing course colors');
+  db.runSync('ALTER TABLE courses DROP COLUMN color');
+  db.runSync('ALTER TABLE courses ADD COLUMN color TEXT');
   db.runSync('UPDATE courses SET color = NULL');
 };
 
@@ -400,4 +454,5 @@ export const clearAllData = () => {
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationTime', '10')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationsEnabled', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('is24Hour', 'false')");
+  db.runSync("INSERT INTO app_settings (key, value) VALUES ('defaultAttendanceStatus', 'absent')");
 };
