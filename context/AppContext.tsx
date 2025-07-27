@@ -191,6 +191,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       weeklySchedule: newCourse.weeklySchedule || [],
       extraClasses: newCourse.extraClasses || [],
       isArchived: false,
+      createdAt: new Date().toISOString(),
     };
     db.addCourse(courseWithInitializedCounters);
     setCourses(prev => [...prev, courseWithInitializedCounters]);

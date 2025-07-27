@@ -42,8 +42,8 @@ export function CustomAlert({
       visible={isVisible}
       onRequestClose={onClose}
     >
-      <BlurView intensity={25} style={styles.blurView} tint="dark">
-        <View style={styles.centeredView}>
+      <View style={styles.centeredView}>
+        <BlurView intensity={25} style={StyleSheet.absoluteFill} tint="dark" />
           <ThemedView
             style={[styles.modalView, { borderColor }]}
             lightColor={Colors.light.alert}
@@ -107,8 +107,7 @@ export function CustomAlert({
               ))}
             </View>
           </ThemedView>
-        </View>
-      </BlurView>
+      </View>
     </Modal>
   );
 }
@@ -122,7 +121,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Semi-transparent backdrop
   },
   modalView: {
     width: '85%',

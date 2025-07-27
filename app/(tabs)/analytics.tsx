@@ -104,7 +104,8 @@ export default function AnalyticsScreen() {
   const heatmapData = useMemo(() => {
     const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
     const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 3, 0);
-    const coursesToDisplay = selectedHeatmapCourse ? heatmapCourses.filter(c => c.id === selectedHeatmapCourse) : heatmapCourses;
+    let coursesToDisplay = selectedHeatmapCourse ? heatmapCourses.filter(c => c.id === selectedHeatmapCourse) : heatmapCourses;
+    coursesToDisplay = coursesToDisplay.filter(c => c.showInHeatmap);
     return generateHeatmapData(coursesToDisplay, startDate, endDate);
   }, [heatmapCourses, displayMonth, selectedHeatmapCourse]);
 

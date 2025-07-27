@@ -23,6 +23,7 @@ import { Colors } from '@/constants/Colors';
 import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
+import ConfigurationModal from '@/components/ConfigurationModal';
 
 const getAttendanceDelta = (
   presents: number,
@@ -73,6 +74,7 @@ export default function CourseDetailScreen() {
   const tintColor = useThemeColor({}, 'tint');
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [configModalVisible, setConfigModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [countType, setCountType] = useState<"presents" | "absents" | "cancelled">("presents");
 
@@ -209,6 +211,9 @@ export default function CourseDetailScreen() {
             {course.name}
           </ThemedText>
         <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity onPress={() => setConfigModalVisible(true)} style={{ marginRight: 10 }}>
+            <Ionicons name="cog-outline" size={24} color={Colors[colorScheme].tint} />
+          </TouchableOpacity>
           <Link href={`/edit-course/${course.id}`} asChild>
             <TouchableOpacity style={{ marginRight: 10 }}>
               <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
@@ -229,6 +234,17 @@ export default function CourseDetailScreen() {
         style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
         contentContainerStyle={styles.contentContainer}
       >
+        {course && (
+          <ConfigurationModal
+            isVisible={configModalVisible}
+            onClose={() => setConfigModalVisible(false)}
+            course={course}
+            onUpdateCourse={(updatedCourse) => {
+              setCourse(updatedCourse);
+              updateCourse(updatedCourse);
+            }}
+          />
+        )}
         <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
           <ThemedText type="subtitle" style={styles.cardTitle}>
             Attendance Summary
@@ -283,38 +299,6 @@ export default function CourseDetailScreen() {
                 <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
               </Pressable>
             </View>
-          </View>
-          {course.createdAt && (
-            <View style={styles.attendanceRow}>
-              <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
-              <ThemedText style={styles.detailText}>
-                Created on: {new Date(course.createdAt).toLocaleDateString()}
-              </ThemedText>
-            </View>
-          )}
-          {course.archivedAt && (
-            <View style={styles.attendanceRow}>
-              <Ionicons name="archive-outline" size={18} color={Colors[colorScheme].icon} />
-              <ThemedText style={styles.detailText}>
-                Archived on: {new Date(course.archivedAt).toLocaleDateString()}
-              </ThemedText>
-            </View>
-          )}
-        </ThemedView>
-
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <ThemedText type="subtitle">Show in Tracker</ThemedText>
-            <Switch
-              value={course.showInTracker}
-              onValueChange={(newValue) => {
-                const updatedCourse = { ...course, showInTracker: newValue };
-                setCourse(updatedCourse);
-                updateCourse(updatedCourse);
-              }}
-              trackColor={{ false: '#767577', true: Colors[colorScheme].tint }}
-              thumbColor={course.showInTracker ? Colors[colorScheme].background : '#f4f3f4'}
-            />
           </View>
         </ThemedView>
 
@@ -644,5 +628,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
   },
 });
