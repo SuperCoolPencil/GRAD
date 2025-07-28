@@ -25,6 +25,7 @@ export const initDatabase = () => {
       color TEXT,
       show_in_tracker BOOLEAN NOT NULL DEFAULT 1,
       show_in_heatmap BOOLEAN NOT NULL DEFAULT 1,
+      show_in_radar BOOLEAN NOT NULL DEFAULT 1,
       created_at TEXT,
       archived_at TEXT
     );
@@ -114,6 +115,11 @@ export const initDatabase = () => {
   if (!columnNames.includes('show_in_heatmap')) {
     console.log('Migrating database: adding show_in_heatmap column');
     db.execSync('ALTER TABLE courses ADD COLUMN show_in_heatmap BOOLEAN NOT NULL DEFAULT 1');
+  }
+
+  if (!columnNames.includes('show_in_radar')) {
+    console.log('Migrating database: adding show_in_radar column');
+    db.execSync('ALTER TABLE courses ADD COLUMN show_in_radar BOOLEAN NOT NULL DEFAULT 1');
   }
 
   console.log('Database initialized successfully');
@@ -216,6 +222,7 @@ const getCourseFromDbRow = (
     attendancePercentage,
     showInTracker: c.show_in_tracker === 1,
     showInHeatmap: c.show_in_heatmap === 1,
+    showInRadar: c.show_in_radar === 1,
     createdAt: c.created_at,
     archivedAt: c.archived_at,
   };
@@ -298,8 +305,8 @@ export const addCourse = (course: Course) => {
   console.log(`Adding course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color, show_in_tracker, show_in_heatmap, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null, course.showInTracker !== false ? 1 : 0, course.showInHeatmap !== false ? 1 : 0, new Date().toISOString()
+      'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color, show_in_tracker, show_in_heatmap, show_in_radar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null, course.showInTracker !== false ? 1 : 0, course.showInHeatmap !== false ? 1 : 0, course.showInRadar !== false ? 1 : 0, new Date().toISOString()
     );
     course.weeklySchedule?.forEach(item => {
       db.runSync(
@@ -314,8 +321,8 @@ export const updateCourse = (course: Course) => {
   console.log(`[DB] Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ?, show_in_radar = ? WHERE id = ?',
+      course.name, course.requiredAttendance, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.showInRadar ? 1 : 0, course.id
     );
 
     // Update weekly schedules

@@ -110,10 +110,12 @@ export default function AnalyticsScreen() {
     );
   };
 
-  const chartData = activeCourses.map(course => ({
-    label: `${course.name}`,
-    value: calculateAttendancePercentage(course.presents, course.absents),
-  }));
+  const chartData = activeCourses
+    .filter(course => course.showInRadar !== false) // Filter courses to show in radar
+    .map(course => ({
+      label: `${course.name}`,
+      value: calculateAttendancePercentage(course.presents, course.absents),
+    }));
 
   const oldestRecordDate = useMemo(() => getOldestRecordDate(courses), [courses]);
 
@@ -312,7 +314,7 @@ export default function AnalyticsScreen() {
         <ThemedText type="title">Analytics</ThemedText>
       </ThemedView>
       
-      {activeCourses.length > 2 && (
+      {chartData.length > 2 && (
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
           <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
           <RadarChart

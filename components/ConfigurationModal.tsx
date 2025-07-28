@@ -74,7 +74,7 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
                 thumbColor={tempCourse.showInTracker ? '#fff' : '#ddd'}
               />
             </View>
-            <View style={[styles.configRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.configRow}>
               <ThemedText type="defaultSemiBold">Show in Heatmap</ThemedText>
               <Switch
                 value={tempCourse.showInHeatmap}
@@ -83,6 +83,17 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
                 }}
                 trackColor={{ false: '#555', true: primaryColor }}
                 thumbColor={tempCourse.showInHeatmap ? '#fff' : '#ddd'}
+              />
+            </View>
+            <View style={[styles.configRow, { borderBottomWidth: 0 }]}>
+              <ThemedText type="defaultSemiBold">Show in Radar</ThemedText>
+              <Switch
+                value={tempCourse.showInRadar}
+                onValueChange={(newValue) => {
+                  setTempCourse({ ...tempCourse, showInRadar: newValue });
+                }}
+                trackColor={{ false: '#555', true: primaryColor }}
+                thumbColor={tempCourse.showInRadar ? '#fff' : '#ddd'}
               />
             </View>
             <View style={styles.buttonContainer}>
