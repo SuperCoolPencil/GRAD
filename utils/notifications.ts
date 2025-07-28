@@ -30,10 +30,13 @@ export const cancelAllNotifications = async () => {
 
 // Function to cancel notifications for a single course
 export const cancelCourseNotifications = async (courseId: string) => {
+
   console.log(`[NOTIF] Cancelling notifications for course: ${courseId}`);
+
   const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+
   for (const notification of scheduledNotifications) {
-    if (notification.content.data.courseId === courseId) {
+    if (notification.identifier.startsWith(`${courseId}-`)) {
       await Notifications.cancelScheduledNotificationAsync(notification.identifier);
     }
   }
@@ -41,6 +44,7 @@ export const cancelCourseNotifications = async (courseId: string) => {
 
 // Function to format the notification content
 const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass) => {
+
   const attendancePercentage = course.attendancePercentage || 0;
   const presents = course.presents || 0;
   const absents = course.absents || 0;
@@ -49,10 +53,14 @@ const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass)
   const { type, count } = getAttendanceDelta(presents, absents, requiredAttendance);
   let deltaMessage: string;
 
-  if (type === 'attend') {
+  if (type === 'attend' && count > 0) {
     deltaMessage = `You need to attend ${count} more class(es).`;
   } else {
-    deltaMessage = `You can bunk ${count} class(es).`;
+    deltaMessage = `You can bunk ${count} class(es)!`;
+  }
+
+  if (count === 0) {
+    deltaMessage = 'You are on track with your attendance!';
   }
 
   return {
@@ -102,6 +110,13 @@ const getNextClassDate = (item: ScheduleItem, now: Date): Date => {
 };
 
 const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraClass, notificationTime: number) => {
+  const identifier = `${course.id}-${item.id}`;
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  if (existing.some(n => n.identifier === identifier)) {
+    console.log(`[NOTIF] Notification with identifier ${identifier} already exists. Skipping.`);
+    return;
+  }
+
   console.log(`[NOTIF] Scheduling notification for course: ${course.name}, item: ${item.id}`);
   const content = getNotificationContent(course, item);
   const now = new Date();
@@ -109,17 +124,23 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
   if ('day' in item) { // It's a weekly schedule item
     const nextClassDate = getNextClassDate(item, now);
-    nextClassDate.setMinutes(nextClassDate.getMinutes() - notificationTime);
+    // Adjust hour and minute directly for the trigger
+    let triggerHour = nextClassDate.getHours();
+    let triggerMinute = nextClassDate.getMinutes() - notificationTime;
 
-    if (nextClassDate < now) {
-      nextClassDate.setDate(nextClassDate.getDate() + 7);
+    if (triggerMinute < 0) {
+      triggerMinute += 60;
+      triggerHour -= 1;
+    }
+    if (triggerHour < 0) {
+      triggerHour += 24;
     }
 
     trigger = {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
       weekday: nextClassDate.getDay() + 1,
-      hour: nextClassDate.getHours(),
-      minute: nextClassDate.getMinutes(),
+      hour: triggerHour,
+      minute: triggerMinute,
       channelId: 'default',
     };
   } else { // It's an extra class
@@ -138,13 +159,12 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     };
   }
 
-  const identifier = `${course.id}-${item.id}`;
-
   await Notifications.scheduleNotificationAsync({
     identifier,
     content,
     trigger,
   });
+  console.log(`[NOTIF] Scheduled notification with identifier: ${identifier}`);
 };
 
 export const setupNotificationChannels = async () => {
@@ -160,4 +180,5 @@ export const requestPermissions = async () => {
   if (status !== 'granted') {
     alert('You need to enable notifications in settings');
   }
+  console.log('[NOTIF] All scheduled notifications at app start:', await Notifications.getAllScheduledNotificationsAsync());
 };

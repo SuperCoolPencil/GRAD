@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getCoursesWithRecordsInRange, getWeeklySchedule, getCourses } from '@/utils/database';
+import { getCoursesWithRecordsInRange, getWeeklySchedule, getCourses, initDatabase, getAttendanceRecords } from '@/utils/database';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
 import {
   formatDateToISO,
@@ -23,6 +23,7 @@ export interface ClassItem {
 }
 
 export const useAttendanceData = (startDate: Date, filterCourses = false) => {
+  const [dbInitialized, setDbInitialized] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
   const [courseColors, setCourseColors] = useState<Record<string, string>>({});
@@ -52,6 +53,7 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
   };
 
   const fetchCoursesAndSchedule = useCallback(() => {
+    if (!dbInitialized) return;
     setLoading(true);
     setError(null);
     try {
@@ -66,34 +68,45 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
       if (filterCourses) {
         allCourses = allCourses.filter(course => course.showInTracker);
       }
-      
+
+      console.log(`[ATTEND] Found ${allCourses.length} courses with attendance records.`);
+
       setCourses(allCourses);
 
       const allCoursesList = getCourses();
       const allCourseIds = allCoursesList.map(c => c.id);
       const newColors: Record<string, string> = {};
-      allCoursesList.forEach(course => {
-        if (!course.isArchived) {
-          newColors[course.id] = course.color || getCourseColor(course, allCourseIds);
-        }
-      });
+      allCoursesList.forEach(course => { newColors[course.id] = course.color || getCourseColor(course, allCourseIds); });
       setCourseColors(newColors);
+
     } catch (e) {
+
       setError('Failed to load schedule. Please try again.');
       console.error(e);
+
     } finally {
       setLoading(false);
     }
-  }, [startDate]);
+  }, [startDate, dbInitialized]);
 
   useEffect(() => {
-    fetchCoursesAndSchedule();
-  }, [fetchCoursesAndSchedule]);
+    try {
+      initDatabase();
+      setDbInitialized(true);
+    } catch (e) {
+      setError('Failed to initialize database.');
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (dbInitialized) {
+      fetchCoursesAndSchedule();
+    }
+  }, [fetchCoursesAndSchedule, dbInitialized]);
 
   useEffect(() => {
     const newClasses: Record<string, ClassItem[]> = {};
-    const schedule = getWeeklySchedule();
-    console.log('Weekly Schedule:', schedule);
 
     for (let i = 0; i < 7; i++) {
       const date = addDaysToDate(startDate, i);
@@ -102,91 +115,87 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
 
       const dayOfWeek = dayIndexToName(date.getDay());
 
-      // Process regular weekly schedule
-      if (!isDateInPast(date)) {
-        const dailySchedule = schedule.filter(item => item.day === dayOfWeek);
-        console.log(`[${dayOfWeek}] Daily Schedule:`, dailySchedule);
-
-        dailySchedule.forEach(item => {
-          const course = item.course;
-          if (course && !course.isArchived) {
-            const fullCourse = courses.find(c => c.id === course.id);
-            const attendance = fullCourse?.attendanceRecords?.find(
-              r => r.date === dateString && r.scheduleItemId === item.id && !r.isExtraClass
-            );
-            const classItem = {
-              course: fullCourse || course,
-              schedule: { ...item, isExtraClass: false },
-              attendance,
-            };
-            newClasses[dateString].push(classItem);
-            console.log(`[${dayOfWeek}] Added Class:`, classItem);
-          }
-        });
-      }
-
-      // Process extra classes
-      courses.forEach(course => {
-        course.extraClasses?.forEach(extraClass => {
-          if (extraClass.date === dateString) {
-            const attendance = course.attendanceRecords?.find(
-              r => r.date === dateString && r.scheduleItemId === extraClass.id && r.isExtraClass
-            );
-            const session: ClassSession = { ...extraClass, day: dayOfWeek, isExtraClass: true };
-            newClasses[dateString].push({
-              course,
-              schedule: session,
-              attendance,
-            });
-          }
-        });
-      });
-
-      // Add past attendance records that might not have a schedule item (e.g., from older app versions)
       if (isDateInPast(date)) {
-        courses.forEach(course => {
-          course.attendanceRecords?.forEach(record => {
-            if (record.date === dateString) {
-              // Avoid duplicating records that are already matched
-              const alreadyExists = newClasses[dateString].some(c => c.attendance?.id === record.id);
-              if (!alreadyExists) {
-                const scheduleItem: ClassSession = record.isExtraClass
-                  ? { ...record, day: dayIndexToName(date.getDay()), isExtraClass: true }
-                  : { id: record.scheduleItemId!, day: dayIndexToName(date.getDay()), timeStart: record.timeStart, timeEnd: record.timeEnd, isExtraClass: false };
-                
-                newClasses[dateString].push({
-                  course,
-                  schedule: scheduleItem,
-                  attendance: record,
-                });
-              }
-            }
-          });
-        });
-      }
+        // Process past classes using attendance records
+        let attendanceRecords = getAttendanceRecords(-1, 0, '', dateString, dateString);
+        console.log(`[ATTEND] Found ${attendanceRecords.length} attendance records for ${dateString}.`);
 
-      newClasses[dateString].sort((a, b) => a.schedule.timeStart.localeCompare(b.schedule.timeStart));
+        attendanceRecords.forEach(record => {
+          const course = courses.find(c => c.id === record.course_id);
+          if (!course || !course.showInTracker) return;
+          const classItem: ClassItem = {
+            course,
+            schedule: {
+              id: record.id,
+              day: dayOfWeek,
+              timeStart: record.timeStart,
+              timeEnd: record.timeEnd,
+              isExtraClass: record.isExtraClass,
+            },
+            attendance: record,
+          };
+          newClasses[dateString].push(classItem);
+        });
+
+      } else {
+        // Process regular weekly schedule for future and today
+        courses.forEach(course => {
+
+
+          // For weekly schedule we dont take archived
+          if (course.isArchived || !course.showInTracker) return;
+
+          // 1) Add weekly scheduled classes
+          course.weeklySchedule
+            ?.filter(item => item.day === dayOfWeek)
+            .forEach(item => {
+              newClasses[dateString].push({
+                course,
+                schedule: { ...item, isExtraClass: false },
+              });
+            });
+
+          // 2) Add extra one-time classes
+          course.extraClasses
+            ?.filter(ec => ec.date === dateString)
+            .forEach(ec => {
+              newClasses[dateString].push({
+                course,
+                schedule: { ...ec, day: dayOfWeek, isExtraClass: true },
+              });
+            });
+        });
+
+        // Sort classes by start time
+        newClasses[dateString].sort((a, b) =>
+          a.schedule.timeStart.localeCompare(b.schedule.timeStart)
+        );
+      }
     }
+
+    // After processing all days, update classes and calculate time range
+    setClasses(newClasses);
 
     let minHour = Infinity;
     let maxHour = -Infinity;
 
-    Object.values(newClasses).flat().forEach(classItem => {
-      const start = parse24HToDate(classItem.schedule.timeStart);
-      const end = parse24HToDate(classItem.schedule.timeEnd);
-      minHour = Math.min(minHour, start.getHours());
-      maxHour = Math.max(maxHour, end.getHours() + end.getMinutes() / 60);
-    });
+    Object.values(newClasses)
+      .flat()
+      .forEach(classItem => {
+        const start = parse24HToDate(classItem.schedule.timeStart);
+        const end = parse24HToDate(classItem.schedule.timeEnd);
+        minHour = Math.min(minHour, start.getHours());
+        maxHour = Math.max(maxHour, end.getHours() + end.getMinutes() / 60);
+      });
 
     if (minHour !== Infinity) {
-      setStartHour(minHour - 1);
-      setEndHour(maxHour);
+      setStartHour(minHour > 0 ? minHour - 1 : 0);
+      setEndHour(Math.ceil(maxHour));
     } else {
+      // Default view when there are no classes
       setStartHour(8);
-      setEndHour(18);
+      setEndHour(12);
     }
-
-    setClasses(newClasses);
   }, [courses, startDate]);
 
   return { classes, courseColors, startHour, endHour, loading, error, refetch: fetchCoursesAndSchedule };

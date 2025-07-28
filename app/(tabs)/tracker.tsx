@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useContext } from 'react';
-import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -44,7 +44,7 @@ export default function VisualAttendanceTracker() {
   const dayColumnWidth = (screenWidth - 70) / 7;
 
   const timeSlots = useMemo(() => 
-    Array.from({ length: hourCount + 1 }, (_, i) => i + startHour),
+    Array.from({ length: hourCount + 1}, (_, i) => i + startHour),
     [hourCount, startHour]
   );
 
@@ -187,39 +187,53 @@ export default function VisualAttendanceTracker() {
 
   const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
     const courseColor = courseColors[classItem.course.id] || Colors[colorScheme].card;
-    const baseStyle = { ...styles.classBlock, backgroundColor: courseColor };
+
+    // 1) always include the “base” block style + your dynamic bgColor
+    const base: StyleProp<ViewStyle> = [
+      styles.classBlock,
+      { backgroundColor: courseColor },
+    ];
 
     if (isDateInPast(date)) {
-      const status = classItem.attendance?.status;
-      if (status === 'present') {
-        return { ...baseStyle, ...styles.presentBlock };
-      } else if (status === 'absent') {
-        return { ...baseStyle, ...styles.absentBlock };
-      } else if (status === 'cancelled') {
-        return { ...baseStyle, ...styles.cancelledBlock };
+      switch(classItem.attendance?.status) {
+        case 'present':
+          return StyleSheet.flatten([base, styles.presentBlock]);
+        case 'absent':
+          return StyleSheet.flatten([base, styles.absentBlock]);
+        case 'cancelled':
+          return StyleSheet.flatten([base, styles.cancelledBlock]);
+        default:                                                                            
+          return StyleSheet.flatten([base, styles.unmarkedBlock]);
       }
     }
     
-    return { ...baseStyle, ...styles.unmarkedBlock, borderColor: courseColor };
-  }, [courseColors, colorScheme, styles]);
+    return StyleSheet.flatten([base, styles.unmarkedBlock]);
+  }, [courseColors, styles, colorScheme]);
+
 
   return (
     <ThemedView style={styles.container}>
+
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Tracker</ThemedText>
       </ThemedView>
+      
       <View style={styles.dateNavigator}>
+
         <TouchableOpacity onPress={handlePrevDay} disabled={loading}>
           <Ionicons name="chevron-back" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
+
         <TouchableOpacity onPress={() => setShowDatePicker(true)}>
           <ThemedText style={styles.dateText}>
             {format(addDaysToDate(startDate, 3), 'MMMM d, yyyy')}
           </ThemedText>
+
         </TouchableOpacity>
         <TouchableOpacity onPress={handleNextDay} disabled={loading}>
           <Ionicons name="chevron-forward" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
+
       </View>
       {showDatePicker && (
         <DateTimePicker

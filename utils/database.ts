@@ -373,12 +373,49 @@ export const updateCourse = (course: Course) => {
   });
 };
 
-export const updateAttendanceRecord = (record: AttendanceRecord) => {
-  console.log(`Updating attendance record ${record.id} for course: ${record.course_id}`);
-  db.runSync(
-    'UPDATE attendance_records SET status = ? WHERE id = ?',
-    record.status, record.id
-  );
+export const updateAttendanceRecord = (recordId: string, newStatus: "present" | "absent" | "cancelled") => {
+  console.log(`[DB] Updating attendance record ${recordId} to status: ${newStatus}`);
+  db.withTransactionSync(() => {
+    const existingRecord = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
+
+    if (!existingRecord) {
+      console.log(`[DB] Attendance record not found: ${recordId}`);
+      return;
+    }
+
+    if (existingRecord.status === newStatus) {
+      console.log(`[DB] Status for record ${recordId} is already ${newStatus}. No update needed.`);
+      return;
+    }
+
+    // Update the attendance record status
+    db.runSync(
+      'UPDATE attendance_records SET status = ? WHERE id = ?',
+      newStatus, recordId
+    );
+
+    // Adjust course counts based on status change
+    const courseId = existingRecord.course_id;
+    const oldStatus = existingRecord.status;
+
+    // Decrement count for old status
+    if (oldStatus === 'present') {
+      db.runSync('UPDATE courses SET presents = presents - 1 WHERE id = ?', courseId);
+    } else if (oldStatus === 'absent') {
+      db.runSync('UPDATE courses SET absents = absents - 1 WHERE id = ?', courseId);
+    } else if (oldStatus === 'cancelled') {
+      db.runSync('UPDATE courses SET cancelled = cancelled - 1 WHERE id = ?', courseId);
+    }
+
+    // Increment count for new status
+    if (newStatus === 'present') {
+      db.runSync('UPDATE courses SET presents = presents + 1 WHERE id = ?', courseId);
+    } else if (newStatus === 'absent') {
+      db.runSync('UPDATE courses SET absents = absents + 1 WHERE id = ?', courseId);
+    } else if (newStatus === 'cancelled') {
+      db.runSync('UPDATE courses SET cancelled = cancelled + 1 WHERE id = ?', courseId);
+    }
+  });
 };
 
 export const deleteAttendanceRecord = (recordId: string) => {
@@ -475,8 +512,12 @@ export const getAttendanceRecords = (
     query += ' ' + conditions.join(' AND ');
   }
 
-  query += ' ORDER BY class_date DESC LIMIT ? OFFSET ?';
-  params.push(limit, offset);
+  if (limit == -1) {
+    query += ' ORDER BY class_date DESC, time_start DESC';
+  } else {
+    query += ' ORDER BY class_date DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+  }
 
   return db.getAllSync(query, ...params).map((r: any) => ({
     id: r.id,

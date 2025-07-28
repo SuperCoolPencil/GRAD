@@ -71,21 +71,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     : classItem.course.id}
                 </ThemedText>
               </View>
-              {isDateInPast(date) && (classItem.attendance?.status === 'present' || classItem.attendance?.status === 'absent') && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    bottom: 5,
-                    left: 5,
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: classItem.attendance.status === 'present'
-                      ? Colors[colorScheme].success
-                      : Colors[colorScheme].error,
-                  }}
-                />
-              )}
             </TouchableOpacity>
           );
         })}

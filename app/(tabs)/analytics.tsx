@@ -14,6 +14,7 @@ import { useTheme } from '@react-navigation/native';
 import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
+import { CoursePicker } from '@/components/CoursePicker';
 
 // Constants from HeatmapComponent to calculate layout
 const CELL_SIZE = 20;
@@ -52,10 +53,8 @@ export default function AnalyticsScreen() {
   const [fromDate, setFromDate] = useState<Date | null>(null);
   const [toDate, setToDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState<'from' | 'to' | null>(null);
-  const [isPickerVisible, setIsPickerVisible] = useState(false);
-  const [isHeatmapPickerVisible, setIsHeatmapPickerVisible] = useState(false);
   const [heatmapCourses, setHeatmapCourses] = useState<Course[]>([]);
-  const [selectedHeatmapCourse, setSelectedHeatmapCourse] = useState<string | null>(null);
+  const [selectedHeatmapCourse, setSelectedHeatmapCourse] = useState<string[]>([]); // Changed to string[]
   const [displayMonth, setDisplayMonth] = useState(new Date());
   const [page, setPage] = useState(1);
   const recordsPerPage = 10;
@@ -88,21 +87,21 @@ export default function AnalyticsScreen() {
         {
           text: 'Present',
           onPress: () => {
-            changeAttendanceRecord(record.course_id, record.id, 'present');
+            changeAttendanceRecord(record.id, 'present');
             if (reloadData) reloadData();
           },
         },
         {
           text: 'Absent',
           onPress: () => {
-            changeAttendanceRecord(record.course_id, record.id, 'absent');
+            changeAttendanceRecord(record.id, 'absent');
             if (reloadData) reloadData();
           },
         },
         {
           text: 'Cancelled',
           onPress: () => {
-            changeAttendanceRecord(record.course_id, record.id, 'cancelled');
+            changeAttendanceRecord(record.id, 'cancelled');
             if (reloadData) reloadData();
           },
         },
@@ -129,7 +128,9 @@ export default function AnalyticsScreen() {
   const heatmapData = useMemo(() => {
     const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
     const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 3, 0);
-    let coursesToDisplay = selectedHeatmapCourse ? heatmapCourses.filter(c => c.id === selectedHeatmapCourse) : heatmapCourses;
+    let coursesToDisplay = selectedHeatmapCourse.length > 0
+      ? heatmapCourses.filter(c => selectedHeatmapCourse.includes(c.id!))
+      : heatmapCourses;
     coursesToDisplay = coursesToDisplay.filter(c => c.showInHeatmap);
     return generateHeatmapData(coursesToDisplay, startDate, endDate);
   }, [heatmapCourses, displayMonth, selectedHeatmapCourse]);
@@ -174,21 +175,6 @@ export default function AnalyticsScreen() {
     setPage(1);
   };
 
-  const CourseItem = React.memo(({ item, isSelected, onPress, colors, styles }: any) => (
-    <TouchableOpacity
-      style={styles.modalItem}
-      onPress={onPress}
-    >
-      <Ionicons
-        name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
-        size={24}
-        color={isSelected ? Colors[colorScheme].tint : colors.text}
-        style={{ marginRight: 10 }}
-      />
-      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
-    </TouchableOpacity>
-  ));
-
   const ListHeader = React.memo(() => (
     <>
       {activeCourses.length > 2 && (
@@ -224,106 +210,29 @@ export default function AnalyticsScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <HeatmapComponent data={heatmapData} />
         </ScrollView>
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Course:</ThemedText>
-          <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsHeatmapPickerVisible(true)}>
-            <ThemedText style={styles.pickerTriggerText}>
-              {selectedHeatmapCourse ? courses.find(c => c.id === selectedHeatmapCourse)?.name ?? 'Select a course...' : 'All Courses'}
-            </ThemedText>
-            <Ionicons name="chevron-down" size={20} color={colors.text} />
-          </TouchableOpacity>
-          <Modal
-            transparent={true}
-            visible={isHeatmapPickerVisible}
-            animationType="fade"
-            onRequestClose={() => setIsHeatmapPickerVisible(false)}
-          >
-            <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPressOut={() => setIsHeatmapPickerVisible(false)}>
-              <View style={styles.modalContent}>
-                <FlatList
-                  data={[{ id: null, name: 'All Courses' }, ...courses]}
-                  keyExtractor={(item) => item.id || 'all-courses'}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.modalItem} onPress={() => {
-                      setSelectedHeatmapCourse(item.id);
-                      setIsHeatmapPickerVisible(false);
-                    }}>
-                      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+        <CoursePicker
+          label="Course:"
+          courses={courses}
+          selectedCourseIds={selectedHeatmapCourse}
+          onSelectionChange={setSelectedHeatmapCourse}
+          multiSelect={true}
+          allCoursesOption={true}
+          showArchivedToggle={true}
+          showSaveButton={true}
+        />
       </ThemedView>
       <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
         <ThemedText style={styles.sectionTitle} type="subtitle">Attendance History</ThemedText>
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Course:</ThemedText>
-          <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsPickerVisible(true)}>
-            <ThemedText style={styles.pickerTriggerText}>
-              {selectedCourses.length === 0 ? 'All Courses' : `${selectedCourses.length} course(s) selected`}
-            </ThemedText>
-            <Ionicons name="chevron-down" size={20} color={colors.text} />
-          </TouchableOpacity>
-          <Modal
-            transparent={true}
-            visible={isPickerVisible}
-            animationType="fade"
-            onRequestClose={() => setIsPickerVisible(false)}
-          >
-            <BlurView intensity={25} style={styles.blurView} tint="dark">
-              <TouchableOpacity
-                style={styles.modalContainer}
-                activeOpacity={1}
-                onPressOut={() => setIsPickerVisible(false)}
-              >
-                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-                  <TouchableOpacity
-                    style={styles.modalItem}
-                    onPress={() => setSelectedCourses([])}
-                  >
-                    <Ionicons
-                      name={selectedCourses.length === 0 ? 'checkmark-circle' : 'ellipse-outline'}
-                      size={24}
-                      color={selectedCourses.length === 0 ? Colors[colorScheme].tint : colors.text}
-                      style={{ marginRight: 10 }}
-                    />
-                    <ThemedText style={styles.modalItemText}>All Courses</ThemedText>
-                  </TouchableOpacity>
-                  <FlatList
-                    data={activeCourses}
-                    keyExtractor={(item) => item.id!}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={({ item }) => (
-                      <CourseItem
-                        item={item}
-                        isSelected={selectedCourses.includes(item.id!)}
-                        onPress={() => {
-                          setSelectedCourses(prev =>
-                            selectedCourses.includes(item.id!)
-                              ? prev.filter(id => id !== item.id)
-                              : [...prev, item.id!]
-                          );
-                        }}
-                        colors={colors}
-                        styles={styles}
-                      />
-                    )}
-                  />
-                  <TouchableOpacity
-                    style={styles.modalCloseButton}
-                    onPress={() => setIsPickerVisible(false)}
-                  >
-                    <ThemedText style={styles.modalCloseButtonText}>Close</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </BlurView>
-          </Modal>
-        </View>
+        <CoursePicker
+          label="Course:"
+          courses={courses}
+          selectedCourseIds={selectedCourses}
+          onSelectionChange={setSelectedCourses}
+          multiSelect={true}
+          allCoursesOption={true}
+          showArchivedToggle={true}
+          showSaveButton={true}
+        />
         <View style={styles.inputGroup}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, marginRight: 8 }}>
@@ -356,70 +265,16 @@ export default function AnalyticsScreen() {
 
   const HistoryFilters = React.memo(() => (
     <View>
-      <View style={styles.inputGroup}>
-        <ThemedText style={styles.label}>Course:</ThemedText>
-        <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsPickerVisible(true)}>
-          <ThemedText style={styles.pickerTriggerText}>
-            {selectedCourses.length === 0 ? 'All Courses' : `${selectedCourses.length} course(s) selected`}
-          </ThemedText>
-          <Ionicons name="chevron-down" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Modal
-          transparent={true}
-          visible={isPickerVisible}
-          animationType="fade"
-          onRequestClose={() => setIsPickerVisible(false)}
-        >
-          <BlurView intensity={25} style={styles.blurView} tint="dark">
-            <TouchableOpacity
-              style={styles.modalContainer}
-              activeOpacity={1}
-              onPressOut={() => setIsPickerVisible(false)}
-            >
-              <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => setSelectedCourses([])}
-                >
-                  <Ionicons
-                    name={selectedCourses.length === 0 ? 'checkmark-circle' : 'ellipse-outline'}
-                    size={24}
-                    color={selectedCourses.length === 0 ? Colors[colorScheme].tint : colors.text}
-                    style={{ marginRight: 10 }}
-                  />
-                  <ThemedText style={styles.modalItemText}>All Courses</ThemedText>
-                </TouchableOpacity>
-                <FlatList
-                  data={activeCourses}
-                  keyExtractor={(item) => item.id!}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <CourseItem
-                      item={item}
-                      isSelected={selectedCourses.includes(item.id!)}
-                      onPress={() => {
-                        setSelectedCourses(prev =>
-                          selectedCourses.includes(item.id!)
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id!]
-                        );
-                      }}
-                      colors={colors}
-                      styles={styles}
-                    />
-                  )}
-                />
-                <TouchableOpacity
-                  style={styles.modalCloseButton}
-                  onPress={() => setIsPickerVisible(false)}
-                >
-                  <ThemedText style={styles.modalCloseButtonText}>Close</ThemedText>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          </BlurView>
-        </Modal>
-      </View>
+      <CoursePicker
+        label="Course:"
+        courses={courses}
+        selectedCourseIds={selectedCourses}
+        onSelectionChange={setSelectedCourses}
+        multiSelect={true}
+        allCoursesOption={true}
+        showArchivedToggle={true}
+        showSaveButton={true}
+      />
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View style={{ flex: 1, marginRight: 8 }}>
@@ -491,39 +346,16 @@ export default function AnalyticsScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <HeatmapComponent data={heatmapData} />
         </ScrollView>
-        <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Course:</ThemedText>
-          <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsHeatmapPickerVisible(true)}>
-            <ThemedText style={styles.pickerTriggerText}>
-              {selectedHeatmapCourse ? courses.find(c => c.id === selectedHeatmapCourse)?.name ?? 'Select a course...' : 'All Courses'}
-            </ThemedText>
-            <Ionicons name="chevron-down" size={20} color={colors.text} />
-          </TouchableOpacity>
-          <Modal
-            transparent={true}
-            visible={isHeatmapPickerVisible}
-            animationType="fade"
-            onRequestClose={() => setIsHeatmapPickerVisible(false)}
-          >
-            <TouchableOpacity style={styles.modalContainer} activeOpacity={1} onPressOut={() => setIsHeatmapPickerVisible(false)}>
-              <View style={styles.modalContent}>
-                <FlatList
-                  data={[{ id: null, name: 'All Courses' }, ...courses]}
-                  keyExtractor={(item) => item.id || 'all-courses'}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.modalItem} onPress={() => {
-                      setSelectedHeatmapCourse(item.id);
-                      setIsHeatmapPickerVisible(false);
-                    }}>
-                      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+        <CoursePicker
+          label="Course:"
+          courses={courses}
+          selectedCourseIds={selectedHeatmapCourse}
+          onSelectionChange={setSelectedHeatmapCourse}
+          multiSelect={true}
+          allCoursesOption={true}
+          showArchivedToggle={true}
+          showSaveButton={true}
+        />
       </ThemedView>
 
       <AttendanceHistory

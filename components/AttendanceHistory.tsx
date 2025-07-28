@@ -48,7 +48,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     let statusColor = Colors[colorScheme].text;
     let displayStatusText = 'Unknown';
 
-    console.log(`[ATTEND] Rendering record: ${item.id} for course: ${item.course_id}`);
+    // console.log(`[ATTEND] Rendering record: ${item.id} for course: ${item.course_id}`);
 
     if (courseId && item.course_id !== courseId) {
       return null; // Skip records that don't match the courseId

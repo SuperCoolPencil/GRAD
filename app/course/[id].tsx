@@ -2,11 +2,14 @@ import React, { useContext, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
+  ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme as useNativeColorScheme,
+  Alert,
   Pressable,
   TextInput,
+  Switch,
 } from 'react-native';
 import { Modal } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
@@ -21,8 +24,6 @@ import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
-import AttendanceHistory from '@/components/AttendanceHistory';
-import PaginationControls from '@/components/PaginationControls';
 
 const getAttendanceDelta = (
   presents: number,
@@ -59,16 +60,11 @@ export default function CourseDetailScreen() {
     changeAttendanceRecord,
     updateCourse,
     updateCourseCounts,
-    archiveCourse,
+    archiveCourse, // Import archiveCourse
     is24Hour,
-    getPaginatedAttendanceRecords,
-    attendanceRecords,
-    totalRecords,
   } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
-  const [page, setPage] = useState(1);
-  const recordsPerPage = 10;
   const colorScheme = useNativeColorScheme() ?? 'light';
   const { showAlert } = useCustomAlert();
 
@@ -82,14 +78,11 @@ export default function CourseDetailScreen() {
   const [inputValue, setInputValue] = useState('');
   const [countType, setCountType] = useState<"presents" | "absents" | "cancelled">("presents");
 
-  useEffect(() => {
-    if (id) {
-      getPaginatedAttendanceRecords(page, recordsPerPage, id, 'desc');
-    }
-  }, [id, page]);
-
-  const handleAttendanceClick = (record: AttendanceRecord) => {
+  const handleAttendanceClick = (recordId: string) => {
     if (!course) return;
+
+    const record = course.attendanceRecords?.find((r) => r.id === recordId);
+    if (!record) return;
 
     const recordDate = new Date(record.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
@@ -104,16 +97,16 @@ export default function CourseDetailScreen() {
       [
         {
           text: 'Present',
-          onPress: () => changeAttendanceRecord(course.id, record.id, 'present'),
+          onPress: () => changeAttendanceRecord(recordId, 'present'),
         },
         {
           text: 'Absent',
-          onPress: () => changeAttendanceRecord(course.id, record.id, 'absent'),
+          onPress: () => changeAttendanceRecord(recordId, 'absent'),
         },
         {
           text: 'Cancelled',
           onPress: () =>
-            changeAttendanceRecord(course.id, record.id, 'cancelled'),
+            changeAttendanceRecord(recordId, 'cancelled'),
         },
         { text: 'Cancel', style: 'cancel' },
       ]
@@ -199,10 +192,6 @@ export default function CourseDetailScreen() {
   const delta = getAttendanceDelta(presents, absents, requiredAttendance);
   const deltaColor = getDeltaColor(delta, colorScheme);
 
-  const separator = () => (
-    <View style={{height: 0.8, width: '100%', backgroundColor: Colors[colorScheme].separator}} />
-  );
-
   let attendanceNote = 'Meeting required attendance';
   if (delta > 0) {
     attendanceNote = `Need to Attend: ${delta} more class${delta === 1 ? '' : 'es'}`;
@@ -241,198 +230,238 @@ export default function CourseDetailScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <AttendanceHistory
-        title="Attendance History"
-        courseId={course.id}
-        records={attendanceRecords}
-        onRecordClick={handleAttendanceClick}
-        currentPage={page}
-        totalRecords={totalRecords}
-        recordsPerPage={recordsPerPage}
-        onPageChange={setPage}
-        ItemSeparatorComponent={separator}
-        ListFooterComponent={
-          <PaginationControls
-            currentPage={page}
-            totalRecords={totalRecords}
-            recordsPerPage={recordsPerPage}
-            onPageChange={setPage}
+      <ScrollView
+        style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {course && (
+          <ConfigurationModal
+            isVisible={configModalVisible}
+            onClose={() => setConfigModalVisible(false)}
+            course={course}
+            onUpdateCourse={(updatedCourse) => {
+              setCourse(updatedCourse);
+              updateCourse(updatedCourse);
+            }}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.contentContainer}>
-            {course && (
-              <ConfigurationModal
-                isVisible={configModalVisible}
-                onClose={() => setConfigModalVisible(false)}
-                course={course}
-                onUpdateCourse={(updatedCourse) => {
-                  setCourse(updatedCourse);
-                  updateCourse(updatedCourse);
-                }}
-              />
-            )}
-            <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
-              <ThemedText type="subtitle" style={styles.cardTitle}>
-                Attendance Summary
+        )}
+        <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
+          <ThemedText type="subtitle" style={styles.cardTitle}>
+            Attendance Summary
+          </ThemedText>
+
+          <View style={styles.attendanceRow}>
+            <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
+            <ThemedText style={styles.attendanceText}>
+              Current: <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> (Required: {requiredAttendance}%)
+            </ThemedText>
+          </View>
+
+          <View style={styles.attendanceRow}>
+            <Ionicons
+              name={delta <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
+              size={20}
+              color={deltaColor}
+            />
+            <ThemedText style={[styles.attendanceText, { color: deltaColor }]}>
+              {attendanceNote}
+            </ThemedText>
+          </View>
+
+          <View style={styles.attendanceDetailRow}>
+            <View style={styles.attendanceDetailItem}>
+              <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
+              <Pressable onPress={() => {
+                setCountType("presents");
+                setInputValue(String(presents));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
+              </Pressable>
+            </View>
+            <View style={styles.attendanceDetailItem}>
+              <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
+              <Pressable onPress={() => {
+                setCountType("absents");
+                setInputValue(String(absents));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
+              </Pressable>
+            </View>
+            <View style={styles.attendanceDetailItem}>
+              <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
+              <Pressable onPress={() => {
+                setCountType("cancelled");
+                setInputValue(String(cancelled));
+                setModalVisible(true);
+              }}>
+                <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </ThemedView>
+
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={onClose}
+        >
+          <View style={styles.centeredView}>
+            <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
+              <ThemedText type="subtitle" style={styles.modalTitle}>
+                Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
               </ThemedText>
-
-              <View style={styles.attendanceRow}>
-                <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
-                <ThemedText style={styles.attendanceText}>
-                  Current: <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> (Required: {requiredAttendance}%)
-                </ThemedText>
-              </View>
-
-              <View style={styles.attendanceRow}>
-                <Ionicons
-                  name={delta <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
-                  size={20}
-                  color={deltaColor}
-                />
-                <ThemedText style={[styles.attendanceText, { color: deltaColor }]}>
-                  {attendanceNote}
-                </ThemedText>
-              </View>
-
-              <View style={styles.attendanceDetailRow}>
-                <View style={styles.attendanceDetailItem}>
-                  <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
-                  <Pressable onPress={() => {
-                    setCountType("presents");
-                    setInputValue(String(presents));
-                    setModalVisible(true);
-                  }}>
-                    <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
-                  </Pressable>
-                </View>
-                <View style={styles.attendanceDetailItem}>
-                  <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
-                  <Pressable onPress={() => {
-                    setCountType("absents");
-                    setInputValue(String(absents));
-                    setModalVisible(true);
-                  }}>
-                    <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
-                  </Pressable>
-                </View>
-                <View style={styles.attendanceDetailItem}>
-                  <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
-                  <Pressable onPress={() => {
-                    setCountType("cancelled");
-                    setInputValue(String(cancelled));
-                    setModalVisible(true);
-                  }}>
-                    <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
-                  </Pressable>
-                </View>
+              <TextInput
+                style={[
+                  styles.modalTextInput,
+                  {
+                    color: textColor,
+                    borderColor: borderColor,
+                    backgroundColor: Colors[colorScheme].inputBackground,
+                  },
+                ]}
+                keyboardType="number-pad"
+                value={inputValue}
+                onChangeText={setInputValue}
+                placeholder="Enter new count"
+                placeholderTextColor={textColor}
+              />
+              <View style={styles.buttonRow}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.basicButton,
+                    {
+                      backgroundColor: 'transparent',
+                      borderWidth: 1,
+                      borderColor: tintColor,
+                      opacity: pressed ? 0.7 : 1,
+                      marginLeft: 0,
+                      elevation: 0,
+                    },
+                  ]}
+                  onPress={onClose}
+                >
+                  <ThemedText style={[styles.buttonText, { color: tintColor }]}>Cancel</ThemedText>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.basicButton,
+                    {
+                      backgroundColor: primaryColor,
+                      opacity: pressed ? 0.7 : 1,
+                      marginLeft: 10,
+                      elevation: 2,
+                    },
+                  ]}
+                  onPress={() => {
+                    setModalVisible(false);
+                    const newValue = parseInt(inputValue, 10);
+                    if (!isNaN(newValue) && newValue >= 0) {
+                      updateCourseCounts(course.id, countType, newValue);
+                    } else {
+                      showAlert('Invalid Input', 'Please enter a valid non-negative number.');
+                    }
+                  }}
+                >
+                  <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Submit</ThemedText>
+                </Pressable>
               </View>
             </ThemedView>
-
-            <Modal
-              animationType="fade"
-              transparent={true}
-              visible={modalVisible}
-              onRequestClose={onClose}
-            >
-              <View style={styles.centeredView}>
-                <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
-                  <ThemedText type="subtitle" style={styles.modalTitle}>
-                    Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.modalTextInput,
-                      {
-                        color: textColor,
-                        borderColor: borderColor,
-                        backgroundColor: Colors[colorScheme].inputBackground,
-                      },
-                    ]}
-                    keyboardType="number-pad"
-                    value={inputValue}
-                    onChangeText={setInputValue}
-                    placeholder="Enter new count"
-                    placeholderTextColor={textColor}
-                  />
-                  <View style={styles.buttonRow}>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.basicButton,
-                        {
-                          backgroundColor: 'transparent',
-                          borderWidth: 1,
-                          borderColor: tintColor,
-                          opacity: pressed ? 0.7 : 1,
-                          marginLeft: 0,
-                          elevation: 0,
-                        },
-                      ]}
-                      onPress={onClose}
-                    >
-                      <ThemedText style={[styles.buttonText, { color: tintColor }]}>Cancel</ThemedText>
-                    </Pressable>
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.basicButton,
-                        {
-                          backgroundColor: primaryColor,
-                          opacity: pressed ? 0.7 : 1,
-                          marginLeft: 10,
-                          elevation: 2,
-                        },
-                      ]}
-                      onPress={() => {
-                        setModalVisible(false);
-                        const newValue = parseInt(inputValue, 10);
-                        if (!isNaN(newValue) && newValue >= 0) {
-                          updateCourseCounts(course.id, countType, newValue);
-                        } else {
-                          showAlert('Invalid Input', 'Please enter a valid non-negative number.');
-                        }
-                      }}
-                    >
-                      <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Submit</ThemedText>
-                    </Pressable>
-                  </View>
-                </ThemedView>
-              </View>
-            </Modal>
-
-            {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
-              <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-                <ThemedText type="subtitle" style={styles.cardTitle}>
-                  Weekly Schedule
-                </ThemedText>
-                {course.weeklySchedule.map((item: ScheduleItem) => (
-                  <View key={item.id} style={styles.scheduleItem}>
-                    <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].tint} />
-                    <ThemedText style={styles.scheduleText}>
-                      <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
-                    </ThemedText>
-                  </View>
-                ))}
-              </ThemedView>
-            )}
-
-            {(course.extraClasses && course.extraClasses.length > 0) && (
-              <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-                <ThemedText type="subtitle" style={styles.cardTitle}>
-                  Extra Classes
-                </ThemedText>
-                {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => (
-                  <View key={item.id} style={styles.scheduleItem}>
-                    <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
-                    <ThemedText style={styles.scheduleText}>
-                      <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
-                    </ThemedText>
-                  </View>
-                ))}
-              </ThemedView>
-            )}
           </View>
-        }
-      />
+        </Modal>
+
+        {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
+          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Weekly Schedule
+            </ThemedText>
+            {course.weeklySchedule.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ScheduleItem) => (
+              <View key={item.id} style={styles.scheduleItem}>
+                <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
+                <ThemedText style={styles.scheduleText}>
+                  <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
+                </ThemedText>
+              </View>
+            ))}
+          </ThemedView>
+        )}
+
+        {(course.extraClasses && course.extraClasses.length > 0) && (
+          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Extra Classes
+            </ThemedText>
+            {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => (
+              <View key={item.id} style={styles.scheduleItem}>
+                <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
+                <ThemedText style={styles.scheduleText}>
+                  <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
+                </ThemedText>
+              </View>
+            ))}
+          </ThemedView>
+        )}
+
+        {(course.attendanceRecords && course.attendanceRecords.length > 0) ? (
+          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Attendance History
+            </ThemedText>
+            {[...course.attendanceRecords]
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((record) => {
+                const recordDate = new Date(record.date);
+                const formattedDate = recordDate.toLocaleDateString(undefined, {
+                  year: 'numeric', month: 'long', day: 'numeric'
+                });
+                let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
+                let statusColor = Colors[colorScheme].text;
+                let displayStatusText = 'Unknown';
+
+                switch (record.status) {
+                  case 'present':
+                    statusIcon = 'checkmark-circle-outline';
+                    statusColor = Colors[colorScheme].success;
+                    displayStatusText = 'Present';
+                    break;
+                  case 'absent':
+                    statusIcon = 'close-circle-outline';
+                    statusColor = Colors[colorScheme].error;
+                    displayStatusText = 'Absent';
+                    break;
+                  case 'cancelled':
+                    statusIcon = 'remove-circle-outline';
+                    statusColor = Colors[colorScheme].warning;
+                    displayStatusText = 'Cancelled';
+                    break;
+                }
+
+                return (
+                  <TouchableOpacity key={record.id} style={styles.historyItem} onPress={() => handleAttendanceClick(record.id)}>
+                    <Ionicons name={statusIcon} size={18} color={statusColor} />
+                    <ThemedText style={[styles.historyText, { color: statusColor }]}>
+                      {displayStatusText}
+                    </ThemedText>
+                    <ThemedText style={styles.historyDateText}>
+                      on {formattedDate} {record.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+          </ThemedView>
+        ) : (
+          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card, borderLeftWidth: 0 }]}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Attendance History
+            </ThemedText>
+            <ThemedText style={{ opacity: 0.7 }}>No attendance recorded yet.</ThemedText>
+          </ThemedView>
+        )}
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
     </>
   );
 }
@@ -448,7 +477,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 20,
+    paddingVertical: 20,
     paddingHorizontal: 16,
   },
   card: {

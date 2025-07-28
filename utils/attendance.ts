@@ -16,6 +16,11 @@ const processWeeklySchedule = (
   courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
   defaultStatus: string
 ) => {
+
+  // No need to check here if course is archived or not,
+  // as endDate is already set to course.archivedAt if it exists.
+
+  if (!course.weeklySchedule || course.weeklySchedule.length === 0) return;
   
   let currentDate = new Date(lastRecordDate);
   while (currentDate <= endDate) {
@@ -96,6 +101,7 @@ const processExtraClasses = (
 };
 
 export const createMissingAttendanceRecords = () => {
+  if (!db) throw new Error('DB not initialized');
   console.log('[ATTEND] Starting to create missing attendance records...');
   const now = new Date();
   const courses = getCourses();
@@ -103,19 +109,21 @@ export const createMissingAttendanceRecords = () => {
   console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
   const defaultStatus = getSetting('defaultAttendanceStatus') || 'absent';
-  const allAttendanceRecords = db.getAllSync('SELECT id FROM attendance_records');
+  const allAttendanceRecords = db!.getAllSync('SELECT id FROM attendance_records');
   const existingRecordIds = new Set(allAttendanceRecords.map((r: any) => r.id));
   const newRecords: AttendanceRecord[] = [];
   const courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } } = {};
 
   for (const course of courses) {
     console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
-    const lastRecord = db.getFirstSync<AttendanceRecord>(
+
+    let lastRecordDate = new Date();
+
+    const lastRecord = db!.getFirstSync<AttendanceRecord>(
       'SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date DESC, time_end DESC LIMIT 1',
       course.id
     );
 
-    let lastRecordDate = new Date();
     if (lastRecord && lastRecord.date && lastRecord.timeEnd) {
       const [year, month, day] = lastRecord.date.split('-').map(Number);
       const [hour, minute] = lastRecord.timeEnd.split(':').map(Number);
@@ -123,6 +131,7 @@ export const createMissingAttendanceRecords = () => {
     } else if (course.createdAt) {
       lastRecordDate = new Date(course.createdAt);
     }
+
     console.log(`[ATTEND] Last record date for course ${course.name}: ${lastRecordDate}`);
 
     const endDate = course.isArchived && course.archivedAt ? new Date(course.archivedAt) : now;
@@ -150,7 +159,10 @@ export const calculateAttendancePercentage = (presents: number, absents: number)
 export const getOldestRecordDate = (courses: Course[]): Date | null => {
   if (courses.length === 0) return null;
 
-  const allDates = courses.flatMap(c => c.attendanceRecords?.map(r => new Date(r.date)) ?? []);
+  // we need to filter out courses that should not be shown in heatmap
+  const filteredCourses = courses.filter(course => course.attendanceRecords && course.showInHeatmap);
+
+  const allDates = filteredCourses.flatMap(c => c.attendanceRecords?.map(r => new Date(r.date)) ?? []);
   if (allDates.length === 0) return null;
 
   return new Date(Math.min(...allDates.map(d => d.getTime())));
@@ -161,7 +173,7 @@ export const generateHeatmapData = (courses: Course[], startDate: Date, endDate:
   const dateMap: { [key: string]: { presents: number; absents: number } } = {};
 
   courses.forEach(course => {
-    if (course.attendanceRecords) {
+    if (course.attendanceRecords && course.showInHeatmap) {
       course.attendanceRecords.forEach(record => {
         const date = record.date;
         if (!dateMap[date]) {
