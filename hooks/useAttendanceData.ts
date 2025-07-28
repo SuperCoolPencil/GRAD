@@ -122,6 +122,7 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
 
         attendanceRecords.forEach(record => {
           const course = courses.find(c => c.id === record.course_id);
+          if (record.status === 'cancelled') return;
           if (!course || !course.showInTracker) return;
           const classItem: ClassItem = {
             course,
@@ -140,7 +141,6 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
       } else {
         // Process regular weekly schedule for future and today
         courses.forEach(course => {
-
 
           // For weekly schedule we dont take archived
           if (course.isArchived || !course.showInTracker) return;
