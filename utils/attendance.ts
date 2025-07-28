@@ -1,5 +1,6 @@
 import { Course, AttendanceRecord, ScheduleItem } from '@/types';
 import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts, getCourses } from './database';
+import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
 
 const getDayOfWeek = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -192,7 +193,7 @@ export const generateHeatmapData = (courses: Course[], startDate: Date, endDate:
   
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const date = new Date(d);
-    const dateString = date.toISOString().slice(0, 10);
+    const dateString = formatDateToISO(date); // Use formatDateToISO for consistency
 
     const isFirstDayOfMonth = date.getDate() === 1;
     if (dateMap[dateString]) {

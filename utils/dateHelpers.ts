@@ -12,7 +12,10 @@ const TIME_FORMAT_24H = 'HH:mm';
  * @returns The formatted date string.
  */
 export const formatDateToISO = (date: Date): string => {
-  return format(date, DATE_FORMAT_ISO);
+  // Ensure the date is treated as UTC to avoid timezone issues when formatting to YYYY-MM-DD
+  // This creates a new Date object from the UTC components of the original date
+  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  return format(utcDate, DATE_FORMAT_ISO);
 };
 
 /**
