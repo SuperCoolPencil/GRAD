@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
 import CustomHeader from '@/components/CustomHeader';
 import { formatTime as formatTimeUtil } from '@/utils/time';
+import { CoursePicker } from '@/components/CoursePicker';
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -39,7 +40,6 @@ const AddExtraClassScreen = () => {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null); // Initialize to null for placeholder
-  const [isPickerVisible, setIsPickerVisible] = useState(false); // State for modal visibility
 
   // Time picker state
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -158,65 +158,17 @@ const AddExtraClassScreen = () => {
       <ScrollView style={styles.contentContainer}>
         {/* Form Content */}
         <View style={styles.section}>
-
-          {/* Course Selection - Replaced Picker with TouchableOpacity + Modal */}
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Course:</ThemedText>
-            <TouchableOpacity
-              style={styles.pickerTrigger} // Use a new style for the trigger
-              onPress={() => setIsPickerVisible(true)}
-            >
-              <ThemedText style={styles.pickerTriggerText}>
-                {selectedCourse
-                  ? courses.find(c => c.id === selectedCourse)?.name ?? 'Select a course...' // Show selected course name
-                  : 'Select a course...'}
-              </ThemedText>
-              {/* Add a dropdown icon */}
-              <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].text} />
-            </TouchableOpacity>
-
-            {/* Course Selection Modal */}
-            <Modal
-              transparent={true}
-              visible={isPickerVisible}
-              animationType="fade"
-              onRequestClose={() => setIsPickerVisible(false)}
-            >
-              <TouchableOpacity
-                style={styles.modalContainer}
-                activeOpacity={1}
-                onPressOut={() => setIsPickerVisible(false)} // Close on outside click
-              >
-                <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-                  <FlatList
-                    data={courses}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.modalItem}
-                        onPress={() => {
-                          setSelectedCourse(item.id);
-                          setIsPickerVisible(false);
-                        }}
-                      >
-                        <ThemedText style={styles.modalItemText}>
-                          {`${truncate(item.name, 20)} (${truncate(item.id, 10)})`}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    )}
-                    ListEmptyComponent={<ThemedText style={styles.modalItemText}>No courses available</ThemedText>}
-                  />
-                  <TouchableOpacity
-                    style={styles.modalCloseButton}
-                    onPress={() => setIsPickerVisible(false)}
-                  >
-                    <ThemedText style={styles.modalCloseButtonText}>Close</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </Modal>
-            {/* End Course Selection Modal */}
-          </View>
+          {/* Course Selection */}
+          <CoursePicker
+            label="Course:"
+            courses={courses}
+            selectedCourseIds={selectedCourse ? [selectedCourse] : []}
+            onSelectionChange={(ids) => setSelectedCourse(ids.length > 0 ? ids[0] : null)}
+            multiSelect={false} // Single select mode
+            allCoursesOption={false} // No "All Courses" option for single select
+            showArchivedToggle={false} // Show archived courses toggle
+            showSaveButton={false} // Always show save button
+          />
           {/* End Course Selection */}
 
           {/* Date Selection */}
@@ -363,23 +315,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     color: Colors[colorScheme].text,
     fontSize: 15,
   },
-  // pickerContainer style definition removed as it's merged into picker
-  picker: {
-    // Styles previously in pickerContainer merged here:
-    borderWidth: 1,
-    borderColor: Colors[colorScheme].border,
-    backgroundColor: Colors[colorScheme].card,
-    borderRadius: 10,
-    // Original picker styles:
-    color: Colors[colorScheme].text,
-    height: 50,
-    // Note: Direct styling of Picker items can be inconsistent across platforms.
-    // Consider a custom dropdown component for better control if needed.
-  },
-  pickerItem: { // Basic item style (might need platform-specific adjustments)
-    color: Colors[colorScheme].text,
-    height: 50,
-  },
   primaryButton: {
     backgroundColor: Colors[colorScheme].tint,
     paddingVertical: 15,
@@ -391,54 +326,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  // Styles for the custom picker trigger
-  pickerTrigger: {
-    flexDirection: 'row', // Align text and icon horizontally
-    justifyContent: 'space-between', // Space between text and icon
-    alignItems: 'center', // Align items vertically
-    borderColor: Colors[colorScheme].border,
-    backgroundColor: Colors[colorScheme].card,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    height: 50, // Match previous picker height
-  },
-  pickerTriggerText: {
-    color: Colors[colorScheme].text,
-    fontSize: 16, // Match input text size
-  },
-  // Styles for the Modal (to be added in the next step)
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)' // Semi-transparent background
-  },
-  modalContent: {
-    backgroundColor: Colors[colorScheme].card,
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
-    maxHeight: '60%',
-  },
-  modalItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors[colorScheme].border,
-  },
-  modalItemText: {
-    fontSize: 16,
-    color: Colors[colorScheme].text,
-  },
-  modalCloseButton: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  modalCloseButtonText: {
-    fontSize: 16,
-    color: Colors[colorScheme].tint,
-    fontWeight: '600',
   },
 });
 

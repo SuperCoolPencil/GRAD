@@ -143,7 +143,7 @@ export default function CourseDetailScreen() {
     if (!course) return;
     showAlert(
       'Archive Course',
-      `Archived courses no longer appear in your courses list, weekly schedules, or trigger notifications`,
+      `Archived courses no longer appear in your courses list, weekly schedules, analytics page and DO NOT trigger notifications.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
