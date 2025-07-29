@@ -40,7 +40,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { courses, markAttendance } = useContext(AppContext);
+  const { courses, upsertAttendance } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -65,13 +65,14 @@ function RootLayoutShell() {
           const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
           const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
           const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
-          markAttendance(courseId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, scheduleId, timeStart, timeEnd);
+          const date = extraClassItem?.date || new Date().toISOString().split('T')[0];
+          upsertAttendance(courseId, scheduleId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, timeStart, timeEnd, date);
         }
       }
     });
 
     return () => subscription.remove();
-  }, [markAttendance, courses]);
+  }, [upsertAttendance, courses]);
 
   if (!loaded) {
     return null;

@@ -38,11 +38,11 @@ export default function AnalyticsScreen() {
   const {
     courses,
     getCoursesWithRecordsInRange,
-    changeAttendanceRecord,
+    upsertAttendance,
     getPaginatedAttendanceRecords,
     attendanceRecords,
     totalRecords,
-    reloadData,
+    loadData,
   } = useContext(AppContext);
   const activeCourses = useMemo(() => courses.filter(course => !course.isArchived), [courses]);
   const { showAlert } = useCustomAlert();
@@ -87,22 +87,22 @@ export default function AnalyticsScreen() {
         {
           text: 'Present',
           onPress: () => {
-            changeAttendanceRecord(record.id, 'present');
-            if (reloadData) reloadData();
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
           },
         },
         {
           text: 'Absent',
           onPress: () => {
-            changeAttendanceRecord(record.id, 'absent');
-            if (reloadData) reloadData();
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
           },
         },
         {
           text: 'Cancelled',
           onPress: () => {
-            changeAttendanceRecord(record.id, 'cancelled');
-            if (reloadData) reloadData();
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
           },
         },
         { text: 'Cancel', style: 'cancel' },

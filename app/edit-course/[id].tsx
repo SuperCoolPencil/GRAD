@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/ThemedText';
 
 const EditCourseScreen = () => {
   const router = useRouter();
-  const { editCourse, getCourse } = useContext(AppContext);
+  const { updateCourse, getCourse } = useContext(AppContext);
   const { showAlert } = useCustomAlert();
   const { id } = useLocalSearchParams();
   const [initialData, setInitialData] = useState<Course | null>(null);
@@ -40,7 +40,7 @@ const EditCourseScreen = () => {
 
   const handleSubmit = async (courseData: Course) => {
     try {
-      await editCourse(courseData);
+      await updateCourse(courseData);
       showAlert("Success", "Course edited successfully!", [
         {
           text: "Done",

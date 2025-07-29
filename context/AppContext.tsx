@@ -25,20 +25,10 @@ interface AppContextType {
   toggleTheme: () => void;
   toggleNotifications: () => void;
   addCourse: (newCourse: Course) => void;
-  editCourse: (updatedCourse: Course) => void;
   getCourse: (courseId: string) => Course | undefined;
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
-  changeAttendanceRecord: (recordId: string, newStatus: "present" | "absent" | "cancelled") => void;
   isValidCourseId: (courseId: string) => boolean;
-  markAttendance: (
-    courseId: string,
-    status: "present" | "absent" | "cancelled",
-    isExtraClass: boolean,
-    scheduleItemId: string | undefined,
-    timeStart: string,
-    timeEnd: string
-  ) => void;
   addScheduleItem: (courseId: string, newScheduleItem: ScheduleItem) => void;
   addExtraClass: (
     courseId: string,
@@ -53,7 +43,7 @@ interface AppContextType {
   unarchiveCourse: (courseId: string) => void;
   upsertAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
   save: () => Promise<void>;
-  reloadData: () => void; // New function to reload data
+  loadData: () => void;
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
   getPaginatedAttendanceRecords: (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => void;
   attendanceRecords: AttendanceRecord[];
@@ -74,13 +64,10 @@ export const AppContext = createContext<AppContextType>({
   toggleTheme: () => { },
   toggleNotifications: () => { },
   addCourse: () => { },
-  editCourse: () => { },
   getCourse: () => undefined,
   updateCourse: () => { },
   deleteCourse: () => { },
-  changeAttendanceRecord: () => { },
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
-  markAttendance: () => { },
   addScheduleItem: () => { },
   addExtraClass: () => { },
   clearData: () => { },
@@ -90,7 +77,7 @@ export const AppContext = createContext<AppContextType>({
   unarchiveCourse: () => { },
   upsertAttendance: () => { },
   save: () => Promise.resolve(),
-  reloadData: () => { }, // Add default value for reloadData
+  loadData: () => { },
   getCoursesWithRecordsInRange: () => Promise.resolve([]),
   getPaginatedAttendanceRecords: () => { },
   attendanceRecords: [],
@@ -218,75 +205,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Course deleted successfully: ${courseId}`);
   };
 
-  const _updateAttendance = (
-    courseId: string,
-    date: string,
-    status: "present" | "absent" | "cancelled",
-    isExtraClass: boolean,
-    scheduleItemId: string | undefined,
-    timeStart: string,
-    timeEnd: string
-  ) => {
-    console.log(`[AppContext] _updateAttendance called for course: ${courseId}, date: ${date}, status: ${status}`);
-    const course = courses.find(c => c.id === courseId);
-    if (!course) {
-      console.log(`[AppContext] Course not found for _updateAttendance: ${courseId}`);
-      return;
-    }
-
-    const existingRecord = course.attendanceRecords?.find(
-      (record) =>
-        record.date === date &&
-        record.isExtraClass === isExtraClass &&
-        record.scheduleItemId === scheduleItemId
-    );
-
-    if (existingRecord) {
-      console.log(`[AppContext] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${status}.`);
-      if (existingRecord.status === status) {
-        console.log(`[AppContext] Status for record ${existingRecord.id} is already ${status}. No update needed.`);
-        return;
-      }
-      db.updateAttendanceRecord(existingRecord.id, status);
-    } else {
-      console.log(`[AppContext] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${status}.`);
-      const newRecord: AttendanceRecord = {
-        id: `${courseId}-${scheduleItemId}-${date}`,
-        course_id: courseId,
-        date,
-        status,
-        isExtraClass,
-        scheduleItemId,
-        timeStart,
-        timeEnd,
-      };
-      db.addAttendanceRecord(newRecord);
-    }
-    loadData();
-    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Data reloaded.`);
-  };
-
-  const markAttendance = (
-    courseId: string,
-    status: "present" | "absent" | "cancelled",
-    isExtraClass: boolean,
-    scheduleItemId: string | undefined,
-    timeStart: string,
-    timeEnd: string
-  ) => {
-    console.log(`[AppContext] markAttendance called for course: ${courseId}, status: ${status}`);
-    const todayDateString = format(new Date(), 'yyyy-MM-dd');
-    _updateAttendance(courseId, todayDateString, status, isExtraClass, scheduleItemId, timeStart, timeEnd);
-  };
-
-  const changeAttendanceRecord = (recordId: string, newStatus: "present" | "absent" | "cancelled") => {
-    console.log(`[AppContext] changeAttendanceRecord called for recordId: ${recordId}, newStatus: ${newStatus}`);
-    db.updateAttendanceRecord(recordId, newStatus);
-    loadData();
-    getPaginatedAttendanceRecords(currentPage, 10);
-    console.log(`[AppContext] Attendance record ${recordId} status changed to ${newStatus}. Data reloaded.`);
-  };
-
   const addScheduleItem = (courseId: string, newScheduleItem: ScheduleItem) => {
     console.log(`[AppContext] Adding schedule item to course: ${courseId}, day: ${newScheduleItem.day}, time: ${newScheduleItem.timeStart}-${newScheduleItem.timeEnd}`);
     db.addScheduleItem(courseId, newScheduleItem);
@@ -353,7 +271,43 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   const upsertAttendance = (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => {
     console.log(`[AppContext] upsertAttendance called for course: ${courseId}, scheduleId: ${scheduleId}, status: ${status}, date: ${date}`);
-    _updateAttendance(courseId, date, status, isExtraClass, scheduleId, timeStart, timeEnd);
+    const course = courses.find(c => c.id.toLowerCase() === courseId.toLowerCase());
+    if (!course) {
+      console.log(`[AppContext] Course not found for upsertAttendance: ${courseId}`);
+      return;
+    }
+
+    const existingRecord = course.attendanceRecords?.find(
+      (record) =>
+        record.date === date &&
+        record.isExtraClass === isExtraClass &&
+        record.timeStart === timeStart &&
+        record.timeEnd === timeEnd
+    );
+
+    if (existingRecord) {
+      console.log(`[AppContext] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${status}.`);
+      if (existingRecord.status === status) {
+        console.log(`[AppContext] Status for record ${existingRecord.id} is already ${status}. No update needed.`);
+        return;
+      }
+      db.updateAttendanceRecord(existingRecord.id, status);
+    } else {
+      console.log(`[AppContext] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${status}.`);
+      const newRecord: AttendanceRecord = {
+        id: `${courseId}-${scheduleId}-${date}`,
+        course_id: courseId,
+        date,
+        status,
+        isExtraClass,
+        scheduleItemId: scheduleId,
+        timeStart,
+        timeEnd,
+      };
+      db.addAttendanceRecord(newRecord);
+    }
+    loadData();
+    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Data reloaded.`);
   };
 
   const updateCourseCounts = (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
@@ -455,13 +409,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         toggleTheme,
         toggleNotifications,
         addCourse,
-        editCourse: updateCourse,
         getCourse: (courseId: string) => courses.find((course) => course.id === courseId),
         updateCourse,
         deleteCourse,
-        changeAttendanceRecord,
         isValidCourseId,
-        markAttendance,
         addScheduleItem,
         addExtraClass,
         clearData,
@@ -471,7 +422,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateCourseCounts,
         recalculateCourseCounts,
         save,
-        reloadData: loadData, // Pass the reloadData function
+        loadData,
         getCoursesWithRecordsInRange,
         getPaginatedAttendanceRecords,
         attendanceRecords,

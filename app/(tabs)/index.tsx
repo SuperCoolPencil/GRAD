@@ -68,7 +68,7 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, markAttendance, loading, is24Hour } = useContext(AppContext);
+  const { courses, upsertAttendance, loading, is24Hour } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
@@ -103,7 +103,7 @@ export default function TodaysClassesScreen() {
       <TodaysClassesContent
         key={courses.length}
         courses={courses}
-        markAttendance={markAttendance}
+        upsertAttendance={upsertAttendance}
         loading={loading}
         todaysClasses={todaysClasses}
         setTodaysClasses={setTodaysClasses}
@@ -131,7 +131,7 @@ export default function TodaysClassesScreen() {
 
 function TodaysClassesContent({
   courses,
-  markAttendance,
+  upsertAttendance,
   loading,
   todaysClasses,
   setTodaysClasses,
@@ -139,7 +139,7 @@ function TodaysClassesContent({
   is24Hour,
 }: {
   courses: any;
-  markAttendance: any;
+  upsertAttendance: any;
   loading: any;
   todaysClasses: any;
   setTodaysClasses: any;
@@ -253,10 +253,12 @@ function TodaysClassesContent({
     timeStart: string,
     timeEnd: string
   ) => {
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
     const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
     const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
 
-    markAttendance(courseId, status, isExtraClass, scheduleItemId || extraClassId, timeStart, timeEnd);
+    upsertAttendance(courseId, scheduleItemId || extraClassId || '', status, isExtraClass, timeStart, timeEnd, dateString);
     setMarkedClasses((prevMarkedClasses) => {
       return { ...prevMarkedClasses, [itemId]: status };
     });

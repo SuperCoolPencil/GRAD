@@ -24,7 +24,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, reloadData, settings, updateSetting } = useContext(AppContext); // Added reloadData
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
 
@@ -110,10 +110,10 @@ export default function SettingsScreen() {
           to: dbPath,
         });
 
-        // Reopen the database and reload data
+        // Reopen the database and load data
         reopenDatabase();
-        if (reloadData) {
-          reloadData();
+        if (loadData) {
+          loadData();
         }
 
         showAlert("Success", "Database imported successfully. Please restart the app if you encounter any issues.");
@@ -276,8 +276,8 @@ export default function SettingsScreen() {
           <SettingsButton
             onPress={() => {
               clearCourseColors();
-              if (reloadData) {
-                reloadData();
+              if (loadData) {
+                loadData();
               }
               showAlert("Colors Refreshed", "Course colors have been updated.");
             }}

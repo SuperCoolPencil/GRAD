@@ -57,7 +57,7 @@ export default function CourseDetailScreen() {
     courses,
     loading,
     deleteCourse,
-    changeAttendanceRecord,
+    upsertAttendance,
     updateCourse,
     updateCourseCounts,
     archiveCourse, // Import archiveCourse
@@ -97,16 +97,16 @@ export default function CourseDetailScreen() {
       [
         {
           text: 'Present',
-          onPress: () => changeAttendanceRecord(recordId, 'present'),
+          onPress: () => upsertAttendance(course.id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
         },
         {
           text: 'Absent',
-          onPress: () => changeAttendanceRecord(recordId, 'absent'),
+          onPress: () => upsertAttendance(course.id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
         },
         {
           text: 'Cancelled',
           onPress: () =>
-            changeAttendanceRecord(recordId, 'cancelled'),
+            upsertAttendance(course.id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
         },
         { text: 'Cancel', style: 'cancel' },
       ]
