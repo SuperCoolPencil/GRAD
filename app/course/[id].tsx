@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Modal } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
+import AttendanceHistory from '@/components/AttendanceHistory';
 import { AppContext } from '@/context/AppContext';
 import { formatTime } from '@/utils/time';
 import { ThemedText } from '@/components/ThemedText';
@@ -62,6 +63,10 @@ export default function CourseDetailScreen() {
     updateCourseCounts,
     archiveCourse, // Import archiveCourse
     is24Hour,
+    getPaginatedAttendanceRecords,
+    attendanceRecords,
+    totalRecords,
+    loadData,
   } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -77,12 +82,17 @@ export default function CourseDetailScreen() {
   const [configModalVisible, setConfigModalVisible] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [countType, setCountType] = useState<"presents" | "absents" | "cancelled">("presents");
+  const [page, setPage] = useState(1);
+  const recordsPerPage = 10;
 
-  const handleAttendanceClick = (recordId: string) => {
-    if (!course) return;
+  useEffect(() => {
+    if (course) {
+      getPaginatedAttendanceRecords(page, recordsPerPage, course.id);
+    }
+  }, [page, course]);
 
-    const record = course.attendanceRecords?.find((r) => r.id === recordId);
-    if (!record) return;
+  const handleAttendanceClick = (record: AttendanceRecord) => {
+    if (!course || !record) return;
 
     const recordDate = new Date(record.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
@@ -93,20 +103,28 @@ export default function CourseDetailScreen() {
 
     showAlert(
       'Change Attendance Status',
-      `Select the new status for ${formattedDate}.`,
+      `Change status for ${course.name} on ${formattedDate}.`,
       [
         {
           text: 'Present',
-          onPress: () => upsertAttendance(course.id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
+          },
         },
         {
           text: 'Absent',
-          onPress: () => upsertAttendance(course.id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
+          },
         },
         {
           text: 'Cancelled',
-          onPress: () =>
-            upsertAttendance(course.id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date),
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
+          },
         },
         { text: 'Cancel', style: 'cancel' },
       ]
@@ -404,61 +422,16 @@ export default function CourseDetailScreen() {
           </ThemedView>
         )}
 
-        {(course.attendanceRecords && course.attendanceRecords.length > 0) ? (
-          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Attendance History
-            </ThemedText>
-            {[...course.attendanceRecords]
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((record) => {
-                const recordDate = new Date(record.date);
-                const formattedDate = recordDate.toLocaleDateString(undefined, {
-                  year: 'numeric', month: 'long', day: 'numeric'
-                });
-                let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
-                let statusColor = Colors[colorScheme].text;
-                let displayStatusText = 'Unknown';
-
-                switch (record.status) {
-                  case 'present':
-                    statusIcon = 'checkmark-circle-outline';
-                    statusColor = Colors[colorScheme].success;
-                    displayStatusText = 'Present';
-                    break;
-                  case 'absent':
-                    statusIcon = 'close-circle-outline';
-                    statusColor = Colors[colorScheme].error;
-                    displayStatusText = 'Absent';
-                    break;
-                  case 'cancelled':
-                    statusIcon = 'remove-circle-outline';
-                    statusColor = Colors[colorScheme].warning;
-                    displayStatusText = 'Cancelled';
-                    break;
-                }
-
-                return (
-                  <TouchableOpacity key={record.id} style={styles.historyItem} onPress={() => handleAttendanceClick(record.id)}>
-                    <Ionicons name={statusIcon} size={18} color={statusColor} />
-                    <ThemedText style={[styles.historyText, { color: statusColor }]}>
-                      {displayStatusText}
-                    </ThemedText>
-                    <ThemedText style={styles.historyDateText}>
-                      on {formattedDate} {record.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
-                    </ThemedText>
-                  </TouchableOpacity>
-                );
-              })}
-          </ThemedView>
-        ) : (
-          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card, borderLeftWidth: 0 }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Attendance History
-            </ThemedText>
-            <ThemedText style={{ opacity: 0.7 }}>No attendance recorded yet.</ThemedText>
-          </ThemedView>
-        )}
+        <AttendanceHistory
+          title="Attendance History"
+          courseId={course.id}
+          records={attendanceRecords}
+          onRecordClick={handleAttendanceClick}
+          currentPage={page}
+          totalRecords={totalRecords}
+          recordsPerPage={recordsPerPage}
+          onPageChange={setPage}
+        />
 
         <View style={{ height: 20 }} />
       </ScrollView>
