@@ -16,7 +16,7 @@ export interface ClassItem {
 
 import { formatDateToISO } from '@/utils/dateHelpers';
 
-export const useAttendanceActions = (refetch: () => void) => {
+export const useAttendanceActions = () => {
   const { upsertAttendance } = useContext(AppContext);
   const { showAlert } = useCustomAlert();
 
@@ -26,7 +26,6 @@ export const useAttendanceActions = (refetch: () => void) => {
 
     const handleAttendanceChange = (newStatus: 'present' | 'absent' | 'cancelled') => {
       upsertAttendance(course.id, schedule.id, newStatus, schedule.isExtraClass, schedule.timeStart, schedule.timeEnd, dateString);
-      refetch();
     };
 
     showAlert(

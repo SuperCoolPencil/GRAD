@@ -20,8 +20,8 @@ export default function VisualAttendanceTracker() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const { classes, courseColors, startHour, endHour, loading, error, refetch } = useAttendanceData(startDate, true);
-  const { handleSelectClass } = useAttendanceActions(refetch);
+  const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, true);
+  const { handleSelectClass } = useAttendanceActions();
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -147,7 +147,6 @@ export default function VisualAttendanceTracker() {
       left: 4,
       right: 4,
       borderRadius: 8,
-      borderWidth: 1,
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'hidden',

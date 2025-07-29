@@ -19,6 +19,7 @@ interface AppContextType {
   notificationsEnabled: boolean;
   is24Hour: boolean;
   settings: { [key: string]: any };
+  refreshKey: number; // Add refreshKey to context type
   updateSetting: (key: string, value: any) => void;
   toggle24Hour: () => void;
   updateNotificationTime: (time: number) => void;
@@ -44,6 +45,7 @@ interface AppContextType {
   upsertAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
   save: () => Promise<void>;
   loadData: () => void;
+  triggerRefresh: () => void; // Add triggerRefresh to context type
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
   getPaginatedAttendanceRecords: (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => void;
   attendanceRecords: AttendanceRecord[];
@@ -58,6 +60,7 @@ export const AppContext = createContext<AppContextType>({
   notificationsEnabled: false,
   is24Hour: false,
   settings: {},
+  refreshKey: 0, // Initialize refreshKey
   updateSetting: () => { },
   toggle24Hour: () => { },
   updateNotificationTime: () => { },
@@ -78,6 +81,7 @@ export const AppContext = createContext<AppContextType>({
   upsertAttendance: () => { },
   save: () => Promise.resolve(),
   loadData: () => { },
+  triggerRefresh: () => { }, // Initialize triggerRefresh
   getCoursesWithRecordsInRange: () => Promise.resolve([]),
   getPaginatedAttendanceRecords: () => { },
   attendanceRecords: [],
@@ -99,6 +103,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0); // New state for refresh
 
   const updateSetting = (key: string, value: any) => {
     console.log(`[AppContext] updateSetting: key=${key}, value=${value}`);
@@ -130,11 +135,23 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
+  const triggerRefresh = () => {
+    console.log('[AppContext] Forcing refresh...');
+    setRefreshKey(prev => prev + 1);
+    loadData(); // Also reload data when refresh is triggered
+  };
+
   useEffect(() => {
     console.log('[AppContext] Initializing database and loading data on mount.');
     db.initDatabase();
-    createMissingAttendanceRecords();
-    loadData();
+    const needsUpdate = createMissingAttendanceRecords();
+    if (needsUpdate) {
+      console.log('[AppContext] New attendance records were created, triggering refresh.');
+      triggerRefresh(); // Call triggerRefresh if update is needed
+    } else {
+      console.log('[AppContext] No new attendance records, loading initial data.');
+      loadData(); // Load initial data if no update is needed
+    }
   }, []);
 
 
@@ -306,8 +323,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       };
       db.addAttendanceRecord(newRecord);
     }
-    loadData();
-    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Data reloaded.`);
+    triggerRefresh(); // Use triggerRefresh to force refresh across components
+    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Triggered refresh.`);
   };
 
   const updateCourseCounts = (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
@@ -403,6 +420,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         notificationsEnabled,
         is24Hour,
         settings,
+        refreshKey, // Add refreshKey here
         updateSetting,
         toggle24Hour,
         updateNotificationTime,
@@ -423,6 +441,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         recalculateCourseCounts,
         save,
         loadData,
+        triggerRefresh, // Add triggerRefresh here
         getCoursesWithRecordsInRange,
         getPaginatedAttendanceRecords,
         attendanceRecords,

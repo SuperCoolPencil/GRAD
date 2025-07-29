@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
+import { AppContext } from '@/context/AppContext';
 import { getCoursesWithRecordsInRange, getWeeklySchedule, getCourses, initDatabase, getAttendanceRecords } from '@/utils/database';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
 import {
@@ -23,7 +24,7 @@ export interface ClassItem {
 }
 
 export const useAttendanceData = (startDate: Date, filterCourses = false) => {
-  const [dbInitialized, setDbInitialized] = useState(false);
+  const { refreshKey, courses: appCourses } = useContext(AppContext);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
   const [courseColors, setCourseColors] = useState<Record<string, string>>({});
@@ -53,7 +54,6 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
   };
 
   const fetchCoursesAndSchedule = useCallback(() => {
-    if (!dbInitialized) return;
     setLoading(true);
     setError(null);
     try {
@@ -87,23 +87,11 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, dbInitialized]);
+  }, [startDate, filterCourses, appCourses]); // Add appCourses to dependencies
 
   useEffect(() => {
-    try {
-      initDatabase();
-      setDbInitialized(true);
-    } catch (e) {
-      setError('Failed to initialize database.');
-      console.error(e);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (dbInitialized) {
-      fetchCoursesAndSchedule();
-    }
-  }, [fetchCoursesAndSchedule, dbInitialized]);
+    fetchCoursesAndSchedule();
+  }, [fetchCoursesAndSchedule, refreshKey]); // Add refreshKey to dependencies
 
   useEffect(() => {
     const newClasses: Record<string, ClassItem[]> = {};
@@ -124,6 +112,7 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
           const course = courses.find(c => c.id === record.course_id);
           if (record.status === 'cancelled') return;
           if (!course || !course.showInTracker) return;
+          // console.log("Rendering record:", record.id, "for course:", course.id);
           const classItem: ClassItem = {
             course,
             schedule: {
@@ -196,7 +185,10 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
       setStartHour(8);
       setEndHour(12);
     }
-  }, [courses, startDate]);
+
+    console.log(`[ATTEND] Classes loaded for ${Object.keys(newClasses).length} days starting from ${formatDateToISO(startDate)}.`);
+
+  }, [courses, startDate, refreshKey]); // Add refreshKey to dependencies
 
   return { classes, courseColors, startHour, endHour, loading, error, refetch: fetchCoursesAndSchedule };
 };

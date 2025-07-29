@@ -68,7 +68,7 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, upsertAttendance, loading, is24Hour } = useContext(AppContext);
+  const { courses, upsertAttendance, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
@@ -109,6 +109,7 @@ export default function TodaysClassesScreen() {
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
         is24Hour={is24Hour}
+        refreshKey={refreshKey} // Pass refreshKey here
       />
       <CustomAlert
         isVisible={showAlert}
@@ -137,6 +138,7 @@ function TodaysClassesContent({
   setTodaysClasses,
   colorScheme,
   is24Hour,
+  refreshKey, // Add refreshKey here
 }: {
   courses: any;
   upsertAttendance: any;
@@ -145,6 +147,7 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
+  refreshKey: number; // Add refreshKey to type
 }) {
   const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
 
@@ -243,7 +246,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading]);
+  }, [courses, loading, refreshKey]);
 
   const handleMarkAttendance = (
     courseId: string,

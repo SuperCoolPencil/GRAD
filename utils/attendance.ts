@@ -101,7 +101,7 @@ const processExtraClasses = (
   }
 };
 
-export const createMissingAttendanceRecords = () => {
+export const createMissingAttendanceRecords = (): boolean => {
   if (!db) throw new Error('DB not initialized');
   console.log('[ATTEND] Starting to create missing attendance records...');
   const now = new Date();
@@ -142,10 +142,16 @@ export const createMissingAttendanceRecords = () => {
     processExtraClasses(course, lastRecordDate, endDate, existingRecordIds, newRecords, courseCounts, defaultStatus);
   }
 
-  console.log(`[ATTEND] Found ${newRecords.length} new attendance records to create.`);
-  bulkAddAttendanceRecords(newRecords);
-  bulkUpdateCourseCounts(courseCounts);
-  console.log('[ATTEND] Finished creating missing attendance records.');
+  if (newRecords.length > 0) {
+    console.log(`[ATTEND] Found ${newRecords.length} new attendance records to create.`);
+    bulkAddAttendanceRecords(newRecords);
+    bulkUpdateCourseCounts(courseCounts);
+    console.log('[ATTEND] Finished creating missing attendance records.');
+    return true;
+  }
+
+  console.log('[ATTEND] No new attendance records to create.');
+  return false;
 };
 
 export const calculateAttendancePercentage = (presents: number, absents: number): number => {

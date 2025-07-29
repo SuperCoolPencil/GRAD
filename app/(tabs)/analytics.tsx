@@ -86,23 +86,44 @@ export default function AnalyticsScreen() {
       [
         {
           text: 'Present',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
+          onPress: async () => {
+            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) await loadData();
+            getPaginatedAttendanceRecords(
+              page,
+              recordsPerPage,
+              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              fromDate ? formatDateForQuery(fromDate) : undefined,
+              toDate ? formatDateForQuery(toDate) : undefined
+            );
           },
         },
         {
           text: 'Absent',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
+          onPress: async () => {
+            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) await loadData();
+            getPaginatedAttendanceRecords(
+              page,
+              recordsPerPage,
+              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              fromDate ? formatDateForQuery(fromDate) : undefined,
+              toDate ? formatDateForQuery(toDate) : undefined
+            );
           },
         },
         {
           text: 'Cancelled',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
+          onPress: async () => {
+            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) await loadData();
+            getPaginatedAttendanceRecords(
+              page,
+              recordsPerPage,
+              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              fromDate ? formatDateForQuery(fromDate) : undefined,
+              toDate ? formatDateForQuery(toDate) : undefined
+            );
           },
         },
         { text: 'Cancel', style: 'cancel' },
