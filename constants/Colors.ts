@@ -50,7 +50,19 @@ export const Colors = {
     card: '#151515',
     alert:'#262626',
     alertPrimary: '#0096FF',
-    alertDestructive: '#c93d33',
+    alertDestructive: '#fb1e08',
     separator: 'rgba(128, 128, 128, 0.2)',
+  },
+  courseColors: {
+    A: '#1E90FF',
+    B: '#ffae00ff',
+    C: '#FF6600',
+    D: '#FF00AA',
+    E: '#9933FF',
+    G: '#02c3d1ff',
+    H: '#01ce89ff',
+    F: '#FF3333',
+    I: '#a1c903ff'
+
   },
 };

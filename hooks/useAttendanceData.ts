@@ -11,6 +11,7 @@ import {
   isDateInPast,
   parse24HToDate,
 } from '@/utils/dateHelpers';
+import { Colors } from '@/constants/Colors';
 
 interface ClassSession extends ScheduleItem {
   isExtraClass: boolean;
@@ -33,24 +34,14 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const colorPalette = [
-    '#F28500', // Tangerine
-    '#5F8575', // Basil
-    '#33A1C9', // Peacock
-    '#4F86F7', // Blueberry
-    '#B284BE', // Lavender
-    '#6F2DA8', // Grape
-    '#FF88A7', // Flamingo
-    '#616161', // Graphite
-    '#87CEEB', // Sky Blue
-  ];
-
   const getCourseColor = (course: Course, allCourseIds: string[]) => {
     if (course.color) {
       return course.color;
     }
+    const colorNames = Object.keys(Colors.courseColors);
     const index = allCourseIds.indexOf(course.id);
-    return colorPalette[index % colorPalette.length];
+    const colorName = colorNames[index % colorNames.length];
+    return Colors.courseColors[colorName as keyof typeof Colors.courseColors];
   };
 
   const fetchCoursesAndSchedule = useCallback(() => {
