@@ -65,10 +65,31 @@ const DayColumn: React.FC<DayColumnProps> = ({
               }}
             >
               <View style={styles.verticalTextContainer}>
-                <ThemedText style={[styles.courseCode, { color: 'white' }]} numberOfLines={1}>
-                  {(widths[`${classItem.course.id}-${index}`] || 100) > 35
-                    ? classItem.course.name
-                    : classItem.course.id}
+                <ThemedText style={[styles.courseCode, { color: 'white' }]} numberOfLines={1} ellipsizeMode="tail">
+                  {(() => {
+                    const blockWidth = widths[`${classItem.course.id}-${index}`];
+                    if (blockWidth === undefined) {
+                      return classItem.course.name; // Default to name and let it truncate
+                    }
+
+                    // Heuristic for average character width.
+                    const avgCharWidth = 7;
+                    
+                    const nameFits = classItem.course.name.length * avgCharWidth < blockWidth;
+                    if (nameFits) {
+                      return classItem.course.name;
+                    }
+
+                    const idFits = classItem.course.id.length * avgCharWidth < blockWidth;
+                    if (idFits) {
+                      return classItem.course.id;
+                    }
+
+                    // If neither fits completely, return the shorter of the two to minimize truncation.
+                    return classItem.course.id.length < classItem.course.name.length
+                      ? classItem.course.id
+                      : classItem.course.name;
+                  })()}
                 </ThemedText>
               </View>
             </TouchableOpacity>
