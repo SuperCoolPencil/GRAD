@@ -142,6 +142,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
       attendanceRecords: initialData?.attendanceRecords || [],
       extraClasses: initialData?.extraClasses || [],
       attendancePercentage: 100,
+      showInTracker: isEditing ? initialData?.showInTracker : true,
+      showInHeatmap: isEditing ? initialData?.showInHeatmap : true,
+      showInRadar: isEditing ? initialData?.showInRadar : true,
     };
 
     if (weeklySchedule.length === 0) {

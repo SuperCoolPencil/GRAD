@@ -35,9 +35,9 @@ export interface Course {
   extraClasses?: ExtraClass[];
   attendanceRecords?: AttendanceRecord[];
   attendancePercentage?: number;
-  showInTracker?: boolean;
-  showInHeatmap?: boolean;
-  showInRadar?: boolean;
+  showInTracker?: boolean | number;
+  showInHeatmap?: boolean | number;
+  showInRadar?: boolean | number;
   isArchived?: boolean;
   createdAt?: string;
   archivedAt?: string;
