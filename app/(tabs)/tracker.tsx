@@ -159,6 +159,9 @@ export default function VisualAttendanceTracker() {
     verticalTextContainer: {
       position: 'absolute',
       transform: [{ rotate: '-90deg' }],
+      overflow: 'hidden',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     presentBlock: {
       borderColor: Colors[colorScheme].success,
@@ -181,6 +184,7 @@ export default function VisualAttendanceTracker() {
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
+      flexShrink: 1,
     },
   }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
 

@@ -27,7 +27,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
   handleSelectClass,
   courseColors,
 }) => {
-  const [widths, setWidths] = useState<Record<string, number>>({});
   const date = parseISOToDate(dateString);
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -59,37 +58,14 @@ const DayColumn: React.FC<DayColumnProps> = ({
               ]}
               onPress={() => handleSelectClass(classItem, date)}
               disabled={!isDateInPast(date)}
-              onLayout={(event) => {
-                const { width } = event.nativeEvent.layout;
-                setWidths((prev) => ({ ...prev, [`${classItem.course.id}-${index}`]: width }));
-              }}
             >
-              <View style={styles.verticalTextContainer}>
-                <ThemedText style={[styles.courseCode, { color: 'white' }]} numberOfLines={1} ellipsizeMode="tail">
-                  {(() => {
-                    const blockWidth = widths[`${classItem.course.id}-${index}`];
-                    if (blockWidth === undefined) {
-                      return classItem.course.name; // Default to name and let it truncate
-                    }
-
-                    // Heuristic for average character width.
-                    const avgCharWidth = 7;
-                    
-                    const nameFits = classItem.course.name.length * avgCharWidth < blockWidth;
-                    if (nameFits) {
-                      return classItem.course.name;
-                    }
-
-                    const idFits = classItem.course.id.length * avgCharWidth < blockWidth;
-                    if (idFits) {
-                      return classItem.course.id;
-                    }
-
-                    // If neither fits completely, return the shorter of the two to minimize truncation.
-                    return classItem.course.id.length < classItem.course.name.length
-                      ? classItem.course.id
-                      : classItem.course.name;
-                  })()}
+              <View style={[styles.verticalTextContainer, { paddingHorizontal: 2 }]}>
+                <ThemedText
+                  style={[styles.courseCode, { color: 'white' }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {classItem.course.name}
                 </ThemedText>
               </View>
             </TouchableOpacity>
