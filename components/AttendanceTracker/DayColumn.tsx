@@ -59,7 +59,13 @@ const DayColumn: React.FC<DayColumnProps> = ({
               onPress={() => handleSelectClass(classItem, date)}
               disabled={!isDateInPast(date)}
             >
-              <View style={[styles.verticalTextContainer, { paddingHorizontal: 2 }]}>
+              <View style={[
+                styles.verticalTextContainer,
+                {
+                  width: height,
+                  height: styles.dayColumn.width - 8, // classBlock has left: 4, right: 4
+                }
+              ]}>
                 <ThemedText
                   style={[styles.courseCode, { color: 'white' }]}
                   numberOfLines={1}
