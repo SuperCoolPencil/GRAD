@@ -71,6 +71,7 @@ export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
+  const [currentDate] = useState(new Date());
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
 
@@ -101,7 +102,7 @@ export default function TodaysClassesScreen() {
         </TouchableOpacity>
       </View>
       <TodaysClassesContent
-        key={courses.length}
+        key={refreshKey}
         courses={courses}
         upsertAttendance={upsertAttendance}
         loading={loading}
@@ -110,6 +111,7 @@ export default function TodaysClassesScreen() {
         colorScheme={colorScheme}
         is24Hour={is24Hour}
         refreshKey={refreshKey} // Pass refreshKey here
+        currentDate={currentDate}
       />
       <CustomAlert
         isVisible={showAlert}
@@ -139,6 +141,7 @@ function TodaysClassesContent({
   colorScheme,
   is24Hour,
   refreshKey, // Add refreshKey here
+  currentDate,
 }: {
   courses: any;
   upsertAttendance: any;
@@ -148,6 +151,7 @@ function TodaysClassesContent({
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
   refreshKey: number; // Add refreshKey to type
+  currentDate: Date;
 }) {
   const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
 
@@ -182,9 +186,8 @@ function TodaysClassesContent({
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
 
-    const today = new Date();
-    const currentDayName = DAYS_OF_WEEK[today.getDay()];
-    const currentDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentDayName = DAYS_OF_WEEK[currentDate.getDay()];
+    const currentDateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
     const classesForToday: ClassItem[] = [];
 
@@ -246,7 +249,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, refreshKey]);
+  }, [courses, loading, refreshKey, currentDate]);
 
   const handleMarkAttendance = (
     courseId: string,
@@ -256,8 +259,7 @@ function TodaysClassesContent({
     timeStart: string,
     timeEnd: string
   ) => {
-    const today = new Date();
-    const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
     const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
     const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
 
