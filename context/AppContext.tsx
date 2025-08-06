@@ -393,7 +393,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   };
 
   const getPaginatedAttendanceRecords = (page: number, limit: number, courseIds?: string[], startDate?: string, endDate?: string) => {
-    console.log(`[AppContext] Getting paginated attendance records: page=${page}, limit=${limit}, courseIds=${courseIds?.join(',') || 'all'}, startDate=${startDate || 'N/A'}, endDate=${endDate || 'N/A'}`);
+    console.log(`[AppContext] Getting paginated attendance records: page=${page}, limit=${limit}, courseIds=${(courseIds && Array.isArray(courseIds)) ? courseIds.join(',') : 'all'}, startDate=${startDate || 'N/A'}, endDate=${endDate || 'N/A'}`);
     setLoading(true);
     try {
       setCurrentPage(page);

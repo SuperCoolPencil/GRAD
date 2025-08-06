@@ -87,7 +87,7 @@ export default function CourseDetailScreen() {
 
   useEffect(() => {
     if (course) {
-      getPaginatedAttendanceRecords(page, recordsPerPage, course.id);
+      getPaginatedAttendanceRecords(page, recordsPerPage, [course.id]);
     }
   }, [page, course]);
 
@@ -426,6 +426,7 @@ export default function CourseDetailScreen() {
           title="Attendance History"
           courseId={course.id}
           records={attendanceRecords}
+          courses={courses}
           onRecordClick={handleAttendanceClick}
           currentPage={page}
           totalRecords={totalRecords}

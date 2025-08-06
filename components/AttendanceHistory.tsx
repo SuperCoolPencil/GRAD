@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FlatList, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -9,6 +9,7 @@ import PaginationControls from './PaginationControls';
 
 interface AttendanceHistoryProps {
   title: string;
+  courseId?: string;
   records: AttendanceRecord[];
   courses: Course[];
   onRecordClick: (record: AttendanceRecord) => void;
@@ -23,6 +24,7 @@ interface AttendanceHistoryProps {
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   title,
+  courseId,
   records,
   courses,
   onRecordClick,
@@ -48,24 +50,24 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     let statusColor = Colors[colorScheme].text;
     let displayStatusText = 'Unknown';
 
-    const course = courses.find(c => c.id === item.course_id);
+    const course = courses?.find((c) => c.id === item.course_id);
     const courseName = course ? course.name : item.course_id;
 
     switch (item.status) {
       case 'present':
         statusIcon = 'checkmark-circle-outline';
         statusColor = Colors[colorScheme].success;
-        displayStatusText = `${courseName} - Present`;
+        displayStatusText = courseId ? 'Present' : `${courseName} - Present`;
         break;
       case 'absent':
         statusIcon = 'close-circle-outline';
         statusColor = Colors[colorScheme].error;
-        displayStatusText = `${courseName} - Absent`;
+        displayStatusText = courseId ? 'Absent' : `${courseName} - Absent`;
         break;
       case 'cancelled':
         statusIcon = 'remove-circle-outline';
         statusColor = Colors[colorScheme].warning;
-        displayStatusText = `${courseName} - Cancelled`;
+        displayStatusText = courseId ? 'Cancelled' : `${courseName} - Cancelled`;
         break;
     }
 
@@ -82,6 +84,13 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     );
   };
 
+  const filteredRecords = useMemo(() => {
+    if (courseId) {
+      return records.filter((record) => record.course_id === courseId);
+    }
+    return records;
+  }, [records, courseId]);
+
   return (
     <ThemedView style={styles.card}>
       <ThemedText type="subtitle" style={styles.cardTitle}>
@@ -89,7 +98,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
       </ThemedText>
       {ListHeaderComponent}
       <FlatList
-        data={records}
+        data={filteredRecords}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListFooterComponent={
