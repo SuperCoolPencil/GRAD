@@ -47,7 +47,7 @@ interface AppContextType {
   loadData: () => void;
   triggerRefresh: () => void; // Add triggerRefresh to context type
   getCoursesWithRecordsInRange: (startDate: string, endDate: string) => Promise<Course[]>;
-  getPaginatedAttendanceRecords: (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => void;
+  getPaginatedAttendanceRecords: (page: number, limit: number, courseIds?: string[], startDate?: string, endDate?: string) => void;
   attendanceRecords: AttendanceRecord[];
   totalRecords: number;
 }
@@ -392,14 +392,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const getPaginatedAttendanceRecords = (page: number, limit: number, courseId?: string, startDate?: string, endDate?: string) => {
-    console.log(`[AppContext] Getting paginated attendance records: page=${page}, limit=${limit}, courseId=${courseId || 'all'}, startDate=${startDate || 'N/A'}, endDate=${endDate || 'N/A'}`);
+  const getPaginatedAttendanceRecords = (page: number, limit: number, courseIds?: string[], startDate?: string, endDate?: string) => {
+    console.log(`[AppContext] Getting paginated attendance records: page=${page}, limit=${limit}, courseIds=${courseIds?.join(',') || 'all'}, startDate=${startDate || 'N/A'}, endDate=${endDate || 'N/A'}`);
     setLoading(true);
     try {
       setCurrentPage(page);
       const offset = (page - 1) * limit;
-      const records = db.getAttendanceRecords(limit, offset, courseId, startDate, endDate);
-      const total = db.getAttendanceRecordsCount(courseId, startDate, endDate);
+      const records = db.getAttendanceRecords(limit, offset, courseIds, startDate, endDate);
+      const total = db.getAttendanceRecordsCount(courseIds, startDate, endDate);
       setAttendanceRecords(records);
       setTotalRecords(total);
       console.log(`[AppContext] Loaded ${records.length} records (total: ${total}) for page ${page}.`);

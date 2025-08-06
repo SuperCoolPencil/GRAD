@@ -494,19 +494,19 @@ export const bulkAddAttendanceRecords = (records: AttendanceRecord[]) => {
 export const getAttendanceRecords = (
   limit: number,
   offset: number,
-  courseId?: string,
+  courseIds?: string[],
   startDate?: string,
   endDate?: string
 ): AttendanceRecord[] => {
   let query = 'SELECT * FROM attendance_records';
   const params: any[] = [];
 
-  if (courseId || startDate || endDate) {
+  if ((courseIds && courseIds.length > 0) || startDate || endDate) {
     query += ' WHERE';
     let conditions: string[] = [];
-    if (courseId) {
-      conditions.push('course_id = ?');
-      params.push(courseId);
+    if (courseIds && courseIds.length > 0) {
+      conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
+      params.push(...courseIds);
     }
     if (startDate) {
       conditions.push('class_date >= ?');
@@ -539,19 +539,19 @@ export const getAttendanceRecords = (
 };
 
 export const getAttendanceRecordsCount = (
-  courseId?: string,
+  courseIds?: string[],
   startDate?: string,
   endDate?: string
 ): number => {
   let query = 'SELECT COUNT(*) as count FROM attendance_records';
   const params: any[] = [];
 
-  if (courseId || startDate || endDate) {
+  if ((courseIds && courseIds.length > 0) || startDate || endDate) {
     query += ' WHERE';
     let conditions: string[] = [];
-    if (courseId) {
-      conditions.push('course_id = ?');
-      params.push(courseId);
+    if (courseIds && courseIds.length > 0) {
+      conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
+      params.push(...courseIds);
     }
     if (startDate) {
       conditions.push('class_date >= ?');

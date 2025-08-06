@@ -63,7 +63,7 @@ export default function AnalyticsScreen() {
     getPaginatedAttendanceRecords(
       page,
       recordsPerPage,
-      selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+      selectedCourses,
       fromDate ? formatDateForQuery(fromDate) : undefined,
       toDate ? formatDateForQuery(toDate) : undefined
     );
@@ -92,7 +92,7 @@ export default function AnalyticsScreen() {
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
-              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              selectedCourses,
               fromDate ? formatDateForQuery(fromDate) : undefined,
               toDate ? formatDateForQuery(toDate) : undefined
             );
@@ -106,7 +106,7 @@ export default function AnalyticsScreen() {
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
-              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              selectedCourses,
               fromDate ? formatDateForQuery(fromDate) : undefined,
               toDate ? formatDateForQuery(toDate) : undefined
             );
@@ -120,7 +120,7 @@ export default function AnalyticsScreen() {
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
-              selectedCourses.length > 0 ? selectedCourses[0] : undefined,
+              selectedCourses,
               fromDate ? formatDateForQuery(fromDate) : undefined,
               toDate ? formatDateForQuery(toDate) : undefined
             );
@@ -384,6 +384,7 @@ export default function AnalyticsScreen() {
       <AttendanceHistory
         title="Attendance History"
         records={attendanceRecords}
+        courses={courses}
         onRecordClick={handleAttendanceClick}
         ListHeaderComponent={<HistoryFilters />}
         currentPage={page}

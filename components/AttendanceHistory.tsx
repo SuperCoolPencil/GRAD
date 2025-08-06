@@ -4,13 +4,13 @@ import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
-import { AttendanceRecord } from '@/types';
+import { AttendanceRecord, Course } from '@/types';
 import PaginationControls from './PaginationControls';
 
 interface AttendanceHistoryProps {
   title: string;
-  courseId?: string;
   records: AttendanceRecord[];
+  courses: Course[];
   onRecordClick: (record: AttendanceRecord) => void;
   ListHeaderComponent?: React.ReactElement;
   currentPage: number;
@@ -23,8 +23,8 @@ interface AttendanceHistoryProps {
 
 const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   title,
-  courseId,
   records,
+  courses,
   onRecordClick,
   ListHeaderComponent,
   currentPage,
@@ -48,42 +48,24 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     let statusColor = Colors[colorScheme].text;
     let displayStatusText = 'Unknown';
 
-    // console.log(`[ATTEND] Rendering record: ${item.id} for course: ${item.course_id}`);
-
-    if (courseId && item.course_id !== courseId) {
-      return null; // Skip records that don't match the courseId
-    }
+    const course = courses.find(c => c.id === item.course_id);
+    const courseName = course ? course.name : item.course_id;
 
     switch (item.status) {
       case 'present':
         statusIcon = 'checkmark-circle-outline';
         statusColor = Colors[colorScheme].success;
-        if (!courseId) {
-          displayStatusText = `${item.course_id} - Present`;
-        }
-        else {
-          displayStatusText = 'Present';
-        }
+        displayStatusText = `${courseName} - Present`;
         break;
       case 'absent':
         statusIcon = 'close-circle-outline';
         statusColor = Colors[colorScheme].error;
-        if (!courseId) {
-          displayStatusText = `${item.course_id} - Absent`;
-        }
-        else {
-          displayStatusText = 'Absent';
-        }
+        displayStatusText = `${courseName} - Absent`;
         break;
       case 'cancelled':
         statusIcon = 'remove-circle-outline';
         statusColor = Colors[colorScheme].warning;
-        if (!courseId) {
-          displayStatusText = `${item.course_id} - Cancelled`;
-        }
-        else {
-          displayStatusText = 'Cancelled';
-        }
+        displayStatusText = `${courseName} - Cancelled`;
         break;
     }
 
