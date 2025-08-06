@@ -602,6 +602,11 @@ export const addExtraClass = (courseId: string, item: ExtraClass) => {
   );
 };
 
+export const deleteExtraClass = (courseId: string, extraClassId: string) => {
+  console.log(`[DB] Deleting extra class: ${extraClassId} from course: ${courseId}`);
+  db.runSync('DELETE FROM extra_classes WHERE id = ? AND course_id = ?', extraClassId, courseId);
+};
+
 export const archiveCourse = (courseId: string) => {
   console.log(`[DB] Archiving course: ${courseId}`);
   db.runSync('UPDATE courses SET is_archived = 1, archived_at = ? WHERE id = ?', new Date().toISOString(), courseId);

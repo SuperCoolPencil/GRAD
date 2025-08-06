@@ -37,6 +37,7 @@ interface AppContextType {
     timeStart: string,
     timeEnd: string
   ) => void;
+  deleteExtraClass: (courseId: string, extraClassId: string) => void;
   clearData: () => void;
   recalculateCourseCounts: (courseId: string) => void;
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
@@ -73,6 +74,7 @@ export const AppContext = createContext<AppContextType>({
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
   addScheduleItem: () => { },
   addExtraClass: () => { },
+  deleteExtraClass: () => { },
   clearData: () => { },
   recalculateCourseCounts: () => { },
   updateCourseCounts: () => { },
@@ -254,6 +256,19 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Extra class added for course: ${courseId}.`);
   };
 
+  const deleteExtraClass = (courseId: string, extraClassId: string) => {
+    console.log(`[AppContext] Deleting extra class ${extraClassId} from course ${courseId}`);
+    db.deleteExtraClass(courseId, extraClassId);
+    const updatedCourses = courses.map(c => {
+      if (c.id === courseId) {
+        return { ...c, extraClasses: (c.extraClasses || []).filter(ec => ec.id !== extraClassId) };
+      }
+      return c;
+    });
+    setCourses(updatedCourses);
+    console.log(`[AppContext] Extra class ${extraClassId} deleted from course ${courseId}.`);
+  };
+
   const clearData = () => {
     console.log('[AppContext] Clearing all data...');
     db.clearAllData();
@@ -433,6 +448,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         isValidCourseId,
         addScheduleItem,
         addExtraClass,
+        deleteExtraClass,
         clearData,
         archiveCourse,
         unarchiveCourse,
