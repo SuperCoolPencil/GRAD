@@ -8,14 +8,15 @@ const TIME_FORMAT_24H = 'HH:mm';
 
 /**
  * Formats a Date object into a 'yyyy-MM-dd' string.
+ * This function preserves the local date, ignoring time and timezone.
  * @param date The date to format.
  * @returns The formatted date string.
  */
 export const formatDateToISO = (date: Date): string => {
-  // Ensure the date is treated as UTC to avoid timezone issues when formatting to YYYY-MM-DD
-  // This creates a new Date object from the UTC components of the original date
-  const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  return format(utcDate, DATE_FORMAT_ISO);
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**

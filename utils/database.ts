@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '../types';
+import { formatDateToISO } from './dateHelpers';
 
 export let db = SQLite.openDatabaseSync('grad.db');
 
@@ -306,7 +307,7 @@ export const addCourse = (course: Course) => {
   db.withTransactionSync(() => {
     db.runSync(
       'INSERT INTO courses (id, name, required_attendance, is_archived, presents, absents, cancelled, color, show_in_tracker, show_in_heatmap, show_in_radar, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null, course.showInTracker !== false ? 1 : 0, course.showInHeatmap !== false ? 1 : 0, course.showInRadar !== false ? 1 : 0, new Date().toISOString()
+      course.id, course.name, course.requiredAttendance, course.isArchived ? 1 : 0, course.presents || 0, course.absents || 0, course.cancelled || 0, course.color || null, course.showInTracker !== false ? 1 : 0, course.showInHeatmap !== false ? 1 : 0, course.showInRadar !== false ? 1 : 0, formatDateToISO(new Date())
     );
     course.weeklySchedule?.forEach(item => {
       db.runSync(
@@ -609,7 +610,7 @@ export const deleteExtraClass = (courseId: string, extraClassId: string) => {
 
 export const archiveCourse = (courseId: string) => {
   console.log(`[DB] Archiving course: ${courseId}`);
-  db.runSync('UPDATE courses SET is_archived = 1, archived_at = ? WHERE id = ?', new Date().toISOString(), courseId);
+  db.runSync('UPDATE courses SET is_archived = 1, archived_at = ? WHERE id = ?', formatDateToISO(new Date()), courseId);
 };
 
 export const unarchiveCourse = (courseId: string) => {

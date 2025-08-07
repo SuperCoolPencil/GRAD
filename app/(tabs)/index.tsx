@@ -11,6 +11,7 @@ import Constants from 'expo-constants'; // Import Constants
 import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
 import { AppContext } from "@/context/AppContext";
 import { formatTime } from "@/utils/time";
+import { formatDateToISO } from '@/utils/dateHelpers';
 import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -71,7 +72,6 @@ export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
-  const [currentDate] = useState(new Date());
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
 
@@ -111,7 +111,6 @@ export default function TodaysClassesScreen() {
         colorScheme={colorScheme}
         is24Hour={is24Hour}
         refreshKey={refreshKey} // Pass refreshKey here
-        currentDate={currentDate}
       />
       <CustomAlert
         isVisible={showAlert}
@@ -141,7 +140,6 @@ function TodaysClassesContent({
   colorScheme,
   is24Hour,
   refreshKey, // Add refreshKey here
-  currentDate,
 }: {
   courses: any;
   upsertAttendance: any;
@@ -151,9 +149,9 @@ function TodaysClassesContent({
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
   refreshKey: number; // Add refreshKey to type
-  currentDate: Date;
 }) {
   const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     const loadMarkedClasses = async () => {
@@ -186,8 +184,11 @@ function TodaysClassesContent({
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
 
-    const currentDayName = DAYS_OF_WEEK[currentDate.getDay()];
-    const currentDateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const now = new Date();
+    setCurrentDate(now);
+
+    const currentDayName = DAYS_OF_WEEK[now.getDay()];
+    const currentDateString = formatDateToISO(now); // YYYY-MM-DD
 
     const classesForToday: ClassItem[] = [];
 
@@ -249,7 +250,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, refreshKey, currentDate]);
+  }, [courses, loading, refreshKey]);
 
   const handleMarkAttendance = (
     courseId: string,
@@ -259,7 +260,7 @@ function TodaysClassesContent({
     timeStart: string,
     timeEnd: string
   ) => {
-    const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateString = formatDateToISO(currentDate); // YYYY-MM-DD
     const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
     const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
 

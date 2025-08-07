@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,10 +18,11 @@ import { ThemedView } from '@/components/ThemedView';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useLayoutEffect } from 'react';
 import CustomHeader from '@/components/CustomHeader';
 import { formatTime as formatTimeUtil } from '@/utils/time';
+import { formatDateToISO } from '@/utils/dateHelpers';
 import { CoursePicker } from '@/components/CoursePicker';
 
 const truncate = (str: string, n: number) => {
@@ -49,6 +50,12 @@ const AddExtraClassScreen = () => {
 
   // Generate styles based on theme
   const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setDate(new Date());
+    }, [])
+  );
 
   // Helper functions
   const formatDate = (date: Date) => {
@@ -124,7 +131,7 @@ const AddExtraClassScreen = () => {
     try {
       await addExtraClass(
         selectedCourse,
-        date.toISOString().split('T')[0],  // date should be YYYY-MM-DD format
+        formatDateToISO(date),  // date should be YYYY-MM-DD format
         startTime ? getTimeForStorage(startTime) : '',
         endTime ? getTimeForStorage(endTime) : ''
       );

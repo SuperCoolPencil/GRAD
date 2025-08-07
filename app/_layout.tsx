@@ -12,6 +12,7 @@ import 'react-native-reanimated';
 import { AppProvider, AppContext } from '../context/AppContext';
 import { AlertProvider } from '../context/AlertContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { formatDateToISO } from '@/utils/dateHelpers';
 import { Colors } from '../constants/Colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -65,7 +66,7 @@ function RootLayoutShell() {
           const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
           const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
           const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
-          const date = extraClassItem?.date || new Date().toISOString().split('T')[0];
+          const date = extraClassItem?.date || formatDateToISO(new Date());
           upsertAttendance(courseId, scheduleId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, timeStart, timeEnd, date);
         }
       }

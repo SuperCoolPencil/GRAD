@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, ReactNode } from "react";
 import { format } from 'date-fns-tz';
 import { CustomAlert } from "../components/CustomAlert";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass } from "../types";
+import { formatDateToISO } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
 import { calculateAttendancePercentage, createMissingAttendanceRecords } from "@/utils/attendance";
@@ -202,7 +203,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       weeklySchedule: newCourse.weeklySchedule || [],
       extraClasses: newCourse.extraClasses || [],
       isArchived: false,
-      createdAt: new Date().toISOString(),
+      createdAt: formatDateToISO(new Date()),
     };
     db.addCourse(courseWithInitializedCounters);
     setCourses(prev => [...prev, courseWithInitializedCounters]);
@@ -284,7 +285,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Archiving course: ${courseId}`);
     await cancelCourseNotifications(courseId);
     db.archiveCourse(courseId);
-    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, isArchived: true, archivedAt: new Date().toISOString() } : c));
+    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, isArchived: true, archivedAt: formatDateToISO(new Date()) } : c));
     console.log(`[AppContext] Course archived: ${courseId}`);
   };
 
