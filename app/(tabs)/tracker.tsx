@@ -158,7 +158,7 @@ export default function VisualAttendanceTracker() {
     },
     verticalTextContainer: {
       position: 'absolute',
-      transform: [{ rotate: '-90deg' }],
+      transform: [{ rotate: '90deg' }],
       overflow: 'hidden',
       justifyContent: 'center',
       alignItems: 'center',
