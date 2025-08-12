@@ -150,36 +150,7 @@ function TodaysClassesContent({
   is24Hour: boolean;
   refreshKey: number; // Add refreshKey to type
 }) {
-  const [markedClasses, setMarkedClasses] = useState<{ [key: string]: "present" | "absent" | "cancelled" }>({});
   const [currentDate, setCurrentDate] = useState(new Date());
-
-  useEffect(() => {
-    const loadMarkedClasses = async () => {
-      try {
-        const storedMarkedClasses = await AsyncStorage.getItem('markedClasses');
-        if (storedMarkedClasses) {
-          setMarkedClasses(JSON.parse(storedMarkedClasses));
-        }
-      } catch (error) {
-        console.error('Failed to load marked classes from AsyncStorage', error);
-      }
-    };
-
-    loadMarkedClasses();
-  }, []);
-
-  useEffect(() => {
-    const saveMarkedClasses = async () => {
-      try {
-        await AsyncStorage.setItem('markedClasses', JSON.stringify(markedClasses));
-      } catch (error) {
-        console.error('Failed to save marked classes to AsyncStorage', error);
-      }
-    };
-
-    saveMarkedClasses();
-  }, [markedClasses]);
-
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
@@ -207,6 +178,13 @@ function TodaysClassesContent({
       // Process weekly scheduled classes.
       course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
         if (schedule.day === currentDayName) {
+          const record = course.attendanceRecords?.find(
+            (r: any) =>
+              r.date === currentDateString &&
+              r.timeStart === schedule.timeStart &&
+              r.timeEnd === schedule.timeEnd &&
+              !r.isExtraClass
+          );
           classesForToday.push({
             id: `${course.id}-${schedule.id}`,
             courseId: course.id,
@@ -217,6 +195,7 @@ function TodaysClassesContent({
             requiredAttendance: required,
             currentAttendance: attendancePercentage,
             needToAttend: delta,
+            status: record?.status,
           });
         }
       });
@@ -224,6 +203,13 @@ function TodaysClassesContent({
       // Process extra classes.
       course.extraClasses?.forEach((extra: ExtraClass) => {
         if (extra.date === currentDateString) {
+          const record = course.attendanceRecords?.find(
+            (r: any) =>
+              r.date === currentDateString &&
+              r.timeStart === extra.timeStart &&
+              r.timeEnd === extra.timeEnd &&
+              r.isExtraClass
+          );
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
             courseId: course.id,
@@ -234,6 +220,7 @@ function TodaysClassesContent({
             requiredAttendance: required,
             currentAttendance: attendancePercentage,
             needToAttend: delta,
+            status: record?.status,
           });
         }
       });
@@ -265,9 +252,6 @@ function TodaysClassesContent({
     const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
 
     upsertAttendance(courseId, scheduleItemId || extraClassId || '', status, isExtraClass, timeStart, timeEnd, dateString);
-    setMarkedClasses((prevMarkedClasses) => {
-      return { ...prevMarkedClasses, [itemId]: status };
-    });
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
@@ -334,14 +318,14 @@ function TodaysClassesContent({
                   {attendanceNote}
                 </ThemedText>
               </View>
-              {markedClasses[item.id] && (
+              {item.status && (
                 <View style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center' }}>
                   <Ionicons
                     name="checkmark-done-circle-outline"
                     size={20}
                     color={Colors[colorScheme || 'light'].icon} // Neutral gray color
                   />
-                  <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{markedClasses[item.id]}</ThemedText>
+                  <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{item.status}</ThemedText>
                 </View>
               )}
             </View>

@@ -27,6 +27,21 @@ export default function SettingsScreen() {
   const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
+  const [latestVersion, setLatestVersion] = useState('');
+
+  useEffect(() => {
+    const fetchLatestVersion = async () => {
+      try {
+        const response = await fetch('https://api.github.com/repos/SuperCoolPencil/GRAD/releases/latest');
+        const data = await response.json();
+        setLatestVersion(data.tag_name);
+      } catch (error) {
+        console.error('Failed to fetch latest version:', error);
+      }
+    };
+
+    fetchLatestVersion();
+  }, []);
 
   useEffect(() => {
     if (settings.defaultAttendanceStatus) {
@@ -179,6 +194,27 @@ export default function SettingsScreen() {
             backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
             textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
+        </View>
+
+        {/* Version Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Version</ThemedText>
+          <SettingsButton
+            onPress={() => {}}
+            title={`v${Constants.expoConfig?.version}` || 'N/A'}
+            iconName="information-circle-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+          {latestVersion && latestVersion !== `v${Constants.expoConfig?.version}` && (
+            <SettingsButton
+              onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD/releases/latest')}
+              title={`Update available: ${latestVersion}`}
+              iconName="download-outline"
+              backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+              textColor={colorScheme === 'dark' ? Colors.dark.white : Colors.light.white}
+            />
+          )}
         </View>
 
         {/* Data Section */}

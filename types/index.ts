@@ -54,6 +54,7 @@ export interface ClassItem {
   currentAttendance: number;
   needToAttend: number;
   workMarked?: string;
+  status?: 'present' | 'absent' | 'cancelled';
 }
 
 export interface AlertButton {

@@ -96,7 +96,8 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
 
       if (isDateInPast(date)) {
         // Process past classes using attendance records
-        let attendanceRecords = getAttendanceRecords(-1, 0, '', dateString, dateString);
+        const courseIds = courses.map(c => c.id);
+        let attendanceRecords = getAttendanceRecords(-1, 0, courseIds, dateString, dateString);
         console.log(`[ATTEND] Found ${attendanceRecords.length} attendance records for ${dateString}.`);
 
         attendanceRecords.forEach(record => {
