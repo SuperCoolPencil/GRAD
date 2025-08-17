@@ -16,7 +16,7 @@ import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomAlert } from "@/components/CustomAlert";
 
@@ -280,9 +280,14 @@ function TodaysClassesContent({
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ThemedText type="subtitle" style={styles.courseName}>
-                  {truncate(item.courseName, 20)}
-                </ThemedText>
+                <TouchableOpacity
+                  onPress={() => router.push(`/course/${item.courseId}`)}
+                  style={{ flex: 1 }}
+                >
+                  <ThemedText type="subtitle" style={styles.courseName}>
+                    {truncate(item.courseName, 20)}
+                  </ThemedText>
+                </TouchableOpacity>
               </View>
               <View style={styles.infoRow}>
                 <Ionicons
