@@ -5,9 +5,7 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
-  Platform, // Import Platform
 } from "react-native";
-import Constants from 'expo-constants'; // Import Constants
 import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
 import { AppContext } from "@/context/AppContext";
 import { formatTime } from "@/utils/time";
@@ -17,7 +15,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useRouter } from "expo-router";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CustomAlert } from "@/components/CustomAlert";
 
 const truncate = (str: string, n: number) => {
@@ -69,7 +66,7 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, upsertAttendance, loading, is24Hour, refreshKey } = useContext(AppContext);
+  const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
@@ -105,6 +102,7 @@ export default function TodaysClassesScreen() {
         key={refreshKey}
         courses={courses}
         upsertAttendance={upsertAttendance}
+        deleteAttendanceRecord={deleteAttendanceRecord}
         loading={loading}
         todaysClasses={todaysClasses}
         setTodaysClasses={setTodaysClasses}
@@ -134,6 +132,7 @@ export default function TodaysClassesScreen() {
 function TodaysClassesContent({
   courses,
   upsertAttendance,
+  deleteAttendanceRecord,
   loading,
   todaysClasses,
   setTodaysClasses,
@@ -143,6 +142,7 @@ function TodaysClassesContent({
 }: {
   courses: any;
   upsertAttendance: any;
+  deleteAttendanceRecord: any;
   loading: any;
   todaysClasses: any;
   setTodaysClasses: any;
@@ -254,6 +254,16 @@ function TodaysClassesContent({
     upsertAttendance(courseId, scheduleItemId || extraClassId || '', status, isExtraClass, timeStart, timeEnd, dateString);
   };
 
+  const handleDeleteAttendance = (
+    courseId: string,
+    isExtraClass: boolean,
+    timeStart: string,
+    timeEnd: string
+  ) => {
+    const dateString = formatDateToISO(currentDate); // YYYY-MM-DD
+    deleteAttendanceRecord(courseId, dateString, timeStart, timeEnd, isExtraClass);
+  };
+
   const renderClassItem = ({ item }: { item: ClassItem }) => {
     const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
     const cardBackground =
@@ -324,14 +334,17 @@ function TodaysClassesContent({
                 </ThemedText>
               </View>
               {item.status && (
-                <View style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity 
+                  style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center', padding: 4 }}
+                  onPress={() => handleDeleteAttendance(item.courseId, item.isExtraClass, item.timeStart, item.timeEnd)}
+                >
                   <Ionicons
                     name="checkmark-done-circle-outline"
                     size={20}
                     color={Colors[colorScheme || 'light'].icon} // Neutral gray color
                   />
                   <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{item.status}</ThemedText>
-                </View>
+                </TouchableOpacity>
               )}
             </View>
           </View>

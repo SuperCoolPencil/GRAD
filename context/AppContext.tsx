@@ -45,6 +45,7 @@ interface AppContextType {
   archiveCourse: (courseId: string) => void;
   unarchiveCourse: (courseId: string) => void;
   upsertAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
+  deleteAttendanceRecord: (courseId: string, date: string, timeStart: string, timeEnd: string, isExtraClass: boolean) => void;
   save: () => Promise<void>;
   loadData: () => void;
   triggerRefresh: () => void; // Add triggerRefresh to context type
@@ -82,6 +83,7 @@ export const AppContext = createContext<AppContextType>({
   archiveCourse: () => { },
   unarchiveCourse: () => { },
   upsertAttendance: () => { },
+  deleteAttendanceRecord: () => { },
   save: () => Promise.resolve(),
   loadData: () => { },
   triggerRefresh: () => { }, // Initialize triggerRefresh
@@ -343,6 +345,32 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Triggered refresh.`);
   };
 
+  const deleteAttendanceRecord = (courseId: string, date: string, timeStart: string, timeEnd: string, isExtraClass: boolean) => {
+    console.log(`[AppContext] deleteAttendanceRecord called for course: ${courseId}, date: ${date}, time: ${timeStart}-${timeEnd}, isExtraClass: ${isExtraClass}`);
+    const course = courses.find(c => c.id.toLowerCase() === courseId.toLowerCase());
+    if (!course) {
+      console.log(`[AppContext] Course not found for deleteAttendanceRecord: ${courseId}`);
+      return;
+    }
+
+    const existingRecord = course.attendanceRecords?.find(
+      (record) =>
+        record.date === date &&
+        record.isExtraClass === isExtraClass &&
+        record.timeStart === timeStart &&
+        record.timeEnd === timeEnd
+    );
+
+    if (existingRecord) {
+      console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
+      db.deleteAttendanceRecord(existingRecord.id);
+      triggerRefresh(); // Use triggerRefresh to force refresh across components
+      console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}. Triggered refresh.`);
+    } else {
+      console.log(`[AppContext] No attendance record found to delete for ${courseId} on ${date}`);
+    }
+  };
+
   const updateCourseCounts = (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => {
     console.log(`[AppContext] Updating course counts for: ${courseId}, type: ${countType}, newValue: ${newValue}`);
     const course = courses.find(c => c.id === courseId);
@@ -454,6 +482,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         archiveCourse,
         unarchiveCourse,
         upsertAttendance,
+        deleteAttendanceRecord,
         updateCourseCounts,
         recalculateCourseCounts,
         save,
