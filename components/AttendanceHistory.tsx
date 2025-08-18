@@ -78,7 +78,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           {displayStatusText}
         </ThemedText>
         <ThemedText style={styles.historyDateText}>
-          on {formattedDate} {item.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
+          {formattedDate} {item.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
         </ThemedText>
       </TouchableOpacity>
     );
