@@ -13,6 +13,8 @@ import {
   scheduleCourseNotifications,
   cancelAllNotifications,
   setupNotificationChannels,
+  scheduleUpdateNotification, // Import new function
+  cancelUpdateNotification, // Import new function
 } from '@/utils/notifications';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -24,7 +26,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData and new context values
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
   const [latestVersion, setLatestVersion] = useState('');
@@ -35,13 +37,19 @@ export default function SettingsScreen() {
         const response = await fetch('https://api.github.com/repos/SuperCoolPencil/GRAD/releases/latest');
         const data = await response.json();
         setLatestVersion(data.tag_name);
+        // Schedule update notification if enabled and update is available
+        if (updateNotificationsEnabled && data.tag_name && data.tag_name !== `v${Constants.expoConfig?.version}`) {
+          await scheduleUpdateNotification(data.tag_name);
+        } else if (!updateNotificationsEnabled || data.tag_name === `v${Constants.expoConfig?.version}`) {
+          await cancelUpdateNotification();
+        }
       } catch (error) {
         console.error('Failed to fetch latest version:', error);
       }
     };
 
     fetchLatestVersion();
-  }, []);
+  }, [updateNotificationsEnabled]); // Add updateNotificationsEnabled to dependency array
 
   useEffect(() => {
     if (settings.defaultAttendanceStatus) {
@@ -159,6 +167,18 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleUpdateNotificationToggle = async () => {
+    toggleUpdateNotifications();
+    if (!updateNotificationsEnabled) { // If it's about to be enabled
+      await requestPermissions();
+      if (latestVersion && latestVersion !== `v${Constants.expoConfig?.version}`) {
+        await scheduleUpdateNotification(latestVersion);
+      }
+    } else { // If it's about to be disabled
+      await cancelUpdateNotification();
+    }
+  };
+
 
   return (
     <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -217,11 +237,11 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Data Section */}
+        {/* Notifications Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Notifications</ThemedText>
           <View style={styles.notificationSetting}>
-            <ThemedText>Enable Notifications</ThemedText>
+            <ThemedText>Enable Class Notifications</ThemedText>
             <Switch
               value={notificationsEnabled}
               onValueChange={handleNotificationToggle}
@@ -236,6 +256,13 @@ export default function SettingsScreen() {
               textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
             />
           )}
+          <View style={styles.notificationSetting}>
+            <ThemedText>Enable App Update Notifications</ThemedText>
+            <Switch
+              value={updateNotificationsEnabled}
+              onValueChange={handleUpdateNotificationToggle}
+            />
+          </View>
         </View>
 
         {/* General Section */}

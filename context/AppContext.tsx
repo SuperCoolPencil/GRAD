@@ -19,6 +19,7 @@ interface AppContextType {
   notificationTime: number;
   notificationsEnabled: boolean;
   is24Hour: boolean;
+  updateNotificationsEnabled: boolean; // New: Update notifications enabled
   settings: { [key: string]: any };
   refreshKey: number; // Add refreshKey to context type
   updateSetting: (key: string, value: any) => void;
@@ -26,6 +27,7 @@ interface AppContextType {
   updateNotificationTime: (time: number) => void;
   toggleTheme: () => void;
   toggleNotifications: () => void;
+  toggleUpdateNotifications: () => void; // New: Toggle update notifications
   addCourse: (newCourse: Course) => void;
   getCourse: (courseId: string) => Course | undefined;
   updateCourse: (updatedCourse: Course) => void;
@@ -62,6 +64,7 @@ export const AppContext = createContext<AppContextType>({
   notificationTime: 10,
   notificationsEnabled: false,
   is24Hour: false,
+  updateNotificationsEnabled: false, // New: Update notifications enabled
   settings: {},
   refreshKey: 0, // Initialize refreshKey
   updateSetting: () => { },
@@ -69,6 +72,7 @@ export const AppContext = createContext<AppContextType>({
   updateNotificationTime: () => { },
   toggleTheme: () => { },
   toggleNotifications: () => { },
+  toggleUpdateNotifications: () => { }, // New: Toggle update notifications
   addCourse: () => { },
   getCourse: () => undefined,
   updateCourse: () => { },
@@ -104,6 +108,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [notificationTime, setNotificationTime] = useState(10);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
+  const [updateNotificationsEnabled, setUpdateNotificationsEnabled] = useState(false); // New state
   const [settings, setSettings] = useState<{ [key: string]: any }>({});
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -127,6 +132,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       setNotificationTime(parseInt(loadedSettings.notificationTime || '10', 10));
       setNotificationsEnabled(loadedSettings.notificationsEnabled === 'true');
       setIs24Hour(loadedSettings.is24Hour === 'true');
+      setUpdateNotificationsEnabled(loadedSettings.updateNotificationsEnabled === 'true'); // Load new setting
 
       const loadedCourses = db.getCourses();
       console.log(`[AppContext] Loaded ${loadedCourses.length} courses.`);
@@ -179,6 +185,13 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Toggling notifications to: ${newNotificationsEnabled}`);
     setNotificationsEnabled(newNotificationsEnabled);
     db.updateSetting('notificationsEnabled', newNotificationsEnabled.toString());
+  };
+
+  const toggleUpdateNotifications = () => {
+    const newUpdateNotificationsEnabled = !updateNotificationsEnabled;
+    console.log(`[AppContext] Toggling update notifications to: ${newUpdateNotificationsEnabled}`);
+    setUpdateNotificationsEnabled(newUpdateNotificationsEnabled);
+    db.updateSetting('updateNotificationsEnabled', newUpdateNotificationsEnabled.toString());
   };
 
   const updateNotificationTime = (time: number) => {
@@ -398,6 +411,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.updateSetting('notificationTime', notificationTime.toString());
     db.updateSetting('notificationsEnabled', notificationsEnabled.toString());
     db.updateSetting('is24Hour', is24Hour.toString());
+    db.updateSetting('updateNotificationsEnabled', updateNotificationsEnabled.toString()); // Save new setting
 
     courses.forEach(course => {
       db.updateCourse(course);
@@ -463,6 +477,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         notificationTime,
         notificationsEnabled,
         is24Hour,
+        updateNotificationsEnabled, // Add new state
         settings,
         refreshKey, // Add refreshKey here
         updateSetting,
@@ -470,6 +485,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateNotificationTime,
         toggleTheme,
         toggleNotifications,
+        toggleUpdateNotifications, // Add new toggle function
         addCourse,
         getCourse: (courseId: string) => courses.find((course) => course.id === courseId),
         updateCourse,

@@ -326,7 +326,7 @@ function TodaysClassesContent({
                 </ThemedText>
               </View>
               {item.status && (
-                <TouchableOpacity
+                <View
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -338,7 +338,6 @@ function TodaysClassesContent({
                     borderRadius: 8,
                     backgroundColor: Colors[colorScheme || 'light'].cardBackground, // A slightly different background to make it stand out
                   }}
-                  onPress={() => handleDeleteAttendance(item.courseId, item.isExtraClass, item.timeStart, item.timeEnd)}
                 >
                   <Ionicons
                     name="checkmark-done-circle-outline"
@@ -346,7 +345,7 @@ function TodaysClassesContent({
                     color={Colors[colorScheme || 'light'].icon} // Neutral gray color
                   />
                   <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{item.status}</ThemedText>
-                </TouchableOpacity>
+                </View>
               )}
             </View>
           </View>

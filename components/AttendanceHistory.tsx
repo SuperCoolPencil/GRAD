@@ -77,9 +77,10 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         <ThemedText style={[styles.historyText, { color: statusColor }]}>
           {displayStatusText}
         </ThemedText>
-        <ThemedText style={styles.historyDateText}>
-          {item.isExtraClass ? <ThemedText style={styles.extraClassTag}>(E)</ThemedText> : null} {formattedDate}
-        </ThemedText>
+        <ThemedView style={styles.historyDateContainer}>
+          {item.isExtraClass ? <Ionicons name="add-circle-outline" style={styles.extraClassTag} /> : null}
+          <ThemedText style={styles.historyDateText}> {formattedDate}</ThemedText>
+        </ThemedView>
       </TouchableOpacity>
     );
   };
@@ -144,12 +145,17 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     fontWeight: '500',
   },
   historyDateText: {
-    marginLeft: 'auto',
     fontSize: 14,
     opacity: 0.8,
   },
+  historyDateContainer: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors[colorScheme].card,
+  },
   extraClassTag: {
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: '600',
     marginLeft: 4,
     color: Colors[colorScheme].tint,

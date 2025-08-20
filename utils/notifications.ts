@@ -24,10 +24,25 @@ export const scheduleCourseNotifications = async (course: Course, notificationTi
   }
 };
 
-// Function to cancel all scheduled notifications
-export const cancelAllNotifications = async () => {
-  console.log('[NOTIF] Cancelling all notifications');
-  await Notifications.cancelAllScheduledNotificationsAsync();
+export const scheduleUpdateNotification = async (version: string) => {
+  console.log(`[NOTIF] Scheduling update notification for version: ${version}`);
+  await Notifications.scheduleNotificationAsync({
+    identifier: 'app-update-notification',
+    content: {
+      title: 'App Update Available!',
+      body: `A new version (${version}) of GRAD is available. Tap to update!`,
+      data: { url: 'https://github.com/SuperCoolPencil/GRAD/releases/latest' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, // Corrected type
+      seconds: 60*60*24, // Schedule to appear in 24 hours
+    },
+  });
+};
+
+export const cancelUpdateNotification = async () => {
+  console.log('[NOTIF] Cancelling update notification');
+  await Notifications.cancelScheduledNotificationAsync('app-update-notification');
 };
 
 // Function to cancel notifications for a single course
@@ -189,6 +204,13 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     trigger,
   });
   console.log(`[NOTIF] Scheduled notification with identifier: ${identifier}`);
+};
+
+// Function to cancel all scheduled notifications
+export const cancelAllNotifications = async () => {
+  console.log('[NOTIF] Cancelling all notifications');
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelUpdateNotification(); // Also cancel update notification
 };
 
 export const setupNotificationChannels = async () => {
