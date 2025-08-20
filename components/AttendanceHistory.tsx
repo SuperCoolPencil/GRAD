@@ -113,7 +113,6 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         }
         ItemSeparatorComponent={ItemSeparatorComponent}
         ListEmptyComponent={<ThemedText style={styles.emptyText}>No records found.</ThemedText>}
-        contentContainerStyle={styles.container}
       />
     </ThemedView>
   );
@@ -130,18 +129,16 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     elevation: 3,
     color: Colors[colorScheme].text,
     backgroundColor: Colors[colorScheme].card,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   cardTitle: {
     marginBottom: 12,
   },
-  container: {
-    paddingHorizontal: 16,
-  },
+  // Removed container style as it's no longer needed for FlatList contentContainerStyle
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(128, 128, 128, 0.1)',
   },
@@ -156,7 +153,7 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     opacity: 0.8,
   },
   extraClassTag: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
     color: Colors[colorScheme].tint,
