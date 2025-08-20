@@ -252,6 +252,7 @@ export default function CourseDetailScreen() {
       <ScrollView
         style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
         contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
       >
         {course && (
           <ConfigurationModal
@@ -489,11 +490,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderLeftWidth: 5,
     borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   cardTitle: {
     marginBottom: 12,

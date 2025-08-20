@@ -122,23 +122,19 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   card: {
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     color: Colors[colorScheme].text,
     backgroundColor: Colors[colorScheme].card,
     borderRadius: 16,
   },
   cardTitle: {
     marginBottom: 12,
+    paddingLeft: 4,
   },
-  // Removed container style as it's no longer needed for FlatList contentContainerStyle
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(128, 128, 128, 0.1)',
   },

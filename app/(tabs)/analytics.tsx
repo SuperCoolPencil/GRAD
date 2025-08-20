@@ -330,6 +330,7 @@ export default function AnalyticsScreen() {
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
     >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Analytics</ThemedText>
@@ -415,11 +416,6 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   card: {
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
   },
   sectionTitle: {
     marginBottom: 12,

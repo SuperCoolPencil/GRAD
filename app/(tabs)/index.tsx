@@ -399,6 +399,7 @@ function TodaysClassesContent({
         </ThemedView>
       )}
       removeClippedSubviews={false}
+      showsVerticalScrollIndicator={false}
       style={{ backgroundColor: Colors[colorScheme || "light"].background }}
     />
   );
@@ -435,12 +436,6 @@ const styles = StyleSheet.create({
     //borderLeftWidth: 4, // Accent thickness
     borderRadius: 16,
     marginBottom: 0, // Reduced margin
-    // Shadows for iOS:
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    // Elevation for Android:
-    elevation: 3,
   },
   // Inner content container so the left accent doesn't overlap text.
   classCardContent: {
