@@ -78,7 +78,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
           {displayStatusText}
         </ThemedText>
         <ThemedText style={styles.historyDateText}>
-          {formattedDate} {item.isExtraClass ? <ThemedText style={styles.extraClassTag}>(Extra)</ThemedText> : ''}
+          {item.isExtraClass ? <ThemedText style={styles.extraClassTag}>(E)</ThemedText> : null} {formattedDate}
         </ThemedText>
       </TouchableOpacity>
     );
@@ -141,7 +141,7 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(128, 128, 128, 0.1)',
   },
@@ -156,9 +156,10 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     opacity: 0.8,
   },
   extraClassTag: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
     marginLeft: 4,
+    color: Colors[colorScheme].tint,
   },
   emptyText: {
     textAlign: 'center',
