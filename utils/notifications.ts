@@ -1,5 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Course, ScheduleItem, ExtraClass } from '@/types';
+import { db } from './database';
+import { formatDateToISO } from './dateHelpers';
 
 // Function to schedule notifications for a single course
 export const scheduleCourseNotifications = async (course: Course, notificationTime: number) => {
@@ -124,6 +126,18 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
   if ('day' in item) { // It's a weekly schedule item
     const nextClassDate = getNextClassDate(item, now);
+    const dateString = formatDateToISO(nextClassDate);
+
+    const existingRecord = db.getFirstSync(
+      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
+      [course.id, item.id, dateString]
+    );
+
+    if (existingRecord) {
+      console.log(`[NOTIF] Attendance record for ${course.name} on ${dateString} already exists. Skipping notification.`);
+      return;
+    }
+
     // Adjust hour and minute directly for the trigger
     let triggerHour = nextClassDate.getHours();
     let triggerMinute = nextClassDate.getMinutes() - notificationTime;
@@ -144,6 +158,16 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       channelId: 'default',
     };
   } else { // It's an extra class
+    const existingRecord = db.getFirstSync(
+      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
+      [course.id, item.id, item.date]
+    );
+
+    if (existingRecord) {
+      console.log(`[NOTIF] Attendance record for extra class ${course.name} on ${item.date} already exists. Skipping notification.`);
+      return;
+    }
+
     const [year, month, day] = item.date.split('-').map(Number);
     const [hour, minute] = item.timeStart.split(':').map(Number);
     const date = new Date(year, month - 1, day, hour, minute);
