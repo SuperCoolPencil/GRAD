@@ -99,7 +99,6 @@ export default function TodaysClassesScreen() {
         </TouchableOpacity>
       </View>
       <TodaysClassesContent
-        key={refreshKey}
         courses={courses}
         upsertAttendance={upsertAttendance}
         deleteAttendanceRecord={deleteAttendanceRecord}
@@ -108,7 +107,6 @@ export default function TodaysClassesScreen() {
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
         is24Hour={is24Hour}
-        refreshKey={refreshKey} // Pass refreshKey here
       />
       <CustomAlert
         isVisible={showAlert}
@@ -138,7 +136,6 @@ function TodaysClassesContent({
   setTodaysClasses,
   colorScheme,
   is24Hour,
-  refreshKey, // Add refreshKey here
 }: {
   courses: any;
   upsertAttendance: any;
@@ -148,7 +145,6 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
-  refreshKey: number; // Add refreshKey to type
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -237,7 +233,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, refreshKey]);
+  }, [courses, loading]);
 
   const handleMarkAttendance = (
     courseId: string,
