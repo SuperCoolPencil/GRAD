@@ -69,65 +69,32 @@ export default function AnalyticsScreen() {
     );
   }, [page, selectedCourses, fromDate, toDate]);
 
-  const handleAttendanceClick = (record: AttendanceRecord) => {
+  const handleAttendanceClick = async (record: AttendanceRecord) => {
     const course = courses.find(c => c.id === record.course_id);
     if (!record || !course) return;
 
     const recordDate = new Date(record.date);
-    const formattedDate = recordDate.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    showAlert(
-      'Change Attendance Status',
-      `Change status for ${course.name} on ${formattedDate}.`,
-      [
-        {
-          text: 'Present',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
-            getPaginatedAttendanceRecords(
-              page,
-              recordsPerPage,
-              selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
-            );
-          },
-        },
-        {
-          text: 'Absent',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
-            getPaginatedAttendanceRecords(
-              page,
-              recordsPerPage,
-              selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
-            );
-          },
-        },
-        {
-          text: 'Cancelled',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
-            getPaginatedAttendanceRecords(
-              page,
-              recordsPerPage,
-              selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
-            );
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
+    let newStatus: 'present' | 'absent' | 'cancelled';
+    switch (record.status) {
+      case 'present':
+        newStatus = 'absent';
+        break;
+      case 'absent':
+        newStatus = 'cancelled';
+        break;
+      case 'cancelled':
+      default:
+        newStatus = 'present';
+        break;
+    }
+    upsertAttendance(record.course_id, record.scheduleItemId || '', newStatus, record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+    if (loadData) await loadData();
+    getPaginatedAttendanceRecords(
+      page,
+      recordsPerPage,
+      selectedCourses,
+      fromDate ? formatDateForQuery(fromDate) : undefined,
+      toDate ? formatDateForQuery(toDate) : undefined
     );
   };
 

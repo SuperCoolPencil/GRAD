@@ -73,7 +73,6 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   const colorScheme = useNativeColorScheme() ?? 'light';
   const { showAlert } = useCustomAlert();
-
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'alertPrimary');
@@ -92,44 +91,25 @@ export default function CourseDetailScreen() {
     }
   }, [page, course]);
 
-  const handleAttendanceClick = (record: AttendanceRecord) => {
+  const handleAttendanceClick = async (record: AttendanceRecord) => {
     if (!course || !record) return;
 
     const recordDate = new Date(record.date);
-    const formattedDate = recordDate.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    showAlert(
-      'Change Attendance Status',
-      `Change status for ${course.name} on ${formattedDate}.`,
-      [
-        {
-          text: 'Present',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
-          },
-        },
-        {
-          text: 'Absent',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
-          },
-        },
-        {
-          text: 'Cancelled',
-          onPress: () => {
-            upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) loadData();
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    let newStatus: 'present' | 'absent' | 'cancelled';
+    switch (record.status) {
+      case 'present':
+        newStatus = 'absent';
+        break;
+      case 'absent':
+        newStatus = 'cancelled';
+        break;
+      case 'cancelled':
+      default:
+        newStatus = 'present';
+        break;
+    }
+    upsertAttendance(record.course_id, record.scheduleItemId || '', newStatus, record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+    if (loadData) loadData();
   };
 
   useEffect(() => {
