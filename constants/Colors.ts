@@ -24,8 +24,9 @@ export const Colors = {
     placeholder: '#b2b2b6', 
     border: '#9C9C9C', // Lighter border color
     inputBackground: '#FFFFFF', // Already white
-    buttonText: '#FFFFFF', 
+    buttonText: '#FFFFFF',
     card: '#FFFFFF', // Making cards pure white for brighter feel
+    cardBackground: '#F8F8F8', // A slightly different background for clickable status
     alert: '#fff',
     alertPrimary: '#0196FF',
     alertDestructive: '#fb1e08',
@@ -48,6 +49,7 @@ export const Colors = {
     inputBackground: '#1c1c1e',
     buttonText: '#FFFFFF',
     card: '#151515',
+    cardBackground: '#202020', // A slightly different background for clickable status
     alert:'#262626',
     alertPrimary: '#0096FF',
     alertDestructive: '#fb1e08',

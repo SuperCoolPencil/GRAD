@@ -277,7 +277,7 @@ function TodaysClassesContent({
     }
 
     return (
-      <View
+      <TouchableOpacity
         style={[
           styles.classCardContainer,
           {
@@ -285,19 +285,15 @@ function TodaysClassesContent({
             backgroundColor: cardBackground,
           },
         ]}
+        onPress={() => router.push(`/course/${item.courseId}`)}
       >
         <ThemedView style={[styles.classCardContent, { backgroundColor: Colors[colorScheme || 'light'].card, }]}>
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TouchableOpacity
-                  onPress={() => router.push(`/course/${item.courseId}`)}
-                  style={{ flex: 1 }}
-                >
-                  <ThemedText type="subtitle" style={styles.courseName}>
-                    {truncate(item.courseName, 20)}
-                  </ThemedText>
-                </TouchableOpacity>
+                <ThemedText type="subtitle" style={styles.courseName}>
+                  {truncate(item.courseName, 20)}
+                </ThemedText>
               </View>
               <View style={styles.infoRow}>
                 <Ionicons
@@ -334,8 +330,18 @@ function TodaysClassesContent({
                 </ThemedText>
               </View>
               {item.status && (
-                <TouchableOpacity 
-                  style={{ position: 'absolute', top: 0, right: 0, flexDirection: 'row', alignItems: 'center', padding: 4 }}
+                <TouchableOpacity
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                    backgroundColor: Colors[colorScheme || 'light'].card, // A slightly different background to make it stand out
+                  }}
                   onPress={() => handleDeleteAttendance(item.courseId, item.isExtraClass, item.timeStart, item.timeEnd)}
                 >
                   <Ionicons
@@ -381,7 +387,7 @@ function TodaysClassesContent({
             </TouchableOpacity>
           </View>
         </ThemedView>
-      </View>
+      </TouchableOpacity>
     );
   };
 
