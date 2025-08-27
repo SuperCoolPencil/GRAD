@@ -43,6 +43,7 @@ export default function AnalyticsScreen() {
     attendanceRecords,
     totalRecords,
     loadData,
+    deleteAttendanceRecord,
   } = useContext(AppContext);
   const activeCourses = useMemo(() => courses.filter(course => !course.isArchived), [courses]);
   const { showAlert } = useCustomAlert();
@@ -86,9 +87,9 @@ export default function AnalyticsScreen() {
       [
         {
           text: 'Present',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'present', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
@@ -100,9 +101,9 @@ export default function AnalyticsScreen() {
         },
         {
           text: 'Absent',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'absent', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
@@ -114,15 +115,43 @@ export default function AnalyticsScreen() {
         },
         {
           text: 'Cancelled',
-          onPress: async () => {
-            await upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
-            if (loadData) await loadData();
+          onPress: () => {
+            upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
+            if (loadData) loadData();
             getPaginatedAttendanceRecords(
               page,
               recordsPerPage,
               selectedCourses,
               fromDate ? formatDateForQuery(fromDate) : undefined,
               toDate ? formatDateForQuery(toDate) : undefined
+            );
+          },
+        },
+        {
+          text: 'Delete Record',
+          style: 'destructive',
+          onPress: async () => {
+            showAlert(
+              'Confirm Delete',
+              `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => {
+                    deleteAttendanceRecord(record.course_id, record.date, record.timeStart, record.timeEnd, record.isExtraClass);
+                    if (loadData) loadData();
+                    getPaginatedAttendanceRecords(
+                      page,
+                      recordsPerPage,
+                      selectedCourses,
+                      fromDate ? formatDateForQuery(fromDate) : undefined,
+                      toDate ? formatDateForQuery(toDate) : undefined
+                    );
+                  },
+                },
+              ]
             );
           },
         },

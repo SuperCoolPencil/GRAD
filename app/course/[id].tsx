@@ -61,11 +61,12 @@ export default function CourseDetailScreen() {
     upsertAttendance,
     updateCourse,
     updateCourseCounts,
-    archiveCourse, // Import archiveCourse
+    archiveCourse,
     deleteExtraClass,
     is24Hour,
     getPaginatedAttendanceRecords,
     attendanceRecords,
+    deleteAttendanceRecord,
     totalRecords,
     loadData,
   } = useContext(AppContext);
@@ -125,6 +126,32 @@ export default function CourseDetailScreen() {
           onPress: () => {
             upsertAttendance(record.course_id, record.scheduleItemId || '', 'cancelled', record.isExtraClass, record.timeStart, record.timeEnd, record.date);
             if (loadData) loadData();
+          },
+        },
+        {
+          text: 'Delete Record',
+          style: 'destructive',
+          onPress: async () => {
+            showAlert(
+              'Confirm Delete',
+              `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => {
+                    deleteAttendanceRecord(record.course_id, record.date, record.timeStart, record.timeEnd, record.isExtraClass);
+                    if (loadData) loadData();
+                    getPaginatedAttendanceRecords(
+                      page,
+                      recordsPerPage,
+                      [course.id]
+                    );
+                  },
+                },
+              ]
+            );
           },
         },
         { text: 'Cancel', style: 'cancel' },
