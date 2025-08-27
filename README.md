@@ -37,7 +37,7 @@ Or simply download the latest APK from the [Releases](https://github.com/SuperCo
 
 <table>
   <tr>
-    <td align="center"><img src="demo-screens/classes.png" alt="Classes" width="300" /></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/a767a4ba-28fa-4ce8-9a47-2c80042ddb6b" alt="Classes" width="300" /></td>
     <td align="center"><img src="demo-screens/course-info.jpeg" alt="Course Info" width="300" /></td>
   </tr>
   <tr>
