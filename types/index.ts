@@ -61,6 +61,7 @@ export interface AlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
+  shouldCloseAlert?: boolean;
 }
 
 export interface Settings {

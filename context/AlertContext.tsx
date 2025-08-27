@@ -4,6 +4,7 @@ import { AlertButton } from '@/types';
 
 interface AlertContextProps {
   showAlert: (title: string, message?: string, buttons?: AlertButton[]) => void;
+  hideAlert: () => void;
 }
 
 interface AlertState {
@@ -27,7 +28,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   return (
-    <AlertContext.Provider value={{ showAlert }}>
+    <AlertContext.Provider value={{ showAlert, hideAlert }}>
       {children}
       <CustomAlert
         isVisible={alertState.isVisible}

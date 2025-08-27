@@ -377,7 +377,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (existingRecord) {
       console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
       db.deleteAttendanceRecord(existingRecord.id);
-      triggerRefresh(); // Use triggerRefresh to force refresh across components
       console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}. Triggered refresh.`);
     } else {
       console.log(`[AppContext] No attendance record found to delete for ${courseId} on ${date}`);

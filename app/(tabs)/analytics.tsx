@@ -46,7 +46,7 @@ export default function AnalyticsScreen() {
     deleteAttendanceRecord,
   } = useContext(AppContext);
   const activeCourses = useMemo(() => courses.filter(course => !course.isArchived), [courses]);
-  const { showAlert } = useCustomAlert();
+  const { showAlert, hideAlert } = useCustomAlert();
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
@@ -130,12 +130,14 @@ export default function AnalyticsScreen() {
         {
           text: 'Delete Record',
           style: 'destructive',
+          shouldCloseAlert: false, // Prevent the first alert from closing
           onPress: async () => {
+            console.log(`[Analytics] Deleting attendance record for ${course.name} on ${formattedDate}`);
             showAlert(
               'Confirm Delete',
               `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
               [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Cancel', style: 'cancel', onPress: hideAlert }, // Explicitly close the confirm alert
                 {
                   text: 'Delete',
                   style: 'destructive',
@@ -149,13 +151,14 @@ export default function AnalyticsScreen() {
                       fromDate ? formatDateForQuery(fromDate) : undefined,
                       toDate ? formatDateForQuery(toDate) : undefined
                     );
+                    hideAlert(); // Explicitly close the confirm alert after deletion
                   },
                 },
               ]
             );
           },
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel', onPress: hideAlert }, // Explicitly close the first alert
       ]
     );
   };

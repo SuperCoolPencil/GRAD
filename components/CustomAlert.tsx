@@ -84,7 +84,9 @@ export function CustomAlert({
                     if (button.onPress) {
                       button.onPress();
                     }
-                    onClose();
+                    if (button.shouldCloseAlert !== false) {
+                      onClose();
+                    }
                   }}
                 >
                   <ThemedText
