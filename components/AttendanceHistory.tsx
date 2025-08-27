@@ -42,9 +42,9 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   const renderItem = ({ item }: { item: AttendanceRecord }) => {
     const recordDate = new Date(item.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'long',
       day: 'numeric',
+      month: 'short',
+      weekday: 'short',
     });
     let statusIcon: keyof typeof Ionicons.glyphMap = 'help-circle-outline';
     let statusColor = Colors[colorScheme].text;
@@ -76,10 +76,15 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         <Ionicons name={statusIcon} size={18} color={statusColor} />
         <ThemedText style={[styles.historyText, { color: statusColor }]}>
           {displayStatusText}
+
         </ThemedText>
         <ThemedView style={styles.historyDateContainer}>
-          {item.isExtraClass ? <Ionicons name="add-circle-outline" style={styles.extraClassTag} /> : null}
-          <ThemedText style={styles.historyDateText}> {formattedDate}</ThemedText>
+          {item.isExtraClass ? (
+            <ThemedView style={styles.extraClassTagContainer}>
+              <ThemedText style={styles.extraClassTagText}>Extra</ThemedText>
+            </ThemedView>
+          ) : null}
+          <ThemedText style={styles.historyDateText}>{formattedDate}</ThemedText>
         </ThemedView>
       </TouchableOpacity>
     );
@@ -152,13 +157,19 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     marginLeft: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors[colorScheme].card,
+    backgroundColor: 'transparent', // Make parent background transparent to see card bg
   },
-  extraClassTag: {
-    fontSize: 18,
+  extraClassTagContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: Colors[colorScheme].tint,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  extraClassTagText: {
+    fontSize: 12,
     fontWeight: '600',
-    marginLeft: 4,
-    color: Colors[colorScheme].tint,
+    color: '#FFFFFF',
   },
   emptyText: {
     textAlign: 'center',
