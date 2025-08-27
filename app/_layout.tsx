@@ -68,6 +68,7 @@ function RootLayoutShell() {
           const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
           const date = extraClassItem?.date || formatDateToISO(new Date());
           upsertAttendance(courseId, scheduleId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, timeStart, timeEnd, date);
+          Notifications.dismissNotificationAsync(response.notification.request.identifier);
         }
       }
     });

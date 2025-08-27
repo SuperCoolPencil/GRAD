@@ -215,9 +215,9 @@ export const cancelAllNotifications = async () => {
 
 export const setupNotificationChannels = async () => {
   await Notifications.setNotificationCategoryAsync('class-actions', [
-    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: true } },
-    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: true } },
-    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground: true } },
+    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: false } },
+    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: false } },
+    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground: false } },
   ]);
 };
 
