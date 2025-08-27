@@ -1,5 +1,5 @@
 import { StyleSheet, FlatList, TouchableOpacity, View, Platform, ScrollView } from 'react-native'; // Import Platform, ScrollView
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import Constants from 'expo-constants'; // Import Constants
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -54,8 +54,33 @@ export default function CoursesScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
+  const [sortBy, setSortBy] = useState<'attendance' | 'alphabetical'>('attendance');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   // Filter out archived courses
-  const activeCourses = courses.filter(course => !course.isArchived);
+  let activeCourses = courses.filter(course => !course.isArchived);
+
+  // Apply sorting
+  const sortedCourses = [...activeCourses].sort((a, b) => {
+    if (sortBy === 'alphabetical') {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (sortOrder === 'asc') {
+        return nameA.localeCompare(nameB);
+      } else {
+        return nameB.localeCompare(nameA);
+      }
+    } else if (sortBy === 'attendance') {
+      const attendanceA = a.attendancePercentage || 0;
+      const attendanceB = b.attendancePercentage || 0;
+      if (sortOrder === 'asc') {
+        return attendanceA - attendanceB;
+      } else {
+        return attendanceB - attendanceA;
+      }
+    }
+    return 0;
+  });
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage || 0;
@@ -112,7 +137,7 @@ export default function CoursesScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
       <FlatList
-        data={activeCourses}
+        data={sortedCourses}
         showsVerticalScrollIndicator={false}
         renderItem={renderCourseItem}
         keyExtractor={(item) => item.id}
@@ -126,6 +151,34 @@ export default function CoursesScreen() {
             >
               My Courses
             </ThemedText>
+            <View style={styles.sortContainer}>
+              <TouchableOpacity
+                onPress={() => setSortBy(sortBy === 'alphabetical' ? 'attendance' : 'alphabetical')}
+                style={[
+                  styles.sortButton,
+                  { backgroundColor: Colors[colorScheme].tint },
+                ]}
+              >
+                <Ionicons
+                  name={sortBy === 'alphabetical' ? 'text' : 'stats-chart'}
+                  size={20}
+                  color={Colors[colorScheme].background}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                style={[
+                  styles.sortButton,
+                  { backgroundColor: Colors[colorScheme].tint },
+                ]}
+              >
+                <Ionicons
+                  name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
+                  size={20}
+                  color={Colors[colorScheme].background}
+                />
+              </TouchableOpacity>
+            </View>
             <Link href="/add-course" asChild>
               <TouchableOpacity style={styles.addButton}>
                 <Ionicons
@@ -191,6 +244,15 @@ const styles = StyleSheet.create({
   addButton: {
     marginLeft: 'auto', // Push the button to the right
     padding: 4,
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 8,
+  },
+  sortButton: {
+    padding: 8,
+    borderRadius: 8,
   },
   emptyContainer: {
     alignItems: 'center',
