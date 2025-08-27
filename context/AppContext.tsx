@@ -354,7 +354,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       };
       db.addAttendanceRecord(newRecord);
     }
-    triggerRefresh(); // Use triggerRefresh to force refresh across components
+    triggerRefresh();
     console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Triggered refresh.`);
   };
 
@@ -377,6 +377,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (existingRecord) {
       console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
       db.deleteAttendanceRecord(existingRecord.id);
+      triggerRefresh(); // Add this line to trigger a refresh
       console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}. Triggered refresh.`);
     } else {
       console.log(`[AppContext] No attendance record found to delete for ${courseId} on ${date}`);
@@ -476,15 +477,15 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         notificationTime,
         notificationsEnabled,
         is24Hour,
-        updateNotificationsEnabled, // Add new state
+        updateNotificationsEnabled,
         settings,
-        refreshKey, // Add refreshKey here
+        refreshKey,
         updateSetting,
         toggle24Hour,
         updateNotificationTime,
         toggleTheme,
         toggleNotifications,
-        toggleUpdateNotifications, // Add new toggle function
+        toggleUpdateNotifications,
         addCourse,
         getCourse: (courseId: string) => courses.find((course) => course.id === courseId),
         updateCourse,
@@ -502,7 +503,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         recalculateCourseCounts,
         save,
         loadData,
-        triggerRefresh, // Add triggerRefresh here
+        triggerRefresh, 
         getCoursesWithRecordsInRange,
         getPaginatedAttendanceRecords,
         attendanceRecords,

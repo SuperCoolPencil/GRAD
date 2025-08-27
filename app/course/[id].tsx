@@ -441,14 +441,13 @@ export default function CourseDetailScreen() {
               Extra Classes
             </ThemedText>
             {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => {
-              const isFuture = new Date(item.date) > new Date();
               return (
                 <View key={item.id} style={styles.scheduleItem}>
                   <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
                   <ThemedText style={styles.scheduleText}>
                     <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
                   </ThemedText>
-                  {isFuture && (
+                  {(
                     <TouchableOpacity
                       style={{ marginLeft: 'auto' }}
                       onPress={() => {
@@ -463,6 +462,7 @@ export default function CourseDetailScreen() {
                               onPress: () => {
                                 if (course) {
                                   deleteExtraClass(course.id, item.id);
+                                  deleteAttendanceRecord(course.id, item.date, item.timeStart, item.timeEnd, true);
                                 }
                               },
                             },
