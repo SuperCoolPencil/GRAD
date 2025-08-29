@@ -377,6 +377,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (existingRecord) {
       console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
       db.deleteAttendanceRecord(existingRecord.id);
+      if (existingRecord.isExtraClass)
+      {
+        deleteExtraClass(course.id, existingRecord.id);
+      }
       triggerRefresh(); // Add this line to trigger a refresh
       console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}. Triggered refresh.`);
     } else {

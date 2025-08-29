@@ -73,7 +73,7 @@ export default function CourseDetailScreen() {
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const colorScheme = useNativeColorScheme() ?? 'light';
-  const { showAlert } = useCustomAlert();
+  const { showAlert, hideAlert } = useCustomAlert();
 
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
@@ -131,12 +131,14 @@ export default function CourseDetailScreen() {
         {
           text: 'Delete Record',
           style: 'destructive',
+          shouldCloseAlert: false, // Prevent the first alert from closing
           onPress: async () => {
+            console.log(`[Analytics] Deleting attendance record for ${course.name} on ${formattedDate}`);
             showAlert(
               'Confirm Delete',
               `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
               [
-                { text: 'Cancel', style: 'cancel' },
+                { text: 'Cancel', style: 'cancel', onPress: hideAlert }, // Explicitly close the confirm alert
                 {
                   text: 'Delete',
                   style: 'destructive',
@@ -146,8 +148,9 @@ export default function CourseDetailScreen() {
                     getPaginatedAttendanceRecords(
                       page,
                       recordsPerPage,
-                      [course.id]
+                      [course.id],
                     );
+                    hideAlert(); // Explicitly close the confirm alert after deletion
                   },
                 },
               ]
