@@ -133,7 +133,7 @@ export default function CourseDetailScreen() {
           style: 'destructive',
           shouldCloseAlert: false, // Prevent the first alert from closing
           onPress: async () => {
-            console.log(`[Analytics] Deleting attendance record for ${course.name} on ${formattedDate}`);
+            console.log(`[COURSE ${course.id}] Deleting attendance record for ${course.name} on ${formattedDate}`);
             showAlert(
               'Confirm Delete',
               `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
