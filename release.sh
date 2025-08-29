@@ -9,7 +9,7 @@
 # 4. Commits the version bump and the new APK.
 # 5. Creates a new Git tag for the version.
 # 6. Generates release notes from commits since the last tag.
-# 7. Creates a new GitHub release with the tag and release notes.
+# 7. Creates a new GitHub release with the tag, release notes, and the APK as an asset.
 #
 # Usage:
 # ./release.sh <new_version>
@@ -124,6 +124,7 @@ echo "✅ Commit and tag pushed."
 
 echo "➡️  Creating GitHub release..."
 # Use the generated release notes to create the release on GitHub.
-gh release create "v$NEW_VERSION" --title "Release v$NEW_VERSION" --notes "$RELEASE_NOTES"
+# Attach grad.apk as a release asset and mark it as the latest release.
+gh release create "v$NEW_VERSION" grad.apk --title "v$NEW_VERSION" --notes "$RELEASE_NOTES" --latest
 
 echo "🎉 All done! Release v$NEW_VERSION has been successfully created on GitHub."
