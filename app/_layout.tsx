@@ -14,6 +14,7 @@ import { AlertProvider } from '../context/AlertContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { formatDateToISO } from '@/utils/dateHelpers';
 import { Colors } from '../constants/Colors';
+import { setupNotificationChannels, requestPermissions } from '@/utils/notifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -50,6 +51,8 @@ function RootLayoutShell() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      setupNotificationChannels();
+      requestPermissions();
     }
   }, [loaded]);
 
