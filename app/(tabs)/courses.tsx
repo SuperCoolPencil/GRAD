@@ -126,7 +126,7 @@ export default function CoursesScreen() {
                   >
                     {truncate(item.name, 20)}
                   </ThemedText>
-                  <ThemedText style={{
+                  {/* <ThemedText style={{
                     fontSize: 12,
                     color: Colors[colorScheme].background,
                     fontWeight: 'bold',
@@ -138,7 +138,7 @@ export default function CoursesScreen() {
                     overflow: 'hidden', // Ensure content is clipped to the border radius
                   }}>
                     {truncate(item.id, 10)}
-                  </ThemedText>
+                  </ThemedText> */}
                 </View>
                 <View style={styles.attendanceRow}>
                   <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance:</ThemedText>
