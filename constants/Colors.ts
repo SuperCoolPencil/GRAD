@@ -12,6 +12,7 @@ export const Colors = {
   light: {
     white: '#FFFFFF',
     text: '#11181C', // Keeping text dark for contrast
+    textSecondary: '#687076', // Dimmer color for secondary text
     background: '#f2f2f2', // Already brightest
     tint: '#0196FF', // Brighter blue tint
     icon: '#687076', // Keeping icons standard gray
@@ -35,6 +36,7 @@ export const Colors = {
   dark: {
     white: '#FFFFFF',
     text: '#ECEDEE',
+    textSecondary: '#9BA1A6', // Dimmer color for secondary text
     background: '#010101', // background: '#010101',
     tint: '#0096FF',
     icon: '#9BA1A6',

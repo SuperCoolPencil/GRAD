@@ -88,13 +88,13 @@ export default function CoursesScreen() {
 
     const presentCount = item.presents || 0;
     const absentCount = item.absents || 0;
-
-    const accentColor = getDeltaColor(getAttendanceDelta(presentCount, absentCount, requiredAttendance), colorScheme);
+    const delta = getAttendanceDelta(presentCount, absentCount, requiredAttendance);
+    const deltaColor = getDeltaColor(delta, colorScheme);
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
         <View style={[styles.courseCardContainer, {
-          borderLeftColor: accentColor,
+          borderLeftColor: deltaColor,
           shadowColor: Colors[colorScheme].shadow,
           backgroundColor: Colors[colorScheme].card,
         }]}>
@@ -108,17 +108,43 @@ export default function CoursesScreen() {
           >
             <ThemedView style={styles.courseHeader}>
               <View style={styles.courseInfo}>
-                <ThemedText
-                  type="subtitle"
-                  style={{ color: Colors[colorScheme].text }}
-                >
-                  {truncate(item.name, 20)} ({truncate(item.id, 10)})
-                </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Attendance: {attendancePercentage}%
-                </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Required: {item.requiredAttendance}%
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ThemedText
+                    type="subtitle"
+                    style={{ color: Colors[colorScheme].text }}
+                  >
+                    {truncate(item.name, 20)}
+                  </ThemedText>
+                  <ThemedText style={{
+                    fontSize: 12,
+                    color: Colors[colorScheme].background,
+                    fontWeight: 'bold',
+                    backgroundColor: Colors[colorScheme].textSecondary,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 8,
+                    marginLeft: 8, // Add some space between name and tag
+                    overflow: 'hidden', // Ensure content is clipped to the border radius
+                  }}>
+                    {truncate(item.id, 10)}
+                  </ThemedText>
+                </View>
+                <View style={styles.attendanceRow}>
+                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance:</ThemedText>
+                  <ThemedText style={{ color: Colors[colorScheme].text }}>
+                    {attendancePercentage}%
+                  </ThemedText>
+                </View>
+                <View style={styles.attendanceRow}>
+                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Required:</ThemedText>
+                  <ThemedText style={{ color: Colors[colorScheme].text }}>
+                    {item.requiredAttendance}%
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={[styles.deltaContainer, { backgroundColor: deltaColor }]}>
+                <ThemedText style={[styles.deltaText, { color: Colors[colorScheme].background }]}>
+                  {delta > 0 ? `+${delta}` : delta}
                 </ThemedText>
               </View>
               {/* Right Arrow Icon indicating navigation */}
@@ -236,10 +262,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'transparent',
+    flex: 1,
   },
   courseInfo: {
     flex: 1,
     gap: 4,
+  },
+  deltaContainer: {
+    width: 50, // Circle width
+    height: 50, // Circle height
+    borderRadius: 25, // Half of width/height for a circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8, // Shift more left, closer to course info
+    marginRight: 8, // Add some margin to the right of the circle
+    overflow: 'hidden', // Ensure content is clipped to the border radius
+  },
+  deltaText: {
+    fontSize: 22, // Adjusted font size to fit in circle
+    fontWeight: 'bold',
   },
   addButton: {
     marginLeft: 'auto', // Push the button to the right
@@ -265,5 +306,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.6,
     fontSize: 16,
+  },
+  attendanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
 });

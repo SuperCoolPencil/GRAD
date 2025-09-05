@@ -226,5 +226,5 @@ export const requestPermissions = async () => {
   if (status !== 'granted') {
     alert('You need to enable notifications in settings');
   }
-  console.log('[NOTIF] All scheduled notifications at app start:', await Notifications.getAllScheduledNotificationsAsync());
+  //console.log('[NOTIF] All scheduled notifications at app start:', await Notifications.getAllScheduledNotificationsAsync());
 };
