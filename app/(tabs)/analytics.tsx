@@ -56,7 +56,7 @@ export default function AnalyticsScreen() {
   const [showDatePicker, setShowDatePicker] = useState<'from' | 'to' | null>(null);
   const [heatmapCourses, setHeatmapCourses] = useState<Course[]>([]);
   const [selectedHeatmapCourse, setSelectedHeatmapCourse] = useState<string[]>([]); // Changed to string[]
-  const [displayMonth, setDisplayMonth] = useState(new Date());
+  const [displayMonth, setDisplayMonth] = useState(new Date(new Date().setMonth(new Date().getMonth() - 2)));
   const [page, setPage] = useState(1);
   const recordsPerPage = 10;
 
