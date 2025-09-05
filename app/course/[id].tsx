@@ -254,7 +254,7 @@ export default function CourseDetailScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32, paddingBottom: 16 }}>
         <ThemedText
             type="title"
-            style={{ maxWidth: '70%', flexShrink: 1 }}
+            style={{ maxWidth: '70%', flexShrink: 1, paddingLeft: 10 }}
             ellipsizeMode="tail"
           >
             {course.name}
