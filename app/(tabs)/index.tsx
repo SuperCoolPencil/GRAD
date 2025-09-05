@@ -69,18 +69,32 @@ export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
+  const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
       <View style={[styles.titleContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
-        <ThemedText
-          type="title"
-          style={{ color: Colors[colorScheme || "light"].text }}
-        >
-          Today's Classes
-        </ThemedText>
+        <View style={styles.titleTextContainer}>
+          <TouchableOpacity
+            onPress={() => setShowTomorrow(!showTomorrow)}
+            style={[
+              styles.dateToggleTag,
+              { backgroundColor: Colors[colorScheme || "light"].cardBackground }, // Background color from courses.tsx tags
+            ]}
+          >
+            <ThemedText type="title" style={{ color: Colors[colorScheme || "light"].text }}>
+              {showTomorrow ? "Tomorrow" : "Today"}
+            </ThemedText>
+          </TouchableOpacity>
+          <ThemedText
+            type="title"
+            style={[styles.classesText, { color: Colors[colorScheme || "light"].text }]}
+          >
+            's Classes
+          </ThemedText>
+        </View>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
@@ -107,6 +121,7 @@ export default function TodaysClassesScreen() {
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
         is24Hour={is24Hour}
+        showTomorrow={showTomorrow} // Pass new state
       />
       <CustomAlert
         isVisible={showAlert}
@@ -136,6 +151,7 @@ function TodaysClassesContent({
   setTodaysClasses,
   colorScheme,
   is24Hour,
+  showTomorrow,
 }: {
   courses: any;
   upsertAttendance: any;
@@ -145,13 +161,17 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
+  showTomorrow: boolean; // Define type for new state
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
 
-    const now = new Date();
+    const now = new Date(); // Corrected: removed extra 'new'
+    if (showTomorrow) {
+      now.setDate(now.getDate() + 1); // Increment date by 1 for tomorrow
+    }
     setCurrentDate(now);
 
     const currentDayName = DAYS_OF_WEEK[now.getDay()];
@@ -233,7 +253,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading]);
+  }, [courses, loading, showTomorrow]); // Add showTomorrow to dependency array
 
   const handleMarkAttendance = (
     courseId: string,
@@ -283,7 +303,15 @@ function TodaysClassesContent({
         ]}
         onPress={() => router.push(`/course/${item.courseId}`)}
       >
-        <ThemedView style={[styles.classCardContent, { backgroundColor: Colors[colorScheme || 'light'].card, }]}>
+        <ThemedView
+          style={[
+            styles.classCardContent,
+            {
+              backgroundColor: Colors[colorScheme || 'light'].card,
+              paddingVertical: showTomorrow ? 8 : 16, 
+            },
+          ]}
+        >
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -350,37 +378,39 @@ function TodaysClassesContent({
             </View>
           </View>
 
-          <View style={styles.attendanceActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
-              onPress={() =>
-                handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
-              }
-            >
-              <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Present</ThemedText>
-            </TouchableOpacity>
+          {!showTomorrow && ( // Conditionally render attendance actions
+            <View style={styles.attendanceActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
+                onPress={() =>
+                  handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                }
+              >
+                <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Present</ThemedText>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
-              onPress={() =>
-                handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
-              }
-            >
-              <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Absent</ThemedText>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
+                onPress={() =>
+                  handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                }
+              >
+                <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Absent</ThemedText>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
-              onPress={() =>
-                handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
-              }
-            >
-              <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-              <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Cancel</ThemedText>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
+                onPress={() =>
+                  handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                }
+              >
+                <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
+                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Cancel</ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
         </ThemedView>
       </TouchableOpacity>
     );
@@ -395,7 +425,7 @@ function TodaysClassesContent({
       ListEmptyComponent={() => (
         <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
           <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
-            No classes scheduled for today!
+            No classes scheduled for {showTomorrow ? "tomorrow" : "today"}!
           </ThemedText>
         </ThemedView>
       )}
@@ -422,6 +452,19 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     alignItems: "center",
   },
+  titleTextContainer: {
+    flexDirection: "row",
+    alignItems: "center", // Vertically center the items
+  },
+  dateToggleTag: {
+    paddingVertical: 2, // Adjusted padding to match courses.tsx tags
+    paddingHorizontal: 6, // Adjusted padding to match courses.tsx tags
+    borderRadius: 8, // Rounded corners to match courses.tsx tags
+    marginRight: 8, // Space between tag and "Classes"
+  },
+  classesText: {
+    // No specific styles needed here, as it will align with the tag due to alignItems: 'center'
+  },
   addButton: {
     marginLeft: "auto", // Push the button to the right
     padding: 4,
@@ -442,10 +485,11 @@ const styles = StyleSheet.create({
   classCardContent: {
     padding: 16,
     borderRadius: 16,
-    marginBottom: 0, // Removed marginBottom from here
+    marginBottom: 0,
+    gap: 16, // Add gap for vertical spacing between classInfo and attendanceActions
   },
   classInfo: {
-    marginBottom: 16,
+    // Removed marginBottom, now handled by gap in classCardContent
   },
   courseName: {
     fontSize: 16,
