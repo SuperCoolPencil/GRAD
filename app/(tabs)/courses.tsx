@@ -5,6 +5,7 @@ import Constants from 'expo-constants'; // Import Constants
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import AttendanceProgressRing from '@/components/AttendanceProgressRing';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
@@ -71,14 +72,17 @@ export default function CoursesScreen() {
         return nameB.localeCompare(nameA);
       }
     } else if (sortBy === 'attendance') {
-      const attendanceA = a.attendancePercentage || 0;
-      const attendanceB = b.attendancePercentage || 0;
-      if (sortOrder === 'asc') {
-        return attendanceA - attendanceB;
-      } else {
-        return attendanceB - attendanceA;
+        // If attendance percentages are the same, sort by delta
+        const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
+        const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
+
+        // If attendance percentages are the same, sort by delta
+        // If attendance percentages are the same, sort by delta
+        // For ascending attendance, prioritize courses needing more attendance (higher positive delta)
+        // For descending attendance, prioritize courses that can bunk more (more negative delta)
+        return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
       }
-    }
+    
     return 0;
   });
 
@@ -90,6 +94,13 @@ export default function CoursesScreen() {
     const absentCount = item.absents || 0;
     const delta = getAttendanceDelta(presentCount, absentCount, requiredAttendance);
     const deltaColor = getDeltaColor(delta, colorScheme);
+
+    // Calculate progress for the ring
+    const totalClasses = presentCount + absentCount;
+    let progress = 0;
+    if (totalClasses > 0) {
+      progress = attendancePercentage / 100;
+    }
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
@@ -142,10 +153,14 @@ export default function CoursesScreen() {
                   </ThemedText>
                 </View>
               </View>
-              <View style={[styles.deltaContainer, { backgroundColor: deltaColor }]}>
-                <ThemedText style={[styles.deltaText, { color: Colors[colorScheme].background }]}>
-                  {delta > 0 ? `+${delta}` : delta}
-                </ThemedText>
+              <View style={styles.deltaContainer}>
+                <AttendanceProgressRing
+                  progress={progress}
+                  color={deltaColor}
+                  size={50}
+                  strokeWidth={5}
+                  delta={delta}
+                />
               </View>
               {/* Right Arrow Icon indicating navigation */}
               <Ionicons
@@ -269,18 +284,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   deltaContainer: {
-    width: 50, // Circle width
-    height: 50, // Circle height
-    borderRadius: 25, // Half of width/height for a circle
-    justifyContent: 'center',
-    alignItems: 'center',
     marginLeft: 8, // Shift more left, closer to course info
     marginRight: 8, // Add some margin to the right of the circle
-    overflow: 'hidden', // Ensure content is clipped to the border radius
-  },
-  deltaText: {
-    fontSize: 22, // Adjusted font size to fit in circle
-    fontWeight: 'bold',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addButton: {
     marginLeft: 'auto', // Push the button to the right
