@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollV
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker'; // Import DocumentPicker
+import * as DocumentPicker from 'expo-document-picker';
 import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
@@ -13,8 +13,8 @@ import {
   scheduleCourseNotifications,
   cancelAllNotifications,
   setupNotificationChannels,
-  scheduleUpdateNotification, // Import new function
-  cancelUpdateNotification, // Import new function
+  scheduleUpdateNotification,
+  cancelUpdateNotification,
 } from '@/utils/notifications';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -24,6 +24,7 @@ import { useColorScheme } from 'react-native';
 import { useCustomAlert } from '@/context/AlertContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
+import SettingsToggle from '@/components/SettingsToggle';
 
 export default function SettingsScreen() {
   const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData and new context values
@@ -89,7 +90,7 @@ export default function SettingsScreen() {
 
   const handleExportData = async () => {
     await save(); // Ensure all data is saved before exporting
-    
+
     // Close the database to ensure all data is written to the file
     db.closeSync();
 
@@ -100,7 +101,7 @@ export default function SettingsScreen() {
       reopenDatabase(); // Reopen the database even if sharing fails
       return;
     }
-    
+
     try {
       await Sharing.shareAsync(dbUri);
     } catch (error) {
@@ -192,90 +193,20 @@ export default function SettingsScreen() {
         style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Contact Us Section */}
+        {/* General Settings Section */}
         <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Contact Us</ThemedText>
-          <SettingsButton
-            onPress={() => Linking.openURL('mailto:thesupercoolpencil@gmail.com')}
-            title="thesupercoolpencil@gmail.com"
-            iconName="mail-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          <ThemedText type="subtitle" style={styles.sectionTitle}>General Settings</ThemedText>
+          <SettingsToggle
+            title="24-Hour Clock"
+            iconName="time-outline"
+            value={is24Hour}
+            onValueChange={toggle24Hour}
           />
         </View>
 
-        {/* Project Section */}
+        {/* Default Attendance Status Section */}
         <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Project</ThemedText>
-          <SettingsButton
-            onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD')}
-            title="GitHub Repository"
-            iconName="logo-github"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
-          />
-        </View>
-
-        {/* Version Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Version</ThemedText>
-          <SettingsButton
-            onPress={() => {}}
-            title={`v${Constants.expoConfig?.version}` || 'N/A'}
-            iconName="information-circle-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
-          />
-          {latestVersion && latestVersion !== `v${Constants.expoConfig?.version}` && (
-            <SettingsButton
-              onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD/releases/latest')}
-              title={`Update available: ${latestVersion}`}
-              iconName="download-outline"
-              backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
-              textColor={colorScheme === 'dark' ? Colors.dark.white : Colors.light.white}
-            />
-          )}
-        </View>
-
-        {/* Notifications Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Notifications</ThemedText>
-          <View style={styles.notificationSetting}>
-            <ThemedText>Enable Class Notifications</ThemedText>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationToggle}
-            />
-          </View>
-          {notificationsEnabled && (
-            <SettingsButton
-              onPress={() => setModalVisible(true)}
-              title={`Notify ${notificationTime} minutes before class`}
-              iconName="time-outline"
-              backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-              textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
-            />
-          )}
-          <View style={styles.notificationSetting}>
-            <ThemedText>Enable App Update Notifications</ThemedText>
-            <Switch
-              value={updateNotificationsEnabled}
-              onValueChange={handleUpdateNotificationToggle}
-            />
-          </View>
-        </View>
-
-        {/* General Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>General</ThemedText>
-          <View style={styles.notificationSetting}>
-            <ThemedText>24-Hour Clock</ThemedText>
-            <Switch
-              value={is24Hour}
-              onValueChange={toggle24Hour}
-            />
-          </View>
-          <ThemedText type="subtitle" style={{ marginTop: 16 }}>Default Attendance Status</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Default Attendance Status</ThemedText>
           <View style={styles.statusButtonsContainer}>
             <TouchableOpacity
               style={[styles.statusButton, defaultAttendanceStatus === 'present' && styles.selectedButton]}
@@ -298,16 +229,33 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <NotificationTimeModal
-          isVisible={isModalVisible}
-          onClose={() => setModalVisible(false)}
-          onSave={(time) => {
-            updateNotificationTime(time);
-            setModalVisible(false);
-          }}
-          initialTime={notificationTime}
-        />
+        {/* Notifications Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Notifications</ThemedText>
+          <SettingsToggle
+            title="Enable Class Notifications"
+            iconName="notifications-outline"
+            value={notificationsEnabled}
+            onValueChange={handleNotificationToggle}
+          />
+          {notificationsEnabled && (
+            <SettingsButton
+              onPress={() => setModalVisible(true)}
+              title={`Notify ${notificationTime} minutes before class`}
+              iconName="time-outline"
+              backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+              textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            />
+          )}
+          <SettingsToggle
+            title="Enable App Update Notifications"
+            iconName="cloud-download-outline"
+            value={updateNotificationsEnabled}
+            onValueChange={handleUpdateNotificationToggle}
+          />
+        </View>
 
+        {/* Data Management Section */}
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
           <SettingsButton
@@ -331,12 +279,6 @@ export default function SettingsScreen() {
             textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
           <SettingsButton
-            onPress={handleClearData}
-            title="Clear All Data"
-            iconName="trash-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
-          />
-          <SettingsButton
             onPress={() => {
               clearCourseColors();
               if (loadData) {
@@ -349,19 +291,64 @@ export default function SettingsScreen() {
             backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
             textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
+          <SettingsButton
+            onPress={handleClearData}
+            title="Clear All Data"
+            iconName="trash-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
+          />
         </View>
+
+        {/* About Section */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>About</ThemedText>
+          <SettingsButton
+            onPress={() => { }}
+            title={`Version v${Constants.expoConfig?.version}` || 'N/A'}
+            iconName="information-circle-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+          {latestVersion && latestVersion !== `v${Constants.expoConfig?.version}` && (
+            <SettingsButton
+              onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD/releases/latest')}
+              title={`Update available: ${latestVersion}`}
+              iconName="download-outline"
+              backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+              textColor={colorScheme === 'dark' ? Colors.dark.white : Colors.light.white}
+            />
+          )}
+          <SettingsButton
+            onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD')}
+            title="GitHub Repository"
+            iconName="logo-github"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+          <SettingsButton
+            onPress={() => Linking.openURL('mailto:thesupercoolpencil@gmail.com')}
+            title="Contact Us"
+            iconName="mail-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+          />
+        </View>
+
+        <NotificationTimeModal
+          isVisible={isModalVisible}
+          onClose={() => setModalVisible(false)}
+          onSave={(time) => {
+            updateNotificationTime(time);
+            setModalVisible(false);
+          }}
+          initialTime={notificationTime}
+        />
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  notificationSetting: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
   input: {
     borderWidth: 1,
     borderRadius: 8,
@@ -384,7 +371,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   sectionContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
     backgroundColor: 'transparent',
   },
   sectionTitle: {
