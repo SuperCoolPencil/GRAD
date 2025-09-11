@@ -41,6 +41,12 @@ fi
 
 echo "🚀 Starting release process for version: $NEW_VERSION"
 
+echo "➡️  Fetching the latest files"
+mkdir tmp
+cd tmp
+git clone https://github.com/SuperCoolPencil/GRAD
+cd GRAD
+
 # --- 1. Update app.json ---
 echo "➡️  Updating version in app.json to $NEW_VERSION..."
 if ! jq --arg v "$NEW_VERSION" '.expo.version = $v' app.json > app.json.tmp; then
@@ -126,5 +132,9 @@ echo "➡️  Creating GitHub release..."
 # Use the generated release notes to create the release on GitHub.
 # Attach grad.apk as a release asset and mark it as the latest release.
 gh release create "v$NEW_VERSION" grad.apk --title "v$NEW_VERSION" --notes "$RELEASE_NOTES" --latest
+
+cd ..
+cd ..
+rm -rf tmp
 
 echo "🎉 All done! Release v$NEW_VERSION has been successfully created on GitHub."
