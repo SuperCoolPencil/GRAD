@@ -25,17 +25,31 @@ export const scheduleCourseNotifications = async (course: Course, notificationTi
 };
 
 export const scheduleUpdateNotification = async (version: string) => {
-  console.log(`[NOTIF] Scheduling update notification for version: ${version}`);
+  console.log(`[NOTIF] Sending immediate + weekly update notification for version: ${version}`);
+
+  // 1. Send immediate notification
   await Notifications.scheduleNotificationAsync({
-    identifier: 'app-update-notification',
+    identifier: 'app-update-notification-now',
     content: {
       title: 'App Update Available!',
       body: `A new version (${version}) of GRAD is available. Tap to update!`,
       data: { url: 'https://github.com/SuperCoolPencil/GRAD/releases/latest' },
     },
+    trigger: null, // fire immediately
+  });
+
+  // 2. Schedule weekly reminder
+  await Notifications.scheduleNotificationAsync({
+    identifier: 'app-update-notification-weekly',
+    content: {
+      title: 'Reminder: Update Available!',
+      body: `Don't forget to update to version ${version} of GRAD.`,
+      data: { url: 'https://github.com/SuperCoolPencil/GRAD/releases/latest' },
+    },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, // Corrected type
-      seconds: 60*60*24, // Schedule to appear in 24 hours
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 60 * 60 * 24 * 7, // 7 days in seconds
+      repeats: true,             // repeat weekly
     },
   });
 };
