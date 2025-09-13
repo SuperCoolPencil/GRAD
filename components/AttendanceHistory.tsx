@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { AttendanceRecord, Course } from '@/types';
 import PaginationControls from './PaginationControls';
+import ExtraClassTag from './ui/ExtraClassTag';
 
 interface AttendanceHistoryProps {
   title: string;
@@ -79,11 +80,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
 
         </ThemedText>
         <ThemedView style={styles.historyDateContainer}>
-          {item.isExtraClass ? (
-            <ThemedView style={styles.extraClassTagContainer}>
-              <ThemedText style={styles.extraClassTagText}>Extra</ThemedText>
-            </ThemedView>
-          ) : null}
+          {item.isExtraClass && <ExtraClassTag style={{ marginRight: 8 }} />}
           <ThemedText style={styles.historyDateText}>{formattedDate}</ThemedText>
         </ThemedView>
       </TouchableOpacity>
@@ -158,18 +155,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'transparent', // Make parent background transparent to see card bg
-  },
-  extraClassTagContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: Colors[colorScheme].tint,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  extraClassTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   emptyText: {
     textAlign: 'center',

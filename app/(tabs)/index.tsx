@@ -16,6 +16,7 @@ import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useRouter } from "expo-router";
 import { CustomAlert } from "@/components/CustomAlert";
+import ExtraClassTag from "@/components/ui/ExtraClassTag";
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -328,8 +329,8 @@ function TodaysClassesContent({
                 />
                 <ThemedText>
                   {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
-                  {item.isExtraClass ? ' (Extra)' : ''}
                 </ThemedText>
+                {item.isExtraClass && <ExtraClassTag />}
               </View>
               <View style={styles.infoRow}>
                 <Ionicons
