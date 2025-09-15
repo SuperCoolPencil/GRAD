@@ -72,15 +72,24 @@ export default function CoursesScreen() {
         return nameB.localeCompare(nameA);
       }
     } else if (sortBy === 'attendance') {
-        // If attendance percentages are the same, sort by delta
         const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
         const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
 
-        // If attendance percentages are the same, sort by delta
-        // If attendance percentages are the same, sort by delta
-        // For ascending attendance, prioritize courses needing more attendance (higher positive delta)
-        // For descending attendance, prioritize courses that can bunk more (more negative delta)
-        return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
+        if (deltaA !== deltaB) {
+          return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
+        }
+
+        // If delta is the same, sort by attendance percentage
+        const percentageA = a.attendancePercentage || 0;
+        const percentageB = b.attendancePercentage || 0;
+
+        if (sortOrder === 'asc') {
+          // For ascending, lower percentage is "worse" so it comes first
+          return percentageA - percentageB;
+        } else {
+          // For descending, higher percentage is "better" so it comes first
+          return percentageB - percentageA;
+        }
       }
     
     return 0;
