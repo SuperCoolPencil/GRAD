@@ -66,6 +66,31 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   return Colors[colorScheme].tint; // Exactly at required => yellow accent
 };
 
+const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (status: "present" | "absent" | "cancelled") => void, colorScheme: 'light' | 'dark' }) => {
+  return (
+    <View style={styles.bulkActionsContainer}>
+      <TouchableOpacity
+        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].success }]}
+        onPress={() => onBulkMark('present')}
+      >
+        <Ionicons name="checkmark-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].error }]}
+        onPress={() => onBulkMark('absent')}
+      >
+        <Ionicons name="close-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].warning }]}
+        onPress={() => onBulkMark('cancelled')}
+      >
+        <Ionicons name="remove-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
@@ -73,6 +98,24 @@ export default function TodaysClassesScreen() {
   const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const now = new Date();
+    if (showTomorrow) {
+      now.setDate(now.getDate() + 1);
+    }
+    setCurrentDate(now);
+  }, [showTomorrow]);
+
+  const handleBulkMarkAttendance = (status: "present" | "absent" | "cancelled") => {
+    const dateString = formatDateToISO(currentDate);
+    todaysClasses.forEach(item => {
+      const scheduleItemId = item.isExtraClass ? undefined : item.id.split('-').slice(1).join('-');
+      const extraClassId = item.isExtraClass ? item.id.split('-').slice(2).join('-') : undefined;
+      upsertAttendance(item.courseId, scheduleItemId || extraClassId || '', status, item.isExtraClass, item.timeStart, item.timeEnd, dateString);
+    });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
@@ -113,6 +156,7 @@ export default function TodaysClassesScreen() {
           />
         </TouchableOpacity>
       </View>
+      {!showTomorrow && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
       <TodaysClassesContent
         courses={courses}
         upsertAttendance={upsertAttendance}
@@ -438,6 +482,20 @@ function TodaysClassesContent({
 }
 
 const styles = StyleSheet.create({
+  bulkActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  bulkActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerImage: {
     color: Colors.light.icon,
     bottom: -90,
