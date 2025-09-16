@@ -22,6 +22,7 @@ interface AppContextType {
   updateNotificationsEnabled: boolean; // New: Update notifications enabled
   settings: { [key: string]: any };
   refreshKey: number; // Add refreshKey to context type
+  setRefreshKey: React.Dispatch<React.SetStateAction<number>>; // Add setRefreshKey to context type
   updateSetting: (key: string, value: any) => void;
   toggle24Hour: () => void;
   updateNotificationTime: (time: number) => void;
@@ -67,6 +68,7 @@ export const AppContext = createContext<AppContextType>({
   updateNotificationsEnabled: false, // New: Update notifications enabled
   settings: {},
   refreshKey: 0, // Initialize refreshKey
+  setRefreshKey: () => { }, // Initialize setRefreshKey
   updateSetting: () => { },
   toggle24Hour: () => { },
   updateNotificationTime: () => { },
@@ -484,6 +486,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateNotificationsEnabled,
         settings,
         refreshKey,
+        setRefreshKey,
         updateSetting,
         toggle24Hour,
         updateNotificationTime,

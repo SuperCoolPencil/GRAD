@@ -153,13 +153,18 @@ export const updateSetting = (key: string, value: string) => {
   db.runSync('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, value);
 };
 
-const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: string, endDate: string): AttendanceRecord[] => {
-  return db.getAllSync(
-    'SELECT * FROM attendance_records WHERE course_id = ? AND class_date BETWEEN ? AND ? ORDER BY class_date ASC, time_start ASC',
-    courseId,
-    startDate,
-    endDate
-  ).map((r: any) => ({
+export const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: string, endDate: string): AttendanceRecord[] => {
+  let query = 'SELECT * FROM attendance_records WHERE class_date BETWEEN ? AND ?';
+  const params: any[] = [startDate, endDate];
+
+  if (courseId) {
+    query += ' AND course_id = ?';
+    params.push(courseId);
+  }
+
+  query += ' ORDER BY class_date ASC, time_start ASC';
+
+  return db.getAllSync(query, ...params).map((r: any) => ({
     id: r.id,
     course_id: r.course_id,
     date: r.class_date,
