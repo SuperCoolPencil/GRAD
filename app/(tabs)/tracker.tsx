@@ -12,6 +12,7 @@ import { useAttendanceData, ClassItem } from '@/hooks/useAttendanceData';
 import { useAttendanceActions } from '@/hooks/useAttendanceActions';
 import TimeAxis from '@/components/AttendanceTracker/TimeAxis';
 import DayColumn from '@/components/AttendanceTracker/DayColumn';
+import { router } from 'expo-router';
 
 export default function VisualAttendanceTracker() {
   const { is24Hour } = useContext(AppContext);
@@ -219,6 +220,16 @@ export default function VisualAttendanceTracker() {
 
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Tracker</ThemedText>
+        <TouchableOpacity
+          style={{ marginLeft: 'auto', padding: 4 }}
+          onPress={() => router.push('/manage-holidays')}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={28}
+            color={Colors[colorScheme].tint}
+          />
+        </TouchableOpacity>
       </ThemedView>
       
       <View style={styles.dateNavigator}>

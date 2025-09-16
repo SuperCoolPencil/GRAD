@@ -57,6 +57,12 @@ export const initDatabase = () => {
       schedule_item_id TEXT,
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS holidays (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      startDate TEXT NOT NULL,
+      endDate TEXT NOT NULL
+    );
   `);
 
   // Migration for older schemas
@@ -668,4 +674,19 @@ export const clearAllData = () => {
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationsEnabled', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('is24Hour', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('defaultAttendanceStatus', 'absent')");
+};
+
+export const getHolidays = () => {
+  console.log('Getting all holidays');
+  return db.getAllSync('SELECT * FROM holidays ORDER BY startDate ASC');
+};
+
+export const addHoliday = (id: string, name: string, startDate: string, endDate: string) => {
+  console.log(`Adding holiday: ${name} from ${startDate} to ${endDate}`);
+  db.runSync('INSERT INTO holidays (id, name, startDate, endDate) VALUES (?, ?, ?, ?)', id, name, startDate, endDate);
+};
+
+export const deleteHoliday = (id: string) => {
+  console.log(`Deleting holiday: ${id}`);
+  db.runSync('DELETE FROM holidays WHERE id = ?', id);
 };

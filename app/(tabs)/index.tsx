@@ -17,6 +17,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useRouter } from "expo-router";
 import { CustomAlert } from "@/components/CustomAlert";
 import ExtraClassTag from "@/components/ui/ExtraClassTag";
+import { getHolidays } from "@/utils/database";
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -96,6 +97,7 @@ export default function TodaysClassesScreen() {
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
+  const [holiday, setHoliday] = useState<string | null>(null);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -106,7 +108,16 @@ export default function TodaysClassesScreen() {
       now.setDate(now.getDate() + 1);
     }
     setCurrentDate(now);
-  }, [showTomorrow]);
+
+    const holidays = getHolidays() as { name: string, date: string }[];
+    const todayString = formatDateToISO(now);
+    const todayHoliday = holidays.find(h => h.date === todayString);
+    if (todayHoliday) {
+      setHoliday(todayHoliday.name);
+    } else {
+      setHoliday(null);
+    }
+  }, [showTomorrow, refreshKey]);
 
   const handleBulkMarkAttendance = (status: "present" | "absent" | "cancelled") => {
     const dateString = formatDateToISO(currentDate);
@@ -156,6 +167,11 @@ export default function TodaysClassesScreen() {
           />
         </TouchableOpacity>
       </View>
+      {holiday && (
+        <ThemedView style={styles.holidayContainer}>
+          <ThemedText type="title">Enjoy {holiday}!</ThemedText>
+        </ThemedView>
+      )}
       {!showTomorrow && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
       <TodaysClassesContent
         courses={courses}
@@ -206,25 +222,26 @@ function TodaysClassesContent({
   setTodaysClasses: any;
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
-  showTomorrow: boolean; // Define type for new state
+  showTomorrow: boolean; 
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
-    if (loading) return; // Wait until courses are loaded
+    if (loading) return; 
 
-    const now = new Date(); // Corrected: removed extra 'new'
+    const now = new Date();
     if (showTomorrow) {
-      now.setDate(now.getDate() + 1); // Increment date by 1 for tomorrow
+      now.setDate(now.getDate() + 1); 
     }
     setCurrentDate(now);
 
     const currentDayName = DAYS_OF_WEEK[now.getDay()];
-    const currentDateString = formatDateToISO(now); // YYYY-MM-DD
+    const currentDateString = formatDateToISO(now); 
 
     const classesForToday: ClassItem[] = [];
 
     courses.forEach((course: Course) => {
+      
       // Skip archived courses
       if (course.isArchived) {
         return;
@@ -588,5 +605,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.6,
     fontSize: 16,
+  },
+  holidayContainer: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

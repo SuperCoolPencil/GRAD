@@ -92,14 +92,15 @@ function RootLayoutShell() {
         }}
       >
         <StatusBar style="auto" />
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="add-extra-class" options={{ headerShown: false }} />
-          <Stack.Screen name="add-course" options={{ headerShown: false }} />
-          <Stack.Screen name="archived-courses" options={{ headerShown: false }} />
-          <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="edit-course/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="add-extra-class" />
+          <Stack.Screen name="add-course" />
+          <Stack.Screen name="archived-courses" />
+          <Stack.Screen name="course/[id]" />
+          <Stack.Screen name="edit-course/[id]" />
+          <Stack.Screen name="manage-holidays" />
+          <Stack.Screen name="+not-found" options={{ headerShown: true }} />
         </Stack>
       </View>
     </ThemeProvider>
