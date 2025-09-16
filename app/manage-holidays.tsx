@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { View, TextInput, FlatList, StyleSheet, useColorScheme, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useContext, useMemo, useRef, useCallback } from 'react';
+import { View, TextInput, FlatList, StyleSheet, useColorScheme, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -17,18 +17,19 @@ import { AttendanceRecord } from '@/types';
 interface Holiday {
   id: string;
   name: string;
-  startDate: string; // ISO YYYY-MM-DD
-  endDate: string;   // ISO YYYY-MM-DD
+  startDate: string;
+  endDate: string; 
 }
 
 export default function ManageHolidaysScreen() {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [pastHolidays, setPastHolidays] = useState<Holiday[]>([]);
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false); // used for Add button and bulk ops
+  const didPromptPrevDay = useRef(false); // To ensure prompt runs only once
   const colorScheme = (useColorScheme() as 'light' | 'dark') || 'light';
   const { refreshKey, setRefreshKey } = useContext(AppContext);
   const { colors } = useTheme();
@@ -38,28 +39,88 @@ export default function ManageHolidaysScreen() {
 
   useEffect(() => {
     loadHolidays();
+    if (!didPromptPrevDay.current) {
+      checkPreviousDayAndPrompt();
+      didPromptPrevDay.current = true;
+    }
   }, [refreshKey]);
+
+  const getLocalIso = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const toDate = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const previousDayIso = getLocalIso(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+  const checkPreviousDayAndPrompt = async () => {
+    try {
+      const attendanceRecords = await getAttendanceRecordsForCourseInRange('', previousDayIso, previousDayIso);
+      const nonCancelled = attendanceRecords.filter((r: AttendanceRecord) => r.status !== 'cancelled');
+      if (nonCancelled.length === 0) return;
+      showAlert(
+        'Confirm',
+        `Mark all classes on ${previousDayIso} as cancelled and add a holiday for that day?`,
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes',
+            onPress: async () => {
+              setSaving(true);
+              try {
+                const courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } } = {};
+                const toUpdateIds: string[] = [];
+                for (const r of nonCancelled) {
+                  toUpdateIds.push(r.id);
+                  if (!courseCounts[r.course_id]) courseCounts[r.course_id] = { presents: 0, absents: 0, cancelled: 0 };
+                  if (r.status === 'present') courseCounts[r.course_id].presents--;
+                  else if (r.status === 'absent') courseCounts[r.course_id].absents--;
+                  courseCounts[r.course_id].cancelled++;
+                }
+                await Promise.all(nonCancelled.map((r) => updateAttendanceRecord(r.id, 'cancelled')));
+                await bulkUpdateCourseCounts(courseCounts);
+                const holidayId = uuidv4();
+                await addHoliday(holidayId, `Auto-cancel ${previousDayIso}`, previousDayIso, previousDayIso);
+                setRefreshKey(prev => prev + 1);
+                showAlert('Success', `Marked ${nonCancelled.length} records cancelled and added holiday for ${previousDayIso}.`);
+              } catch (err) {
+                console.error('Failed to bulk-cancel previous day:', err);
+                showAlert('Error', 'Failed to cancel previous day classes. Try again.');
+              } finally {
+                setSaving(false);
+              }
+            },
+          },
+        ]
+      );
+    } catch (err) {
+      console.error('Failed checking previous day attendance:', err);
+    }
+  };
 
   const loadHolidays = async () => {
     try {
       const res = getHolidays();
       const holidaysFromDb = res instanceof Promise ? await res : res;
-      const allHolidays = Array.isArray(holidaysFromDb) ? holidaysFromDb : [];
-      const today = formatDate(new Date());
+      const allHolidays: Holiday[] = Array.isArray(holidaysFromDb) ? holidaysFromDb : [];
+      const today = getLocalIso(new Date());
       const upcoming = allHolidays.filter(holiday => holiday.endDate >= today);
-      const past = allHolidays.filter(holiday => holiday.endDate < today);
       setHolidays(upcoming);
-      setPastHolidays(past);
+      // setPastHolidays([]); // Past holidays list is removed
     } catch (error) {
-      // keep failure silent but logged
-      // eslint-disable-next-line no-console
       console.error('Failed loading holidays', error);
       setHolidays([]);
-      setPastHolidays([]);
+      // setPastHolidays([]);
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date) => { // This function is still used by onStartDateChange/onEndDateChange
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -94,18 +155,19 @@ export default function ManageHolidaysScreen() {
     const trimmedEndDate = endDate.trim();
 
     if (!trimmedName) {
-      Alert.alert('Invalid', 'Holiday name is required');
+      showAlert('Invalid', 'Holiday name is required', [{ text: 'OK', style: 'cancel' }]);
       return;
     }
     if (!isValidDate(trimmedStartDate) || !isValidDate(trimmedEndDate)) {
-      Alert.alert('Invalid', 'Start and End Dates must be in YYYY-MM-DD format');
+      showAlert('Invalid', 'Start and End Dates must be in YYYY-MM-DD format', [{ text: 'OK', style: 'cancel' }]);
       return;
     }
     if (trimmedStartDate > trimmedEndDate) {
-      Alert.alert('Invalid', 'Start Date cannot be after End Date');
+      showAlert('Invalid', 'Start Date cannot be after End Date', [{ text: 'OK', style: 'cancel' }]);
       return;
     }
 
+    setSaving(true);
     const newHoliday: Holiday = { id: uuidv4(), name: trimmedName, startDate: trimmedStartDate, endDate: trimmedEndDate };
 
     try {
@@ -117,60 +179,12 @@ export default function ManageHolidaysScreen() {
       setStartDate('');
       setEndDate('');
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed adding holiday', error);
-      Alert.alert('Error', 'Could not add holiday');
+      showAlert('Error', 'Could not add holiday');
       await loadHolidays();
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handlePastHoliday = async (holiday: Holiday) => {
-    showAlert(
-      "Confirm Cancellation",
-      `Are you sure you want to mark all attendance records for ${holiday.name} (${holiday.startDate} to ${holiday.endDate}) as cancelled? This action cannot be undone.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Confirm",
-          onPress: async () => {
-            try {
-              const attendanceRecords = getAttendanceRecordsForCourseInRange(
-                '', // Empty string for all courses
-                holiday.startDate,
-                holiday.endDate
-              );
-
-              const courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } } = {};
-
-              for (const record of attendanceRecords) {
-                if (record.status !== 'cancelled') {
-                  await updateAttendanceRecord(record.id, 'cancelled');
-                  if (!courseCounts[record.course_id]) {
-                    courseCounts[record.course_id] = { presents: 0, absents: 0, cancelled: 0 };
-                  }
-                  if (record.status === 'present') {
-                    courseCounts[record.course_id].presents--;
-                  } else if (record.status === 'absent') {
-                    courseCounts[record.course_id].absents--;
-                  }
-                  courseCounts[record.course_id].cancelled++;
-                }
-              }
-              await bulkUpdateCourseCounts(courseCounts);
-              await deleteHoliday(holiday.id);
-              setRefreshKey(prev => prev + 1); // Trigger refresh
-              showAlert("Success", `All attendance records for ${holiday.name} have been marked as cancelled.`);
-            } catch (error) {
-              console.error('Failed to handle past holiday:', error);
-              showAlert("Error", "Failed to mark attendance records as cancelled. Please try again.");
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleDeleteHoliday = async (id: string) => {
@@ -179,30 +193,23 @@ export default function ManageHolidaysScreen() {
       if ((res as any) instanceof Promise) await res;
       setRefreshKey((prev: number) => prev + 1); // Trigger refresh
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Failed deleting holiday', error);
-      Alert.alert('Error', 'Could not delete holiday');
+      showAlert('Error', 'Could not delete holiday');
       await loadHolidays();
     }
   };
 
-  const renderHolidayItem = ({ item }: { item: Holiday }, isPast: boolean) => (
+  const renderHolidayItem = useCallback(({ item }: { item: Holiday }) => (
     <View style={styles.holidayItem} key={item.id}>
       <View style={styles.holidayTextContainer}>
         <ThemedText numberOfLines={1} style={styles.holidayName}>{item.name}</ThemedText>
         <ThemedText style={styles.holidayDate}>{item.startDate} to {item.endDate}</ThemedText>
       </View>
-      {isPast ? (
-        <TouchableOpacity onPress={() => handlePastHoliday(item)} accessibilityLabel={`Handle past holiday ${item.name}`}>
-          <ThemedText style={styles.handlePastButtonText}>Mark as Cancelled</ThemedText>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity onPress={() => handleDeleteHoliday(item.id)} accessibilityLabel={`Delete ${item.name}`}>
-          <Ionicons name="close-circle-outline" size={22} color={Colors[colorScheme].error} />
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity onPress={() => handleDeleteHoliday(item.id)} accessibilityLabel={`Delete ${item.name}`}>
+        <Ionicons name="close-circle-outline" size={22} color={Colors[colorScheme].error} />
+      </TouchableOpacity>
     </View>
-  );
+  ), [styles, colorScheme]);
 
   return (
     <ThemedView style={styles.container}>
@@ -218,61 +225,54 @@ export default function ManageHolidaysScreen() {
             onChangeText={setName}
             returnKeyType="done"
           />
-          <TouchableOpacity onPress={showStartDatepicker} style={styles.input}>
-            <ThemedText style={{ color: startDate ? Colors[colorScheme].text : Colors[colorScheme].text }}>
+          <TouchableOpacity onPress={showStartDatepicker} style={styles.dateInputTouchable}>
+            <ThemedText style={{ color: startDate ? Colors[colorScheme].text : Colors[colorScheme].text, textAlign: 'center' }}>
               {startDate || "Start Date (YYYY-MM-DD)"}
             </ThemedText>
           </TouchableOpacity>
           {showStartDatePicker && (
             <DateTimePicker
               testID="startDatePicker"
-              value={startDate ? new Date(startDate) : new Date()}
+              value={startDate ? toDate(startDate) : new Date()}
               mode="date"
               display="default"
               onChange={onStartDateChange}
             />
           )}
 
-          <TouchableOpacity onPress={showEndDatepicker} style={styles.input}>
-            <ThemedText style={{ color: endDate ? Colors[colorScheme].text : Colors[colorScheme].text }}>
+          <TouchableOpacity onPress={showEndDatepicker} style={styles.dateInputTouchable}>
+            <ThemedText style={{ color: endDate ? Colors[colorScheme].text : Colors[colorScheme].text, textAlign: 'center' }}>
               {endDate || "End Date (YYYY-MM-DD)"}
             </ThemedText>
           </TouchableOpacity>
           {showEndDatePicker && (
             <DateTimePicker
               testID="endDatePicker"
-              value={endDate ? new Date(endDate) : new Date()}
+              value={endDate ? toDate(endDate) : new Date()}
               mode="date"
               display="default"
               onChange={onEndDateChange}
             />
           )}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleAddHoliday} accessibilityRole="button">
-            <ThemedText style={styles.primaryButtonText}>Add Holiday</ThemedText>
+          <TouchableOpacity
+            style={[styles.primaryButton, saving && { opacity: 0.6 }]}
+            onPress={handleAddHoliday}
+            disabled={saving}
+            accessibilityRole="button"
+          >
+            <ThemedText style={styles.primaryButtonText}>{saving ? 'Saving...' : 'Add Holiday'}</ThemedText>
           </TouchableOpacity>
         </View>
 
         <ThemedText style={styles.sectionTitle}>Upcoming Holidays</ThemedText>
         <FlatList
           data={holidays}
-          renderItem={(item) => renderHolidayItem(item, false)}
+          renderItem={renderHolidayItem}
           keyExtractor={(item) => item.id}
           style={styles.list}
           keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={<ThemedText>No upcoming holidays</ThemedText>}
         />
-
-        {pastHolidays.length > 0 && (
-          <>
-            <ThemedText style={styles.sectionTitle}>Past Holidays</ThemedText>
-            <FlatList
-              data={pastHolidays}
-              renderItem={(item) => renderHolidayItem(item, true)}
-              keyExtractor={(item) => item.id}
-              style={styles.list}
-              keyboardShouldPersistTaps="handled"
-            />
-          </>
-        )}
       </KeyboardAvoidingView>
     </ThemedView>
   );
@@ -309,6 +309,17 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontSize: 16,
     color: Colors[colorScheme].text,
     marginBottom: 12,
+    textAlign: 'center', // centers placeholder and typed text
+  },
+  dateInputTouchable: {
+    borderColor: Colors[colorScheme].border,
+    backgroundColor: Colors[colorScheme].card,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   list: {
     flex: 1,
@@ -343,14 +354,23 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   primaryButton: {
     backgroundColor: Colors[colorScheme].tint,
-    paddingVertical: 15,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 999, // pill shape
     alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
     marginTop: 20,
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
