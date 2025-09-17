@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '../types';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord, Holiday } from '../types';
 import { formatDateToISO } from './dateHelpers';
 
 export let db = SQLite.openDatabaseSync('grad.db');
@@ -56,6 +56,12 @@ export const initDatabase = () => {
       is_extra_class BOOLEAN NOT NULL,
       schedule_item_id TEXT,
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS holidays (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL
     );
   `);
 
@@ -632,6 +638,7 @@ export const clearAllData = () => {
     db.execSync('DROP TABLE IF EXISTS extra_classes');
     db.execSync('DROP TABLE IF EXISTS attendance_records');
     db.execSync('DROP TABLE IF EXISTS app_settings');
+    db.execSync('DROP TABLE IF EXISTS holidays');
   });
   initDatabase(); // Re-initialize the database with the correct schema
   // Re-insert default settings
@@ -640,4 +647,28 @@ export const clearAllData = () => {
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationsEnabled', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('is24Hour', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('defaultAttendanceStatus', 'absent')");
+};
+
+export const getHolidays = (): Holiday[] => {
+  console.log('Getting all holidays');
+  const holidaysFromDb = db.getAllSync<any>('SELECT * FROM holidays ORDER BY start_date ASC');
+  return holidaysFromDb.map((h: any) => ({
+    id: h.id,
+    name: h.name,
+    startDate: h.start_date,
+    endDate: h.end_date,
+  }));
+};
+
+export const addHoliday = (holiday: Holiday) => {
+  console.log(`Adding holiday: ${holiday.name}`);
+  db.runSync(
+    'INSERT INTO holidays (id, name, start_date, end_date) VALUES (?, ?, ?, ?)',
+    holiday.id, holiday.name, holiday.startDate, holiday.endDate
+  );
+};
+
+export const deleteHoliday = (holidayId: string) => {
+  console.log(`[DB] Deleting holiday: ${holidayId}`);
+  db.runSync('DELETE FROM holidays WHERE id = ?', holidayId);
 };

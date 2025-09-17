@@ -273,10 +273,17 @@ export default function SettingsScreen() {
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
           <SettingsButton
+            onPress={() => router.push("/manage-holidays")}
+            title="Manage Holidays"
+            iconName="calendar-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+          />
+          <SettingsButton
             onPress={() => router.push("/archived-courses")}
             title="View Archived Courses"
             iconName="archive-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
           <SettingsButton
             onPress={handleExportData}

@@ -9,6 +9,13 @@ export interface AttendanceRecord {
   timeEnd: string;
 }
 
+export interface Holiday {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface ScheduleItem {
   id: string;
   day: string;

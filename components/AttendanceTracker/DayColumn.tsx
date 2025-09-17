@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, TouchableOpacity, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { format } from 'date-fns';
 import { parseISOToDate, parse24HToDate, isDateInPast } from '@/utils/dateHelpers';
 import { ClassItem } from '@/hooks/useAttendanceData';
 import { Colors } from '@/constants/Colors';
+import { AppContext } from '@/context/AppContext';
 
 interface DayColumnProps {
   dateString: string;
@@ -29,9 +30,32 @@ const DayColumn: React.FC<DayColumnProps> = ({
   courseColors,
   weekStartsOn,
 }) => {
+  const { holidays } = useContext(AppContext);
   const date = parseISOToDate(dateString);
   const colorScheme = useColorScheme() ?? 'light';
   const dayOfWeek = format(date, 'EEEEE', { weekStartsOn });
+
+  const holiday = holidays.find(h => {
+    const startDate = parseISOToDate(h.startDate);
+    const endDate = parseISOToDate(h.endDate);
+    return date >= startDate && date <= endDate;
+  });
+
+  if (holiday) {
+    return (
+      <View style={styles.dayColumn}>
+        <View style={styles.dayColumnHeader}>
+          <ThemedText style={styles.dayInitialText}>{dayOfWeek}</ThemedText>
+          <ThemedText style={styles.dateNumberText}>{format(date, 'd')}</ThemedText>
+        </View>
+        <View style={styles.dayColumnContent}>
+          <View style={[styles.holidayBlock, { backgroundColor: Colors[colorScheme].tint }]}>
+            <ThemedText style={styles.holidayText}>{holiday.name}</ThemedText>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.dayColumn}>
