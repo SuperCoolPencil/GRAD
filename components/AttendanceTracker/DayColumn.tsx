@@ -15,6 +15,7 @@ interface DayColumnProps {
   getBlockStyle: (classItem: ClassItem, date: Date) => object;
   handleSelectClass: (classItem: ClassItem, date: Date) => void;
   courseColors: Record<string, string>;
+  weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({
@@ -26,14 +27,16 @@ const DayColumn: React.FC<DayColumnProps> = ({
   getBlockStyle,
   handleSelectClass,
   courseColors,
+  weekStartsOn,
 }) => {
   const date = parseISOToDate(dateString);
   const colorScheme = useColorScheme() ?? 'light';
+  const dayOfWeek = format(date, 'EEEEE', { weekStartsOn });
 
   return (
     <View style={styles.dayColumn}>
       <View style={styles.dayColumnHeader}>
-        <ThemedText style={styles.dayInitialText}>{format(date, 'EEEEE')}</ThemedText>
+        <ThemedText style={styles.dayInitialText}>{dayOfWeek}</ThemedText>
         <ThemedText style={styles.dateNumberText}>{format(date, 'd')}</ThemedText>
       </View>
       <View style={styles.dayColumnContent}>

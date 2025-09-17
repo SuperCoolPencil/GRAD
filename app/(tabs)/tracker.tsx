@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions
 import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate } from '@/utils/dateHelpers';
+import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate, getMiddleOfWeek, addWeeksToDate, subWeeksFromDate, dayIndexToName } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,28 +14,33 @@ import TimeAxis from '@/components/AttendanceTracker/TimeAxis';
 import DayColumn from '@/components/AttendanceTracker/DayColumn';
 
 export default function VisualAttendanceTracker() {
-  const { is24Hour } = useContext(AppContext);
+  const { is24Hour, weekStartsOn } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
-  const [startDate, setStartDate] = useState(subDaysFromDate(new Date(), 3));
+  const [startDate, setStartDate] = useState(() => getWeekStartDate(new Date(), weekStartsOn));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, true);
+  const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, weekStartsOn, true);
   const { handleSelectClass } = useAttendanceActions();
+
+  // Update startDate when weekStartsOn changes
+  React.useEffect(() => {
+    setStartDate(getWeekStartDate(new Date(), weekStartsOn));
+  }, [weekStartsOn]);
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
-      setStartDate(subDaysFromDate(selectedDate, 3));
+      setStartDate(getWeekStartDate(selectedDate, weekStartsOn));
     }
   };
 
-  const handlePrevDay = () => {
-    setStartDate(prevDate => subDaysFromDate(prevDate, 1));
+  const handlePrevWeek = () => {
+    setStartDate(prevDate => subWeeksFromDate(prevDate, 1));
   };
 
-  const handleNextDay = () => {
-    setStartDate(prevDate => addDaysToDate(prevDate, 1));
+  const handleNextWeek = () => {
+    setStartDate(prevDate => addWeeksToDate(prevDate, 1));
   };
 
   const HOUR_HEIGHT = 60;
@@ -223,24 +228,24 @@ export default function VisualAttendanceTracker() {
       
       <View style={styles.dateNavigator}>
 
-        <TouchableOpacity onPress={handlePrevDay} disabled={loading}>
+        <TouchableOpacity onPress={handlePrevWeek} disabled={loading}>
           <Ionicons name="chevron-back" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowDatePicker(true)}>
           <ThemedText style={styles.dateText}>
-            {format(addDaysToDate(startDate, 3), 'MMMM d, yyyy')}
+            {format(getWeekStartDate(startDate, weekStartsOn), 'MMM d')} - {format(getWeekEndDate(startDate, weekStartsOn), 'MMM d, yyyy')}
           </ThemedText>
 
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleNextDay} disabled={loading}>
+        <TouchableOpacity onPress={handleNextWeek} disabled={loading}>
           <Ionicons name="chevron-forward" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
 
       </View>
       {showDatePicker && (
         <DateTimePicker
-          value={addDaysToDate(startDate, 3)}
+          value={startDate}
           mode="date"
           display="default"
           onChange={handleDateChange}
@@ -272,6 +277,7 @@ export default function VisualAttendanceTracker() {
                     getBlockStyle={getBlockStyle}
                     handleSelectClass={handleSelectClass}
                     courseColors={courseColors}
+                    weekStartsOn={weekStartsOn}
                   />
                 ))}
               </View>

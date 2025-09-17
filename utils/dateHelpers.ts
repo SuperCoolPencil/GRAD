@@ -1,4 +1,4 @@
-import { format, parse, startOfWeek, endOfWeek, startOfDay, endOfDay, addDays, subDays, getDay, isBefore, isEqual } from 'date-fns';
+import { format, parse, startOfWeek, endOfWeek, startOfDay, endOfDay, addDays, subDays, getDay, isBefore, isEqual, addWeeks, subWeeks } from 'date-fns';
 
 // Consistent date format for database and API interactions
 const DATE_FORMAT_ISO = 'yyyy-MM-dd';
@@ -55,7 +55,7 @@ export const parse24HToDate = (timeString: string): Date => {
  * @param weekStartsOn The index of the first day of the week (0 for Sunday).
  * @returns The Date object for the start of the week.
  */
-export const getWeekStartDate = (date: Date, weekStartsOn: 0 | 1 = 0): Date => {
+export const getWeekStartDate = (date: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 0): Date => {
   return startOfWeek(date, { weekStartsOn });
 };
 
@@ -65,7 +65,7 @@ export const getWeekStartDate = (date: Date, weekStartsOn: 0 | 1 = 0): Date => {
  * @param weekStartsOn The index of the first day of the week (0 for Sunday).
  * @returns The Date object for the end of the week.
  */
-export const getWeekEndDate = (date: Date, weekStartsOn: 0 | 1 = 0): Date => {
+export const getWeekEndDate = (date: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 0): Date => {
   return endOfWeek(date, { weekStartsOn });
 };
 
@@ -134,4 +134,35 @@ export const getDayOfWeek = (date: Date): number => {
 export const dayIndexToName = (dayIndex: number): string => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[dayIndex] || '';
+};
+
+/**
+ * Gets the middle day of the week for a given date.
+ * @param date The date to get the middle of the week for.
+ * @param weekStartsOn The index of the first day of the week (0 for Sunday).
+ * @returns The Date object for the middle of the week.
+ */
+export const getMiddleOfWeek = (date: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 0): Date => {
+  const start = startOfWeek(date, { weekStartsOn });
+  return addDays(start, 3); // Middle of a 7-day week is 3 days from the start
+};
+
+/**
+ * Adds a specified number of weeks to a date.
+ * @param date The date to add weeks to.
+ * @param amount The number of weeks to add.
+ * @returns The new date.
+ */
+export const addWeeksToDate = (date: Date, amount: number): Date => {
+  return addWeeks(date, amount);
+};
+
+/**
+ * Subtracts a specified number of weeks from a date.
+ * @param date The date to subtract weeks from.
+ * @param amount The number of weeks to subtract.
+ * @returns The new date.
+ */
+export const subWeeksFromDate = (date: Date, amount: number): Date => {
+  return subWeeks(date, amount);
 };

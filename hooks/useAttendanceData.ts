@@ -24,7 +24,7 @@ export interface ClassItem {
   attendance?: AttendanceRecord;
 }
 
-export const useAttendanceData = (startDate: Date, filterCourses = false) => {
+export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6, filterCourses = false) => {
   const { refreshKey, courses: appCourses } = useContext(AppContext);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
@@ -48,12 +48,12 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
     setLoading(true);
     setError(null);
     try {
-      const currentStartDate = startDate;
-      const currentEndDate = addDaysToDate(startDate, 6);
+      const weekStartDate = getWeekStartDate(startDate, weekStartsOn);
+      const weekEndDate = addDaysToDate(weekStartDate, 6);
 
       let allCourses = getCoursesWithRecordsInRange(
-        formatDateToISO(currentStartDate),
-        formatDateToISO(currentEndDate)
+        formatDateToISO(weekStartDate),
+        formatDateToISO(weekEndDate)
       );
 
       if (filterCourses) {
@@ -78,7 +78,7 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
     } finally {
       setLoading(false);
     }
-  }, [startDate, filterCourses, appCourses]); // Add appCourses to dependencies
+  }, [startDate, weekStartsOn, filterCourses, appCourses]); // Add weekStartsOn to dependencies
 
   useEffect(() => {
     fetchCoursesAndSchedule();
@@ -86,9 +86,10 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
 
   useEffect(() => {
     const newClasses: Record<string, ClassItem[]> = {};
+    const weekStartDate = getWeekStartDate(startDate, weekStartsOn);
 
     for (let i = 0; i < 7; i++) {
-      const date = addDaysToDate(startDate, i);
+      const date = addDaysToDate(weekStartDate, i);
       const dateString = formatDateToISO(date);
       newClasses[dateString] = [];
 
@@ -178,9 +179,9 @@ export const useAttendanceData = (startDate: Date, filterCourses = false) => {
       setEndHour(12);
     }
 
-    console.log(`[ATTEND] Classes loaded for ${Object.keys(newClasses).length} days starting from ${formatDateToISO(startDate)}.`);
+    console.log(`[ATTEND] Classes loaded for ${Object.keys(newClasses).length} days starting from ${formatDateToISO(weekStartDate)}.`);
 
-  }, [courses, startDate, refreshKey]); // Add refreshKey to dependencies
+  }, [courses, startDate, weekStartsOn, refreshKey]); // Add weekStartsOn to dependencies
 
   return { classes, courseColors, startHour, endHour, loading, error, refetch: fetchCoursesAndSchedule };
 };

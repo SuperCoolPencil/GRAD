@@ -25,12 +25,14 @@ import { useCustomAlert } from '@/context/AlertContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 import SettingsToggle from '@/components/SettingsToggle';
+import { CustomPicker } from '@/components/CustomPicker';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, save, loadData, settings, updateSetting } = useContext(AppContext); // Added loadData and new context values
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, save, loadData, settings, updateSetting } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
   const [latestVersion, setLatestVersion] = useState('');
+  const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   useEffect(() => {
     const fetchLatestVersion = async () => {
@@ -227,6 +229,18 @@ export default function SettingsScreen() {
               <ThemedText style={defaultAttendanceStatus === 'cancelled' ? styles.selectedButtonText : {}}>Cancelled</ThemedText>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Start of Week Setting */}
+        <View style={styles.sectionContainer}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Start of Week</ThemedText>
+          <CustomPicker
+            label="Week starts on:"
+            selectedValue={weekStartsOn}
+            onValueChange={(value) => updateWeekStartsOn(value as 0 | 1 | 2 | 3 | 4 | 5 | 6)}
+            options={daysOfWeek.map((day, index) => ({ label: day, value: index }))}
+            modalTitle="Select Start Day of Week"
+          />
         </View>
 
         {/* Notifications Section */}
