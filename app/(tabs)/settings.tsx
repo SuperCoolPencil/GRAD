@@ -235,7 +235,7 @@ export default function SettingsScreen() {
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Start of Week</ThemedText>
           <CustomPicker
-            label="Week starts on:"
+            label=""
             selectedValue={weekStartsOn}
             onValueChange={(value) => updateWeekStartsOn(value as 0 | 1 | 2 | 3 | 4 | 5 | 6)}
             options={daysOfWeek.map((day, index) => ({ label: day, value: index }))}

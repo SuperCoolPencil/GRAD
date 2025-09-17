@@ -23,7 +23,7 @@ export const CustomPicker = <T extends string | number>({ label, selectedValue, 
 
   const styles = useMemo(() => StyleSheet.create({
     inputGroup: {
-      marginBottom: 20,
+      //marginBottom: 20,
     },
     label: {
       fontSize: 16,
@@ -39,7 +39,7 @@ export const CustomPicker = <T extends string | number>({ label, selectedValue, 
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      borderColor: Colors[colorScheme].border,
+      //borderColor: Colors[colorScheme].border,
       borderWidth: 1,
     },
     pickerButtonText: {
@@ -53,7 +53,7 @@ export const CustomPicker = <T extends string | number>({ label, selectedValue, 
       backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
-      backgroundColor: Colors[colorScheme].background,
+      backgroundColor: Colors[colorScheme].card,
       borderRadius: 10,
       padding: 20,
       width: '80%',
@@ -95,7 +95,7 @@ export const CustomPicker = <T extends string | number>({ label, selectedValue, 
 
   return (
     <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
+      {label !== '' && <ThemedText style={styles.label}>{label}</ThemedText>}
       <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisible(true)}>
         <ThemedText style={styles.pickerButtonText}>
           {selectedLabel}
