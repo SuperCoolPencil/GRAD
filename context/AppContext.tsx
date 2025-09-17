@@ -42,7 +42,6 @@ interface AppContextType {
   ) => void;
   deleteExtraClass: (courseId: string, extraClassId: string) => void;
   clearData: () => void;
-  recalculateCourseCounts: (courseId: string) => void;
   updateCourseCounts: (courseId: string, countType: "presents" | "absents" | "cancelled", newValue: number) => void;
   archiveCourse: (courseId: string) => void;
   unarchiveCourse: (courseId: string) => void;
@@ -82,7 +81,6 @@ export const AppContext = createContext<AppContextType>({
   addExtraClass: () => { },
   deleteExtraClass: () => { },
   clearData: () => { },
-  recalculateCourseCounts: () => { },
   updateCourseCounts: () => { },
   archiveCourse: () => { },
   unarchiveCourse: () => { },
@@ -227,9 +225,19 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   const updateCourse = (updatedCourse: Course) => {
     console.log(`[AppContext] Updating course: ${updatedCourse.name} (${updatedCourse.id})`);
-    db.updateCourse(updatedCourse);
-    setCourses(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
-    console.log(`[AppContext] Course updated successfully: ${updatedCourse.name}`);
+    db.updateCourse(updatedCourse); // Update the database first
+
+    // Recalculate attendance percentage based on the updated presents/absents from the form
+    const totalClasses = updatedCourse.presents + updatedCourse.absents;
+    const newAttendancePercentage = totalClasses > 0 ? Math.round((updatedCourse.presents / totalClasses) * 100) : 100;
+
+    const courseWithCalculatedPercentage = {
+      ...updatedCourse,
+      attendancePercentage: newAttendancePercentage,
+    };
+
+    setCourses(prev => prev.map(c => c.id === updatedCourse.id ? courseWithCalculatedPercentage : c));
+    console.log(`[AppContext] Course updated successfully: ${updatedCourse.name}. New attendance percentage: ${newAttendancePercentage}%`);
   };
 
   const deleteCourse = async (courseId: string) => {
@@ -401,14 +409,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const recalculateCourseCounts = (courseId: string) => {
-    console.log(`[AppContext] Recalculating course counts for: ${courseId}`);
-    const newCounts = db.recalculateCourseCounts(courseId);
-    const reloadedCourses = db.getCourses();
-    setCourses(reloadedCourses);
-    console.log(`[AppContext] Recalculated counts for ${courseId}: Presents=${newCounts.presents}, Absents=${newCounts.absents}, Cancelled=${newCounts.cancelled}`);
-  };
-
   const save = async () => {
     console.log('[AppContext] Saving all settings and course data...');
     db.updateSetting('theme', theme);
@@ -504,7 +504,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         upsertAttendance,
         deleteAttendanceRecord,
         updateCourseCounts,
-        recalculateCourseCounts,
         save,
         loadData,
         triggerRefresh, 

@@ -623,34 +623,6 @@ export const clearCourseColors = () => {
   db.runSync('UPDATE courses SET color = NULL');
 };
 
-export const recalculateCourseCounts = (courseId: string): { presents: number, absents: number, cancelled: number } => {
-  console.log(`Recalculating counts for course: ${courseId}`);
-  const counts = db.getFirstSync<{
-    presents: number,
-    absents: number,
-    cancelled: number
-  }>(`
-    SELECT
-      SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as presents,
-      SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absents,
-      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-    FROM attendance_records
-    WHERE course_id = ?
-  `, courseId);
-
-  const newCounts = {
-    presents: counts?.presents || 0,
-    absents: counts?.absents || 0,
-    cancelled: counts?.cancelled || 0,
-  };
-
-  db.runSync(
-    'UPDATE courses SET presents = ?, absents = ?, cancelled = ? WHERE id = ?',
-    newCounts.presents, newCounts.absents, newCounts.cancelled, courseId
-  );
-
-  return newCounts;
-};
 
 export const clearAllData = () => {
   console.log('Clearing all data');
