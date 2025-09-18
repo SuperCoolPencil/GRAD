@@ -91,7 +91,7 @@ const ManageHolidaysScreen: React.FC = () => {
     };
 
     const todayISO = new Date().toISOString().split('T')[0];
-    const holidayBehaviorSetting = (getSetting('holidayBehavior') as string) || 'cancel';
+    const holidayBehaviorSetting = (getSetting('holidayBehavior') as string) || 'skip';
 
     let actionStatus: 'cancelled' | 'skipped';
     let actionText: string;
