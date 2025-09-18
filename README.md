@@ -1,9 +1,9 @@
 # GRAD ![Downloads](https://img.shields.io/github/downloads/SuperCoolPencil/GRAD/total)
-**GRAD** (Grades, Reports, Attendance Dashboard) is a lightweight mobile app that helps students track their internal marks and attendance with simplicity and clarity.
+**GRAD** (Grades, Reports, Attendance Dashboard) is a lightweight cross-platform mobile app that helps students track their internal marks and attendance with simplicity and clarity.
 
 This project is built with [Expo](https://expo.dev) and was bootstrapped using [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-black?style=for-the-badge&logo=github)](https://github.com/SuperCoolPencil/GRAD/releases/latest)
+[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-blue?style=for-the-badge&logo=github)](https://github.com/SuperCoolPencil/GRAD/releases/latest)
 
 ## Features
 
