@@ -3,24 +3,7 @@
 
 This project is built with [Expo](https://expo.dev) and was bootstrapped using [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
----
-
-## 🚀 Getting Started
-
-1. **Install Dependencies**  
-   ```bash
-   npm install
-   ```
-
-2. **Run the App**  
-   ```bash
-   npx expo start
-   ```
-   This will start the Expo development server, allowing you to test on a connected device or an emulator.
-
-Or simply download the latest APK from the [Releases](https://github.com/SuperCoolPencil/GRAD/releases) page.
-
----
+[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-black?style=for-the-badge&logo=github)](https://github.com/your-username/your-repo)
 
 ## Features
 
