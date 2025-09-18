@@ -194,13 +194,15 @@ export default function CoursesScreen() {
         contentContainerStyle={styles.coursesList}
         ListHeaderComponent={
           <ThemedView style={styles.titleContainer}>
-            <ThemedText
-              type="title"
-              numberOfLines={1}
-              style={[{ color: Colors[colorScheme].text }]}
-            >
-              My Courses
-            </ThemedText>
+            <View style={styles.titleTextContainer}>
+              <ThemedText
+                type="title"
+                numberOfLines={1}
+                style={[{ color: Colors[colorScheme].text }]}
+              >
+                My Courses
+              </ThemedText>
+            </View>
             <View style={styles.sortContainer}>
               <TouchableOpacity
                 onPress={() => setSortBy(sortBy === 'alphabetical' ? 'attendance' : 'alphabetical')}
@@ -262,6 +264,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 64,
     backgroundColor: "transparent",
+    alignItems: "center",
+  },
+  titleTextContainer: {
+    flexDirection: "row",
     alignItems: "center",
   },
   coursesList: {

@@ -69,6 +69,10 @@ export default function VisualAttendanceTracker() {
       paddingTop: 64,
       backgroundColor: "transparent",
     },
+    titleTextContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
     dateNavigator: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -256,7 +260,9 @@ export default function VisualAttendanceTracker() {
     <ThemedView style={styles.container}>
 
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Tracker</ThemedText>
+        <View style={styles.titleTextContainer}>
+          <ThemedText type="title">Tracker</ThemedText>
+        </View>
         <Link href="/manage-holidays" asChild>
           <TouchableOpacity style={styles.manageHolidaysButton}>
             <ThemedText style={styles.manageHolidaysButtonText}>Manage Holidays</ThemedText>
