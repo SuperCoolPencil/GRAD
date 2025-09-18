@@ -11,6 +11,7 @@ import { Colors } from '../constants/Colors';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '../context/AlertContext';
+import { getSetting } from '../utils/database'; // Import getSetting
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -34,10 +35,15 @@ const ManageHolidaysScreen: React.FC = () => {
     setEndDate(new Date());
   }, []);
 
-  const markHolidayAttendance = useCallback((holiday: Holiday, status: 'cancelled') => {
+  const markHolidayAttendance = useCallback((holiday: Holiday, status: 'cancelled' | 'skipped') => {
+    if (status === 'skipped') {
+      console.log(`[HOLIDAY] Skipping marking attendance for holiday: ${holiday.name}`);
+      triggerRefresh();
+      return;
+    }
+
     const start = parseISOToDate(holiday.startDate);
     const end = parseISOToDate(holiday.endDate);
-    // iterate using a new Date object and add fixed ms to avoid mutating original
     let current = new Date(start.getTime());
 
     while (current <= end) {
@@ -49,13 +55,13 @@ const ManageHolidaysScreen: React.FC = () => {
 
         course.weeklySchedule?.forEach(schedule => {
           if (schedule.day === dayName) {
-            upsertAttendance(course.id, schedule.id, status, false, schedule.timeStart, schedule.timeEnd, dateString);
+            upsertAttendance(course.id, schedule.id, 'cancelled', false, schedule.timeStart, schedule.timeEnd, dateString);
           }
         });
 
         course.extraClasses?.forEach(extraClass => {
           if (extraClass.date === dateString) {
-            upsertAttendance(course.id, extraClass.id, status, true, extraClass.timeStart, extraClass.timeEnd, dateString);
+            upsertAttendance(course.id, extraClass.id, 'cancelled', true, extraClass.timeStart, extraClass.timeEnd, dateString);
           }
         });
       });
@@ -88,13 +94,31 @@ const ManageHolidaysScreen: React.FC = () => {
     resetForm();
 
     const todayISO = new Date().toISOString().split('T')[0];
-    const irreversibleNote = newHoliday.startDate < todayISO ? ' This action cannot be undone.' : '';
+    const holidayBehaviorSetting = (getSetting('holidayBehavior') as string) || 'cancel';
+
+    let actionStatus: 'cancelled' | 'skipped';
+    let actionText: string;
+    let message: string;
+
+    if (newHoliday.startDate <= todayISO) {
+      // If the holiday starts in the past, always mark as cancelled for consistency
+      actionStatus = 'cancelled';
+      actionText = 'Mark as Cancelled';
+      message = `The holiday starts in the past. Do you want to mark ${newHoliday.startDate} to ${newHoliday.endDate} as holiday? All classes will be marked as \"Cancelled\".`;
+    } else {
+      // If the holiday starts in the future, respect the user's setting
+      actionStatus = holidayBehaviorSetting as 'cancelled' | 'skipped';
+      actionText = holidayBehaviorSetting === 'skip' ? 'Skip Marking' : 'Mark as Cancelled';
+      message = holidayBehaviorSetting === 'skip'
+        ? `Do you want to skip marking classes for ${newHoliday.startDate} to ${newHoliday.endDate}? No attendance records will be created for this period.`
+        : `Do you want to mark ${newHoliday.startDate} to ${newHoliday.endDate} as holiday? All classes will be marked as \"Cancelled\".`;
+    }
 
     showAlert(
       'Mark Holiday?',
-      `Do you want to mark ${newHoliday.startDate} to ${newHoliday.endDate} as holiday? All classes will be marked as \"Cancelled\".${irreversibleNote}`,
+      message,
       [
-        { text: 'Mark as Cancelled', onPress: () => markHolidayAttendance(newHoliday, 'cancelled') },
+        { text: actionText, onPress: () => markHolidayAttendance(newHoliday, actionStatus) },
         { text: 'Cancel', style: 'cancel' },
       ],
     );
