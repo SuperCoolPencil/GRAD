@@ -90,9 +90,6 @@ const ManageHolidaysScreen: React.FC = () => {
       endDate: formatDateToISO(endDate),
     };
 
-    addHoliday(newHoliday);
-    resetForm();
-
     const todayISO = new Date().toISOString().split('T')[0];
     const holidayBehaviorSetting = (getSetting('holidayBehavior') as string) || 'cancel';
 
@@ -118,7 +115,14 @@ const ManageHolidaysScreen: React.FC = () => {
       'Mark Holiday?',
       message,
       [
-        { text: actionText, onPress: () => markHolidayAttendance(newHoliday, actionStatus) },
+        {
+          text: actionText,
+          onPress: () => {
+            addHoliday(newHoliday);
+            markHolidayAttendance(newHoliday, actionStatus);
+            resetForm();
+          }
+        },
         { text: 'Cancel', style: 'cancel' },
       ],
     );
