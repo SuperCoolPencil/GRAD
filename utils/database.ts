@@ -647,6 +647,7 @@ export const clearAllData = () => {
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationsEnabled', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('is24Hour', 'false')");
   db.runSync("INSERT INTO app_settings (key, value) VALUES ('defaultAttendanceStatus', 'absent')");
+  db.runSync("INSERT INTO app_settings (key, value) VALUES ('holidayBehavior', 'skip')");
 };
 
 export const getHolidays = (): Holiday[] => {

@@ -77,4 +77,5 @@ export interface Settings {
   notificationsEnabled: boolean;
   is24Hour: boolean;
   defaultAttendanceStatus: 'present' | 'absent' | 'cancelled';
+  holidayBehavior: 'skip' | 'cancel';
 }

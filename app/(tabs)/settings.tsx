@@ -28,7 +28,7 @@ import SettingsToggle from '@/components/SettingsToggle';
 import { CustomPicker } from '@/components/CustomPicker';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, save, loadData, settings, updateSetting } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, holidayBehavior, toggleHolidayBehavior, save, loadData, settings, updateSetting } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
   const [latestVersion, setLatestVersion] = useState('');
@@ -203,6 +203,12 @@ export default function SettingsScreen() {
             iconName="time-outline"
             value={is24Hour}
             onValueChange={toggle24Hour}
+          />
+          <SettingsToggle
+            title="Skip Holidays"
+            iconName="calendar-outline"
+            value={holidayBehavior === 'skip'}
+            onValueChange={toggleHolidayBehavior}
           />
         </View>
 
