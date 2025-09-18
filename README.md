@@ -3,7 +3,7 @@
 
 This project is built with [Expo](https://expo.dev) and was bootstrapped using [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-black?style=for-the-badge&logo=github)]([https://github.com/supercoolpencil/grad/release/latest](https://github.com/SuperCoolPencil/GRAD/releases/latest))
+[![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-black?style=for-the-badge&logo=github)](https://github.com/SuperCoolPencil/GRAD/releases/latest))
 
 ## Features
 
