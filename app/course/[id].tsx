@@ -473,7 +473,7 @@ export default function CourseDetailScreen() {
                         );
                       }}
                     >
-                      <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].error} />
+                      <Ionicons name="close-circle" size={20} color={Colors[colorScheme].error} />
                     </TouchableOpacity>
                   )}
                 </View>

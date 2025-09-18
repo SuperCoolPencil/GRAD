@@ -211,6 +211,19 @@ export default function VisualAttendanceTracker() {
       transform: [{ rotate: '90deg' }],
       flexShrink: 1,
     },
+    manageHolidaysButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors[colorScheme].tint,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      gap: 8,
+    },
+    manageHolidaysButtonText: {
+      color: Colors[colorScheme].background,
+      fontWeight: 'bold',
+    },
   }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
 
   const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
@@ -245,8 +258,9 @@ export default function VisualAttendanceTracker() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Tracker</ThemedText>
         <Link href="/manage-holidays" asChild>
-          <TouchableOpacity>
-            <ThemedText>Manage Holidays<Ionicons name="calendar" size={24} color={Colors[colorScheme].tint} /></ThemedText>
+          <TouchableOpacity style={styles.manageHolidaysButton}>
+            <ThemedText style={styles.manageHolidaysButtonText}>Manage Holidays</ThemedText>
+            <Ionicons name="calendar" size={24} color={Colors[colorScheme].background} />
           </TouchableOpacity>
         </Link>
       </ThemedView>
