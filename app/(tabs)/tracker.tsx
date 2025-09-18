@@ -204,7 +204,7 @@ export default function VisualAttendanceTracker() {
       borderRadius: 8,
     },
     holidayText: {
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: 'bold',
       color: 'white',
       textAlign: 'center',
@@ -303,7 +303,7 @@ export default function VisualAttendanceTracker() {
                     handleSelectClass={handleSelectClass}
                     courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
-                    scheduleHeight={scheduleHeight}
+                    //scheduleHeight={scheduleHeight}
                   />
                 ))}
               </View>
