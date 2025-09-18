@@ -99,6 +99,7 @@ function RootLayoutShell() {
           <Stack.Screen name="archived-courses" options={{ headerShown: false }} />
           <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="edit-course/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="manage-holidays" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </View>

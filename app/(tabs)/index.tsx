@@ -9,8 +9,8 @@ import {
 import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
 import { AppContext } from "@/context/AppContext";
 import { formatTime } from "@/utils/time";
-import { formatDateToISO } from '@/utils/dateHelpers';
-import { ClassItem, Course, ScheduleItem, ExtraClass } from "@/types";
+import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
+import { ClassItem, Course, ScheduleItem, ExtraClass, Holiday } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -92,7 +92,7 @@ const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (statu
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey } = useContext(AppContext);
+  const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey, holidays } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
@@ -167,6 +167,7 @@ export default function TodaysClassesScreen() {
         colorScheme={colorScheme}
         is24Hour={is24Hour}
         showTomorrow={showTomorrow} // Pass new state
+        holidays={holidays}
       />
       <CustomAlert
         isVisible={showAlert}
@@ -197,6 +198,7 @@ function TodaysClassesContent({
   colorScheme,
   is24Hour,
   showTomorrow,
+  holidays,
 }: {
   courses: any;
   upsertAttendance: any;
@@ -207,8 +209,10 @@ function TodaysClassesContent({
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
   showTomorrow: boolean; // Define type for new state
+  holidays: Holiday[];
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [holiday, setHoliday] = useState<Holiday | undefined>(undefined);
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
@@ -218,6 +222,17 @@ function TodaysClassesContent({
       now.setDate(now.getDate() + 1); // Increment date by 1 for tomorrow
     }
     setCurrentDate(now);
+
+    const currentHoliday = holidays.find(h => {
+      const startDate = parseISOToDate(h.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = parseISOToDate(h.endDate);
+      endDate.setHours(0, 0, 0, 0);
+      const checkDate = new Date(now);
+      checkDate.setHours(0, 0, 0, 0);
+      return checkDate >= startDate && checkDate <= endDate;
+    });
+    setHoliday(currentHoliday);
 
     const currentDayName = DAYS_OF_WEEK[now.getDay()];
     const currentDateString = formatDateToISO(now); // YYYY-MM-DD
@@ -298,7 +313,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, showTomorrow]); // Add showTomorrow to dependency array
+  }, [courses, loading, showTomorrow, holidays]);
 
   const handleMarkAttendance = (
     courseId: string,
@@ -462,22 +477,30 @@ function TodaysClassesContent({
   };
 
   return (
-    <FlatList
-      data={todaysClasses}
-      renderItem={renderClassItem}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.classesList}
-      ListEmptyComponent={() => (
-        <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
-          <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
-            No classes scheduled for {showTomorrow ? "tomorrow" : "today"}!
-          </ThemedText>
-        </ThemedView>
-      )}
-      removeClippedSubviews={false}
-      showsVerticalScrollIndicator={false}
-      style={{ backgroundColor: Colors[colorScheme || "light"].background }}
-    />
+    !holiday ? (
+      <FlatList
+        data={todaysClasses}
+        renderItem={renderClassItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.classesList}
+        ListEmptyComponent={() => (
+          <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+            <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
+              No classes scheduled for today!.
+            </ThemedText>
+          </ThemedView>
+        )}
+        removeClippedSubviews={false}
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: Colors[colorScheme || "light"].background }}
+      />
+    ) : (
+      <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+        <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
+          Enjoy {holiday?.name || "Holiday"}!
+        </ThemedText>
+      </ThemedView>
+    )
   );
 }
 

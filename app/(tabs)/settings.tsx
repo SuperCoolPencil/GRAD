@@ -28,7 +28,7 @@ import SettingsToggle from '@/components/SettingsToggle';
 import { CustomPicker } from '@/components/CustomPicker';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, save, loadData, settings, updateSetting } = useContext(AppContext);
+  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, holidayBehavior, toggleHolidayBehavior, save, loadData, settings, updateSetting } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
   const [latestVersion, setLatestVersion] = useState('');
@@ -204,6 +204,12 @@ export default function SettingsScreen() {
             value={is24Hour}
             onValueChange={toggle24Hour}
           />
+          <SettingsToggle
+            title="Skip Holidays"
+            iconName="calendar-outline"
+            value={holidayBehavior === 'skip'}
+            onValueChange={toggleHolidayBehavior}
+          />
         </View>
 
         {/* Default Attendance Status Section */}
@@ -273,10 +279,17 @@ export default function SettingsScreen() {
         <View style={styles.sectionContainer}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
           <SettingsButton
+            onPress={() => router.push("/manage-holidays")}
+            title="Manage Holidays"
+            iconName="calendar-outline"
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+          />
+          <SettingsButton
             onPress={() => router.push("/archived-courses")}
             title="View Archived Courses"
             iconName="archive-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
+            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
           <SettingsButton
             onPress={handleExportData}

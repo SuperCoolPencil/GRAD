@@ -15,21 +15,18 @@ const processWeeklySchedule = (
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
   courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
-  defaultStatus: string
+  defaultStatus: string,
+  holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
+  holidayBehavior: 'skip' | 'cancel' = 'skip'
 ) => {
-
-  // No need to check here if course is archived or not,
-  // as endDate is already set to course.archivedAt if it exists.
-
   if (!course.weeklySchedule || course.weeklySchedule.length === 0) return;
-  
+
   let currentDate = new Date(lastRecordDate);
   while (currentDate <= endDate) {
     const dayOfWeek = getDayOfWeek(currentDate);
     for (const schedule of course.weeklySchedule) {
       if (schedule.day.toLowerCase() === dayOfWeek) {
         const [hours, minutes] = schedule.timeEnd.split(':').map(Number);
-        // Build new Date with the same Y/M/D but custom time
         const classDateTime = new Date(
           currentDate.getFullYear(),
           currentDate.getMonth(),
@@ -37,26 +34,74 @@ const processWeeklySchedule = (
           hours,
           minutes
         );
+
         if (classDateTime > lastRecordDate && classDateTime <= now) {
-          const dateString = currentDate.toISOString().split('T')[0];
+          const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
           const attendanceId = `${course.id}-${schedule.id}-${dateString}`;
 
-          if (!existingRecordIds.has(attendanceId)) {
+          // check local existing ids first
+          let exists = existingRecordIds.has(attendanceId);
+
+          // also check DB for a record with same course/date/timeStart to avoid duplicates
+          if (!exists) {
+            const dbExisting = db.getFirstSync(
+              'SELECT id FROM attendance_records WHERE course_id = ? AND class_date = ? AND time_start = ?',
+              course.id,
+              dateString,
+              schedule.timeStart
+            );
+            exists = !!dbExisting;
+          }
+
+          if (exists) continue;
+
+          // holiday detection: use holidaySet if provided, otherwise fall back to DB-range lookup
+          const isHoliday = holidaySet
+            ? holidaySet.has(dateString)
+            : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', dateString, dateString);
+
+          if (isHoliday) {
+            if (holidayBehavior === 'skip') {
+              console.log(`[ATTEND] Skipping scheduled class for ${course.name} on ${dateString} (holiday)`);
+              continue;
+            }
+
+            // create CANCELLED record for holiday
             newRecords.push({
               id: attendanceId,
               course_id: course.id,
               date: dateString,
-              status: defaultStatus as 'present' | 'absent' | 'cancelled',
+              status: 'cancelled',
               isExtraClass: false,
               scheduleItemId: schedule.id,
               timeStart: schedule.timeStart,
               timeEnd: schedule.timeEnd,
             });
+
             if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-            if (defaultStatus === 'present') courseCounts[course.id].presents++;
-            else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-            else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+            courseCounts[course.id].cancelled++;
+            console.log(`[ATTEND] Created CANCELLED record for ${course.name} on ${dateString} (holiday)`);
+            continue;
           }
+
+          // normal (non-holiday) record
+          newRecords.push({
+            id: attendanceId,
+            course_id: course.id,
+            date: dateString,
+            status: defaultStatus as 'present' | 'absent' | 'cancelled',
+            isExtraClass: false,
+            scheduleItemId: schedule.id,
+            timeStart: schedule.timeStart,
+            timeEnd: schedule.timeEnd,
+          });
+
+          if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+          if (defaultStatus === 'present') courseCounts[course.id].presents++;
+          else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
+          else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+
+          console.log(`[ATTEND] Created ${defaultStatus.toUpperCase()} record for ${course.name} on ${dateString} at ${schedule.timeStart}`);
         }
       }
     }
@@ -71,31 +116,83 @@ const processExtraClasses = (
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
   courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
-  defaultStatus: string
+  defaultStatus: string,
+  holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
+  holidayBehavior: 'cancel' | 'skip' = 'cancel'
 ) => {
+  if (!course.extraClasses || course.extraClasses.length === 0) return;
+
   for (const extraClass of course.extraClasses) {
     if (extraClass.date && extraClass.timeEnd) {
       const [year, month, day] = extraClass.date.split('-').map(Number);
       const [hour, minute] = extraClass.timeEnd.split(':').map(Number);
       const extraClassDateTime = new Date(year, month - 1, day, hour, minute);
+
       if (extraClassDateTime > lastRecordDate && extraClassDateTime <= endDate) {
         const attendanceId = `${course.id}-${extraClass.id}-${extraClass.date}`;
-        if (!existingRecordIds.has(attendanceId)) {
+
+        // check local existing ids first
+        let exists = existingRecordIds.has(attendanceId);
+
+        // also safe-check DB
+        if (!exists) {
+          const dbExisting = db.getFirstSync(
+            'SELECT id FROM attendance_records WHERE course_id = ? AND class_date = ? AND time_start = ?',
+            course.id,
+            extraClass.date,
+            extraClass.timeStart
+          );
+          exists = !!dbExisting;
+        }
+
+        if (exists) continue;
+
+        // holiday detection
+        const isHoliday = holidaySet
+          ? holidaySet.has(extraClass.date)
+          : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', extraClass.date, extraClass.date);
+
+        if (isHoliday) {
+          if (holidayBehavior === 'skip') {
+            console.log(`[ATTEND] Skipping extra class for ${course.name} on ${extraClass.date} (holiday)`);
+            continue;
+          }
+
           newRecords.push({
             id: attendanceId,
             course_id: course.id,
             date: extraClass.date,
-            status: defaultStatus as 'present' | 'absent' | 'cancelled',
+            status: 'cancelled',
             isExtraClass: true,
             scheduleItemId: extraClass.id,
             timeStart: extraClass.timeStart,
             timeEnd: extraClass.timeEnd,
           });
+
           if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-          if (defaultStatus === 'present') courseCounts[course.id].presents++;
-          else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-          else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+          courseCounts[course.id].cancelled++;
+          console.log(`[ATTEND] Created CANCELLED extra-class record for ${course.name} on ${extraClass.date} (holiday)`);
+          continue;
         }
+
+        // normal extra-class record
+        newRecords.push({
+          id: attendanceId,
+          course_id: course.id,
+          date: extraClass.date,
+          status: defaultStatus as 'present' | 'absent' | 'cancelled',
+          isExtraClass: true,
+          scheduleItemId: extraClass.id,
+          timeStart: extraClass.timeStart,
+          timeEnd: extraClass.timeEnd,
+        });
+
+        if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+        if (defaultStatus === 'present') courseCounts[course.id].presents++;
+        else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
+        else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
+
+        console.log(`[ATTEND] Created ${defaultStatus.toUpperCase()} extra-class record for ${course.name} on ${extraClass.date} at ${extraClass.timeStart}`);
       }
     }
   }
@@ -103,43 +200,115 @@ const processExtraClasses = (
 
 export const createMissingAttendanceRecords = (): boolean => {
   if (!db) throw new Error('DB not initialized');
-  console.log('[ATTEND] Starting to create missing attendance records...');
+  console.log('[ATTEND] Starting to create missing attendance records (holidays supported)...');
+
   const now = new Date();
   const courses = getCourses();
-
   console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
-  const defaultStatus = getSetting('defaultAttendanceStatus') || 'absent';
-  const allAttendanceRecords = db!.getAllSync('SELECT id FROM attendance_records');
-  const existingRecordIds = new Set(allAttendanceRecords.map((r: any) => r.id));
+  const defaultStatus = (getSetting('defaultAttendanceStatus') as string) || 'absent';
+  const holidayBehavior = ((getSetting('holidayBehavior') as string) || 'cancel').toLowerCase(); // 'cancel' | 'skip'
+
+  // --- build holidaySet (YYYY-MM-DD) by expanding holiday ranges ----------
+  const holidaySet = new Set<string>();
+  const holidaysFromDb = db.getAllSync<{ start_date: string; end_date: string }>('SELECT start_date, end_date FROM holidays');
+  const normalizeDateOnly = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const addDays = (d: Date, days: number) => {
+    const n = new Date(d);
+    n.setDate(n.getDate() + days);
+    return n;
+  };
+
+  for (const h of holidaysFromDb) {
+    if (!h.start_date || !h.end_date) continue;
+    const [sy, sm, sd] = h.start_date.split('-').map(Number);
+    const [ey, em, ed] = h.end_date.split('-').map(Number);
+    let cursor = new Date(sy, sm - 1, sd, 0, 0, 0);
+    const end = new Date(ey, em - 1, ed, 0, 0, 0);
+    while (cursor <= end) {
+      holidaySet.add(normalizeDateOnly(cursor));
+      cursor = addDays(cursor, 1);
+    }
+  }
+  console.log(`[ATTEND] Built holiday set with ${holidaySet.size} dates from ${holidaysFromDb.length} ranges.`);
+
+  // --- build existingRecordIds (DB ids + deterministic indices used by processors) ---
+  const existingRecordRows = db.getAllSync<{ id: string; course_id: string; class_date: string; time_start: string | null; schedule_item_id: string | null }>(
+    'SELECT id, course_id, class_date, time_start, schedule_item_id FROM attendance_records'
+  );
+
+  const existingRecordIds = new Set<string>();
+  for (const r of existingRecordRows) {
+    if (r.id) existingRecordIds.add(r.id);
+    // also add the deterministic ids your processors generate: `${courseId}-${scheduleId}-${date}`
+    if (r.schedule_item_id && r.class_date) {
+      existingRecordIds.add(`${r.course_id}-${r.schedule_item_id}-${r.class_date}`);
+    }
+  }
+  console.log(`[ATTEND] Found ${existingRecordIds.size} existing attendance identifiers.`);
+
   const newRecords: AttendanceRecord[] = [];
-  const courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } } = {};
+  const courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } } = {};
 
   for (const course of courses) {
     console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
 
-    let lastRecordDate = new Date();
-
-    const lastRecord = db!.getFirstSync<AttendanceRecord>(
+    // determine lastRecordDate for this course
+    let lastRecordDate = new Date(0);
+    const lastRecord = db.getFirstSync<any>(
       'SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date DESC, time_end DESC LIMIT 1',
       course.id
     );
 
-    if (lastRecord && lastRecord.date && lastRecord.timeEnd) {
-      const [year, month, day] = lastRecord.date.split('-').map(Number);
-      const [hour, minute] = lastRecord.timeEnd.split(':').map(Number);
-      lastRecordDate = new Date(year, month - 1, day, hour, minute);
+    if (lastRecord && lastRecord.class_date) {
+      const [y, m, d] = lastRecord.class_date.split('-').map(Number);
+      const [hh, mm] = (lastRecord.time_end || '00:00').split(':').map(Number);
+      lastRecordDate = new Date(y, m - 1, d, hh || 0, mm || 0);
     } else if (course.createdAt) {
       lastRecordDate = new Date(course.createdAt);
+    } else {
+      // fallback: start a year back if nothing available
+      lastRecordDate = new Date();
+      lastRecordDate.setFullYear(lastRecordDate.getFullYear() - 1);
     }
 
-    console.log(`[ATTEND] Last record date for course ${course.name}: ${lastRecordDate}`);
+    console.log(`[ATTEND] Last record date for ${course.name}: ${lastRecordDate.toISOString()}`);
 
     const endDate = course.isArchived && course.archivedAt ? new Date(course.archivedAt) : now;
-    console.log(`[ATTEND] Processing records up to ${endDate}`);
+    console.log(`[ATTEND] Processing up to ${endDate.toISOString()}`);
 
-    processWeeklySchedule(course, lastRecordDate, endDate, now, existingRecordIds, newRecords, courseCounts, defaultStatus);
-    processExtraClasses(course, lastRecordDate, endDate, existingRecordIds, newRecords, courseCounts, defaultStatus);
+    if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+
+    // call processors (they will consult holidaySet & holidayBehavior)
+    processWeeklySchedule(
+      course,
+      lastRecordDate,
+      endDate,
+      now,
+      existingRecordIds,
+      newRecords,
+      courseCounts,
+      defaultStatus,
+      holidaySet,
+      (holidayBehavior === 'skip' ? 'skip' : 'cancel')
+    );
+
+    processExtraClasses(
+      course,
+      lastRecordDate,
+      endDate,
+      existingRecordIds,
+      newRecords,
+      courseCounts,
+      defaultStatus,
+      holidaySet,
+      (holidayBehavior === 'skip' ? 'skip' : 'cancel')
+    );
   }
 
   if (newRecords.length > 0) {
@@ -153,6 +322,7 @@ export const createMissingAttendanceRecords = (): boolean => {
   console.log('[ATTEND] No new attendance records to create.');
   return false;
 };
+
 
 export const calculateAttendancePercentage = (presents: number, absents: number): number => {
   const totalClasses = presents + absents;

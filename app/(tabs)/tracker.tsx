@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, useContext } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
+import { Link } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate, getMiddleOfWeek, addWeeksToDate, subWeeksFromDate, dayIndexToName } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
@@ -61,11 +62,16 @@ export default function VisualAttendanceTracker() {
     titleContainer: {
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "space-between",
       gap: 8,
       marginBottom: 16,
       paddingHorizontal: 16,
       paddingTop: 64,
       backgroundColor: "transparent",
+    },
+    titleTextContainer: {
+      flexDirection: "row",
+      alignItems: "center",
     },
     dateNavigator: {
       flexDirection: 'row',
@@ -191,6 +197,37 @@ export default function VisualAttendanceTracker() {
       textAlign: 'center',
       flexShrink: 1,
     },
+    holidayBlock: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 8,
+    },
+    holidayText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center',
+      transform: [{ rotate: '90deg' }],
+      flexShrink: 1,
+    },
+    manageHolidaysButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors[colorScheme].tint,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      gap: 8,
+    },
+    manageHolidaysButtonText: {
+      color: Colors[colorScheme].background,
+      fontWeight: 'bold',
+    },
   }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
 
   const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
@@ -223,7 +260,15 @@ export default function VisualAttendanceTracker() {
     <ThemedView style={styles.container}>
 
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Tracker</ThemedText>
+        <View style={styles.titleTextContainer}>
+          <ThemedText type="title">Tracker</ThemedText>
+        </View>
+        <Link href="/manage-holidays" asChild>
+          <TouchableOpacity style={styles.manageHolidaysButton}>
+            <ThemedText style={styles.manageHolidaysButtonText}>Manage Holidays</ThemedText>
+            <Ionicons name="calendar" size={24} color={Colors[colorScheme].background} />
+          </TouchableOpacity>
+        </Link>
       </ThemedView>
       
       <View style={styles.dateNavigator}>
@@ -278,6 +323,7 @@ export default function VisualAttendanceTracker() {
                     handleSelectClass={handleSelectClass}
                     courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
+                    //scheduleHeight={scheduleHeight}
                   />
                 ))}
               </View>
