@@ -346,8 +346,8 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
 };
 
 
-export const generateHeatmapData = (courses: Course[], holidays: Holiday[], startDate: Date, endDate: Date): { date: Date; value: number; isHoliday: boolean }[] => {
-  const dateMap: { [key: string]: { presents: number; absents: number } } = {};
+export const generateHeatmapData = (courses: Course[], holidays: Holiday[], startDate: Date, endDate: Date): { date: Date; value: number; isHoliday: boolean; hasExtraClass: boolean }[] => {
+  const dateMap: { [key: string]: { presents: number; absents: number; hasExtraClass: boolean } } = {};
   const holidayMap: { [key: string]: boolean } = {};
 
   holidays.forEach(holiday => {
@@ -364,36 +364,40 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
       course.attendanceRecords.forEach(record => {
         const date = record.date;
         if (!dateMap[date]) {
-          dateMap[date] = { presents: 0, absents: 0 };
+          dateMap[date] = { presents: 0, absents: 0, hasExtraClass: false };
         }
         if (record.status === 'present') {
           dateMap[date].presents++;
         } else if (record.status === 'absent') {
           dateMap[date].absents++;
         }
+        if (record.isExtraClass) {
+          dateMap[date].hasExtraClass = true;
+        }
       });
     }
   });
 
-  const heatmapData: { date: Date; value: number; isHoliday: boolean }[] = [];
+  const heatmapData: { date: Date; value: number; isHoliday: boolean; hasExtraClass: boolean }[] = [];
   
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const date = new Date(d);
     const dateString = formatDateToISO(date); // Use formatDateToISO for consistency
 
     const isHoliday = holidayMap[dateString] || false;
+    const hasExtraClass = dateMap[dateString]?.hasExtraClass || false;
 
     if (dateMap[dateString]) {
       const { presents, absents } = dateMap[dateString];
       const total = presents + absents;
       if (total === 0) {
-        heatmapData.push({ date, value: -1, isHoliday }); // No classes with attendance marked
+        heatmapData.push({ date, value: -1, isHoliday, hasExtraClass }); // No classes with attendance marked
       } else {
         const percentage = (presents / total) * 100;
-        heatmapData.push({ date, value: Math.round(percentage), isHoliday });
+        heatmapData.push({ date, value: Math.round(percentage), isHoliday, hasExtraClass });
       }
     } else {
-      heatmapData.push({ date, value: -1, isHoliday }); // No classes on this day
+      heatmapData.push({ date, value: -1, isHoliday, hasExtraClass }); // No classes on this day
     }
   }
 

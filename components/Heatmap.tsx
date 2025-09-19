@@ -7,6 +7,7 @@ interface HeatmapData {
   date: Date;
   value: number;
   isHoliday: boolean;
+  hasExtraClass: boolean;
 }
 
 interface HeatmapComponentProps {
@@ -65,6 +66,7 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     const processedData = data.map((d, i) => ({
       value: d.value,
       isHoliday: d.isHoliday,
+      hasExtraClass: d.hasExtraClass,
     }));
 
     const paddedData = [...Array(dayOfWeek).fill({ value: -2, isFirstDayOfMonth: false }), ...processedData];
@@ -106,15 +108,15 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
   // The `paddedData` ensures that the first piece of actual data aligns with its correct day of the week.
 
   const getCellStyle = (item: HeatmapData) => {
-    const { value, isHoliday } = item;
+    const { value, isHoliday, hasExtraClass } = item;
     const style: any[] = [styles.cell];
 
     if (value === -2) {
       return styles.paddingCell; // Padding cell
     }
 
-    if (isHoliday) {
-      style.push({ backgroundColor: Colors.light.tint }); // Blue for holidays
+    if (isHoliday && !hasExtraClass) {
+      style.push({ backgroundColor: Colors.light.tint }); // Blue for holidays without extra classes
     } else if (value === -1) {
       style.push({ borderColor: colors.border, borderWidth: 1 }); // No class
     } else if (value === 100) {

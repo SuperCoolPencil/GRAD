@@ -188,7 +188,7 @@ export default function AnalyticsScreen() {
       ? heatmapCourses.filter(c => selectedHeatmapCourse.includes(c.id!))
       : heatmapCourses;
     coursesToDisplay = coursesToDisplay.filter(c => c.showInHeatmap);
-    return generateHeatmapData(coursesToDisplay, holidays, startDate, endDate); 
+    return generateHeatmapData(coursesToDisplay, holidays, startDate, endDate);
   }, [heatmapCourses, holidays, displayMonth, selectedHeatmapCourse]);
 
   const handlePrevPage = () => {

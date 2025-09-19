@@ -156,7 +156,7 @@ export default function TodaysClassesScreen() {
           />
         </TouchableOpacity>
       </View>
-      {!showTomorrow && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
+      {!showTomorrow && todaysClasses.length > 0 && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
       <TodaysClassesContent
         courses={courses}
         upsertAttendance={upsertAttendance}
@@ -237,7 +237,7 @@ function TodaysClassesContent({
     const currentDayName = DAYS_OF_WEEK[now.getDay()];
     const currentDateString = formatDateToISO(now); // YYYY-MM-DD
 
-    const classesForToday: ClassItem[] = [];
+    let classesForToday: ClassItem[] = [];
 
     courses.forEach((course: Course) => {
       // Skip archived courses
@@ -251,32 +251,34 @@ function TodaysClassesContent({
       const attendancePercentage = course.attendancePercentage || 0;
       const delta = getAttendanceDelta(presents, absents, required);
 
-      // Process weekly scheduled classes.
-      course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
-        if (schedule.day === currentDayName) {
-          const record = course.attendanceRecords?.find(
-            (r: any) =>
-              r.date === currentDateString &&
-              r.timeStart === schedule.timeStart &&
-              r.timeEnd === schedule.timeEnd &&
-              !r.isExtraClass
-          );
-          classesForToday.push({
-            id: `${course.id}-${schedule.id}`,
-            courseId: course.id,
-            courseName: course.name,
-            timeStart: schedule.timeStart,
-            timeEnd: schedule.timeEnd,
-            isExtraClass: false,
-            requiredAttendance: required,
-            currentAttendance: attendancePercentage,
-            needToAttend: delta,
-            status: record?.status,
-          });
-        }
-      });
+      // Process weekly scheduled classes only if it's not a holiday
+      if (!currentHoliday) {
+        course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
+          if (schedule.day === currentDayName) {
+            const record = course.attendanceRecords?.find(
+              (r: any) =>
+                r.date === currentDateString &&
+                r.timeStart === schedule.timeStart &&
+                r.timeEnd === schedule.timeEnd &&
+                !r.isExtraClass
+            );
+            classesForToday.push({
+              id: `${course.id}-${schedule.id}`,
+              courseId: course.id,
+              courseName: course.name,
+              timeStart: schedule.timeStart,
+              timeEnd: schedule.timeEnd,
+              isExtraClass: false,
+              requiredAttendance: required,
+              currentAttendance: attendancePercentage,
+              needToAttend: delta,
+              status: record?.status,
+            });
+          }
+        });
+      }
 
-      // Process extra classes.
+      // Process extra classes (always, regardless of holiday)
       course.extraClasses?.forEach((extra: ExtraClass) => {
         if (extra.date === currentDateString) {
           const record = course.attendanceRecords?.find(
@@ -477,30 +479,36 @@ function TodaysClassesContent({
   };
 
   return (
-    !holiday ? (
+    <ThemedView style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
+      {holiday && (
+        <ThemedView style={[styles.holidayBanner, { backgroundColor: Colors[colorScheme || "light"].card }]}>
+          <ThemedText type="subtitle" style={[styles.holidayText, { color: Colors[colorScheme || "light"].text }]}>
+            Enjoy <ThemedText type="subtitle" style={{ fontWeight: 'bold', color: Colors[colorScheme || "light"].text }}>{holiday?.name || "Holiday"}</ThemedText>! 🎉
+          </ThemedText>
+        </ThemedView>
+      )}
       <FlatList
         data={todaysClasses}
         renderItem={renderClassItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.classesList}
-        ListEmptyComponent={() => (
-          <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
-            <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
-              No classes scheduled for today!.
-            </ThemedText>
-          </ThemedView>
-        )}
+        ListEmptyComponent={() => {
+          const dayText = showTomorrow ? "tomorrow" : "today";
+          return (
+            <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+              <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
+                {holiday && todaysClasses.length === 0
+                  ? `No extra classes scheduled for ${dayText}!`
+                  : `No classes scheduled for ${dayText}!`}
+              </ThemedText>
+            </ThemedView>
+          );
+        }}
         removeClippedSubviews={false}
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: Colors[colorScheme || "light"].background }}
       />
-    ) : (
-      <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
-        <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
-          Enjoy {holiday?.name || "Holiday"}!
-        </ThemedText>
-      </ThemedView>
-    )
+    </ThemedView>
   );
 }
 
@@ -611,5 +619,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.6,
     fontSize: 16,
+  },
+  holidayBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    marginBottom: 8,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    shadowColor: '#000', // Add shadow for card-like effect
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // For Android shadow
+  },
+  holidayText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
