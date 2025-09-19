@@ -507,29 +507,29 @@ export const getAttendanceRecords = (
 ): AttendanceRecord[] => {
   let query = 'SELECT * FROM attendance_records';
   const params: any[] = [];
+  const conditions: string[] = [];
 
-  if ((courseIds && courseIds.length > 0) || startDate || endDate) {
-    query += ' WHERE';
-    let conditions: string[] = [];
-    if (courseIds && courseIds.length > 0) {
-      conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
-      params.push(...courseIds);
-    }
-    if (startDate) {
-      conditions.push('class_date >= ?');
-      params.push(startDate);
-    }
-    if (endDate) {
-      conditions.push('class_date <= ?');
-      params.push(endDate);
-    }
-    query += ' ' + conditions.join(' AND ');
+  if (courseIds && courseIds.length > 0) {
+    conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
+    params.push(...courseIds);
+  }
+  if (startDate) {
+    conditions.push('class_date >= ?');
+    params.push(startDate);
+  }
+  // Always filter for past records if no specific endDate is provided
+  const effectiveEndDate = endDate || formatDateToISO(new Date());
+  conditions.push('class_date <= ?');
+  params.push(effectiveEndDate);
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
   }
 
   if (limit == -1) {
-    query += ' ORDER BY class_date DESC, time_start DESC';
+    query += ' ORDER BY class_date DESC, time_end DESC';
   } else {
-    query += ' ORDER BY class_date DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY class_date DESC, time_end DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
   }
 
@@ -552,23 +552,23 @@ export const getAttendanceRecordsCount = (
 ): number => {
   let query = 'SELECT COUNT(*) as count FROM attendance_records';
   const params: any[] = [];
+  const conditions: string[] = [];
 
-  if ((courseIds && courseIds.length > 0) || startDate || endDate) {
-    query += ' WHERE';
-    let conditions: string[] = [];
-    if (courseIds && courseIds.length > 0) {
-      conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
-      params.push(...courseIds);
-    }
-    if (startDate) {
-      conditions.push('class_date >= ?');
-      params.push(startDate);
-    }
-    if (endDate) {
-      conditions.push('class_date <= ?');
-      params.push(endDate);
-    }
-    query += ' ' + conditions.join(' AND ');
+  if (courseIds && courseIds.length > 0) {
+    conditions.push(`course_id IN (${courseIds.map(() => '?').join(',')})`);
+    params.push(...courseIds);
+  }
+  if (startDate) {
+    conditions.push('class_date >= ?');
+    params.push(startDate);
+  }
+  // Always filter for past records if no specific endDate is provided
+  const effectiveEndDate = endDate || formatDateToISO(new Date());
+  conditions.push('class_date <= ?');
+  params.push(effectiveEndDate);
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
   }
 
   const result = db.getFirstSync<{ count: number }>(query, ...params);

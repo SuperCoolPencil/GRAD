@@ -87,20 +87,11 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     );
   };
 
-  const filteredRecords = useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Normalize to start of today for comparison
-
-    const pastRecords = records.filter((record) => {
-      const recordDate = new Date(record.date);
-      recordDate.setHours(0, 0, 0, 0);
-      return recordDate <= now;
-    });
-
+  const displayedRecords = useMemo(() => {
     if (courseId) {
-      return pastRecords.filter((record) => record.course_id === courseId);
+      return records.filter((record) => record.course_id === courseId);
     }
-    return pastRecords;
+    return records;
   }, [records, courseId]);
 
   return (
@@ -110,7 +101,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
       </ThemedText>
       {ListHeaderComponent}
       <FlatList
-        data={filteredRecords}
+        data={displayedRecords}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         ListFooterComponent={
