@@ -85,7 +85,7 @@ const ManageHolidaysScreen: React.FC = () => {
 
     const newHoliday: Holiday = {
       id: Date.now().toString(),
-      name: name.trim(),
+      name: name.trim().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' '),
       startDate: formatDateToISO(startDate),
       endDate: formatDateToISO(endDate),
     };
