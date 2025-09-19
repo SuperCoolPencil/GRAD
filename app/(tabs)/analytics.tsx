@@ -37,6 +37,7 @@ const formatMonthRange = (date: Date): string => {
 export default function AnalyticsScreen() {
   const {
     courses,
+    holidays, // Fetch holidays from AppContext
     getCoursesWithRecordsInRange,
     upsertAttendance,
     getPaginatedAttendanceRecords,
@@ -130,14 +131,14 @@ export default function AnalyticsScreen() {
         {
           text: 'Delete Record',
           style: 'destructive',
-          shouldCloseAlert: false, // Prevent the first alert from closing
+          shouldCloseAlert: false,
           onPress: async () => {
             console.log(`[Analytics] Deleting attendance record for ${course.name} on ${formattedDate}`);
             showAlert(
               'Confirm Delete',
               `Are you sure you want to delete this attendance record for ${course.name} on ${formattedDate}? This action cannot be undone.`,
               [
-                { text: 'Cancel', style: 'cancel', onPress: hideAlert }, // Explicitly close the confirm alert
+                { text: 'Cancel', style: 'cancel', onPress: hideAlert },
                 {
                   text: 'Delete',
                   style: 'destructive',
@@ -151,20 +152,20 @@ export default function AnalyticsScreen() {
                       fromDate ? formatDateForQuery(fromDate) : undefined,
                       toDate ? formatDateForQuery(toDate) : undefined
                     );
-                    hideAlert(); // Explicitly close the confirm alert after deletion
+                    hideAlert(); 
                   },
                 },
               ]
             );
           },
         },
-        { text: 'Cancel', style: 'cancel', onPress: hideAlert }, // Explicitly close the first alert
+        { text: 'Cancel', style: 'cancel', onPress: hideAlert },
       ]
     );
   };
 
   const chartData = activeCourses
-    .filter(course => course.showInRadar !== false) // Filter courses to show in radar
+    .filter(course => course.showInRadar !== false) 
     .map(course => ({
       label: `${course.name}`,
       value: calculateAttendancePercentage(course.presents, course.absents),
@@ -187,8 +188,8 @@ export default function AnalyticsScreen() {
       ? heatmapCourses.filter(c => selectedHeatmapCourse.includes(c.id!))
       : heatmapCourses;
     coursesToDisplay = coursesToDisplay.filter(c => c.showInHeatmap);
-    return generateHeatmapData(coursesToDisplay, startDate, endDate);
-  }, [heatmapCourses, displayMonth, selectedHeatmapCourse]);
+    return generateHeatmapData(coursesToDisplay, holidays, startDate, endDate); 
+  }, [heatmapCourses, holidays, displayMonth, selectedHeatmapCourse]);
 
   const handlePrevPage = () => {
     setDisplayMonth(prev => {

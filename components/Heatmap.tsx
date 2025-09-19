@@ -6,7 +6,7 @@ import { Colors } from '@/constants/Colors';
 interface HeatmapData {
   date: Date;
   value: number;
-  isFirstDayOfMonth: boolean;
+  isHoliday: boolean;
 }
 
 interface HeatmapComponentProps {
@@ -64,7 +64,7 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
 
     const processedData = data.map((d, i) => ({
       value: d.value,
-      isFirstDayOfMonth: d.date.getDate() === 1,
+      isHoliday: d.isHoliday,
     }));
 
     const paddedData = [...Array(dayOfWeek).fill({ value: -2, isFirstDayOfMonth: false }), ...processedData];
@@ -105,15 +105,17 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
   // the second item to the second day, and so on.
   // The `paddedData` ensures that the first piece of actual data aligns with its correct day of the week.
 
-  const getCellStyle = (item: { value: number; isFirstDayOfMonth: boolean }) => {
-    const { value, isFirstDayOfMonth } = item;
+  const getCellStyle = (item: HeatmapData) => {
+    const { value, isHoliday } = item;
     const style: any[] = [styles.cell];
 
     if (value === -2) {
       return styles.paddingCell; // Padding cell
     }
 
-    if (value === -1) {
+    if (isHoliday) {
+      style.push({ backgroundColor: Colors.light.tint }); // Blue for holidays
+    } else if (value === -1) {
       style.push({ borderColor: colors.border, borderWidth: 1 }); // No class
     } else if (value === 100) {
       style.push({ backgroundColor: themeColors.success }); // Perfect attendance
@@ -128,13 +130,6 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
       } else {
         style.push({ borderColor: colors.border, borderWidth: 1 });
       }
-    }
-
-    if (isFirstDayOfMonth) {
-      style.push({
-        borderWidth: 2,
-        borderColor: themeColors.tint,
-      });
     }
 
     return style;

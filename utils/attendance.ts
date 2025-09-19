@@ -1,4 +1,4 @@
-import { Course, AttendanceRecord, ScheduleItem } from '@/types';
+import { Course, AttendanceRecord, ScheduleItem, Holiday } from '@/types';
 import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts, getCourses } from './database';
 import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
 
@@ -346,8 +346,18 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
 };
 
 
-export const generateHeatmapData = (courses: Course[], startDate: Date, endDate: Date): { date: Date; value: number; isFirstDayOfMonth: boolean }[] => {
+export const generateHeatmapData = (courses: Course[], holidays: Holiday[], startDate: Date, endDate: Date): { date: Date; value: number; isHoliday: boolean }[] => {
   const dateMap: { [key: string]: { presents: number; absents: number } } = {};
+  const holidayMap: { [key: string]: boolean } = {};
+
+  holidays.forEach(holiday => {
+    let current = new Date(holiday.startDate);
+    const end = new Date(holiday.endDate);
+    while (current <= end) {
+      holidayMap[formatDateToISO(current)] = true;
+      current.setDate(current.getDate() + 1);
+    }
+  });
 
   courses.forEach(course => {
     if (course.attendanceRecords && course.showInHeatmap) {
@@ -365,24 +375,25 @@ export const generateHeatmapData = (courses: Course[], startDate: Date, endDate:
     }
   });
 
-  const heatmapData: { date: Date; value: number; isFirstDayOfMonth: boolean }[] = [];
+  const heatmapData: { date: Date; value: number; isHoliday: boolean }[] = [];
   
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const date = new Date(d);
     const dateString = formatDateToISO(date); // Use formatDateToISO for consistency
 
-    const isFirstDayOfMonth = date.getDate() === 1;
+    const isHoliday = holidayMap[dateString] || false;
+
     if (dateMap[dateString]) {
       const { presents, absents } = dateMap[dateString];
       const total = presents + absents;
       if (total === 0) {
-        heatmapData.push({ date, value: -1, isFirstDayOfMonth }); // No classes with attendance marked
+        heatmapData.push({ date, value: -1, isHoliday }); // No classes with attendance marked
       } else {
         const percentage = (presents / total) * 100;
-        heatmapData.push({ date, value: Math.round(percentage), isFirstDayOfMonth });
+        heatmapData.push({ date, value: Math.round(percentage), isHoliday });
       }
     } else {
-      heatmapData.push({ date, value: -1, isFirstDayOfMonth }); // No classes on this day
+      heatmapData.push({ date, value: -1, isHoliday }); // No classes on this day
     }
   }
 
