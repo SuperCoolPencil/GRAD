@@ -14,7 +14,8 @@ import { AlertProvider } from '../context/AlertContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { formatDateToISO } from '@/utils/dateHelpers';
 import { Colors } from '../constants/Colors';
-import { setupNotificationChannels, requestPermissions } from '@/utils/notifications';
+import { setupNotificationChannels, requestPermissions, handleNotificationAttendanceAction } from '@/utils/notifications';
+import * as db from '../utils/database';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,7 +43,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { courses, upsertAttendance } = useContext(AppContext);
+  const { courses } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -62,22 +63,18 @@ function RootLayoutShell() {
       const actionIdentifier = response.actionIdentifier;
 
       if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
-        const course = courses.find(c => c.id === courseId);
-        if (course) {
-          const isExtraClass = course.extraClasses?.some(ec => ec.id === scheduleId) || false;
-          const scheduleItem = course.weeklySchedule?.find(s => s.id === scheduleId);
-          const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
-          const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
-          const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
-          const date = extraClassItem?.date || formatDateToISO(new Date());
-          upsertAttendance(courseId, scheduleId, actionIdentifier as 'present' | 'absent' | 'cancelled', isExtraClass, timeStart, timeEnd, date);
-          Notifications.dismissNotificationAsync(response.notification.request.identifier);
-        }
+        // Call the new utility function to handle the attendance action
+        handleNotificationAttendanceAction(
+          courseId,
+          scheduleId,
+          actionIdentifier as 'present' | 'absent' | 'cancelled',
+          response.notification.request.identifier
+        );
       }
     });
 
     return () => subscription.remove();
-  }, [upsertAttendance, courses]);
+  }, [courses]);
 
   if (!loaded) {
     return null;

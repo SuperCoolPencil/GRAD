@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
-import { Course, ScheduleItem, ExtraClass } from '@/types';
-import { db } from './database';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
+import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
+import { calculateAttendancePercentage } from './attendance'
 
 // Function to schedule notifications for a single course
 export const scheduleCourseNotifications = async (course: Course, notificationTime: number) => {
@@ -58,6 +59,69 @@ export const cancelUpdateNotification = async () => {
   console.log('[NOTIF] Cancelling update notification');
   await Notifications.cancelScheduledNotificationAsync('app-update-notification');
 };
+
+// Function to handle notification attendance actions
+export const handleNotificationAttendanceAction = async (
+  courseId: string,
+  scheduleId: string,
+  actionIdentifier: 'present' | 'absent' | 'cancelled',
+  notificationIdentifier: string
+) => {
+  console.log(`[NOTIF_HANDLER] Handling action: ${actionIdentifier} for course: ${courseId}, schedule: ${scheduleId}`);
+
+  const course = getCourseById(courseId);
+  if (!course) {
+    console.log(`[NOTIF_HANDLER] Course not found for ID: ${courseId}`);
+    return;
+  }
+
+  const isExtraClass = course.extraClasses?.some(ec => ec.id === scheduleId) || false;
+  const scheduleItem = course.weeklySchedule?.find(s => s.id === scheduleId);
+  const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
+
+  const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
+  const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
+  const date = extraClassItem?.date || formatDateToISO(new Date());
+
+  const existingRecord = getAttendanceRecords(-1, 0, [courseId], date, date).find(
+    (record) =>
+      record.date === date &&
+      record.isExtraClass === isExtraClass &&
+      record.timeStart === timeStart &&
+      record.timeEnd === timeEnd
+  );
+
+  if (existingRecord) {
+    console.log(`[NOTIF_HANDLER] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${actionIdentifier}.`);
+    if (existingRecord.status === actionIdentifier) {
+      console.log(`[NOTIF_HANDLER] Status for record ${existingRecord.id} is already ${actionIdentifier}. No update needed.`);
+    } else {
+      updateAttendanceRecord(existingRecord.id, actionIdentifier);
+    }
+  } else {
+    console.log(`[NOTIF_HANDLER] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${actionIdentifier}.`);
+    const newRecord: AttendanceRecord = {
+      id: `${courseId}-${scheduleId}-${date}`, // Unique ID for the record
+      course_id: courseId,
+      date,
+      status: actionIdentifier,
+      isExtraClass,
+      scheduleItemId: scheduleId,
+      timeStart,
+      timeEnd,
+    };
+    addAttendanceRecord(newRecord);
+  }
+
+  // Dismiss the notification after handling the action
+  await Notifications.dismissNotificationAsync(notificationIdentifier);
+  console.log(`[NOTIF_HANDLER] Notification ${notificationIdentifier} dismissed.`);
+
+  // Optionally, trigger a refresh for the app if it's in the foreground
+  // This part would typically be handled by the AppContext if the app is active.
+  // For background, the database update is sufficient.
+};
+
 
 // Function to cancel notifications for a single course
 export const cancelCourseNotifications = async (courseId: string) => {
