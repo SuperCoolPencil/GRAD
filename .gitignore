@@ -9,3 +9,4 @@ expo-env.d.ts
 .expo
 .idea
 settings.json
+nohup.out
