@@ -207,7 +207,7 @@ export const createMissingAttendanceRecords = (): boolean => {
   console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
   const defaultStatus = (getSetting('defaultAttendanceStatus') as string) || 'absent';
-  const holidayBehavior = ((getSetting('holidayBehavior') as string) || 'cancel').toLowerCase(); // 'cancel' | 'skip'
+  const holidayBehavior = ((getSetting('holidayBehavior') as string) || 'skip').toLowerCase(); // 'skip' | 'cancel'
 
   // --- build holidaySet (YYYY-MM-DD) by expanding holiday ranges ----------
   const holidaySet = new Set<string>();
@@ -379,7 +379,7 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
   });
 
   const heatmapData: { date: Date; value: number; isHoliday: boolean; hasExtraClass: boolean }[] = [];
-  
+
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const date = new Date(d);
     const dateString = formatDateToISO(date); // Use formatDateToISO for consistency
