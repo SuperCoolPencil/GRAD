@@ -244,9 +244,9 @@ export default function AnalyticsScreen() {
             strokeWidth={[1, 1, 1, 1, 1]}
             strokeOpacity={[1, 1, 1, 1, 1]}
             labelColor={colors.text}
-            dataFillColor="#007AFF"
+            dataFillColor={Colors[colorScheme].tint}
             dataFillOpacity={0.8}
-            dataStroke="#007AFF"
+            dataStroke={Colors[colorScheme].tint}
             dataStrokeWidth={2}
           />
         </ThemedView>
@@ -380,9 +380,9 @@ export default function AnalyticsScreen() {
               strokeWidth={[1, 1, 1, 1, 1]}
               strokeOpacity={[1, 1, 1, 1, 1]}
               labelColor={colors.text}
-              dataFillColor="#007AFF"
+              dataFillColor={Colors[colorScheme].tint}
               dataFillOpacity={0.8}
-              dataStroke="#007AFF"
+              dataStroke={Colors[colorScheme].tint}
               dataStrokeWidth={2}
             />
           </ThemedView>
@@ -445,11 +445,11 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
-    gap: 8,
+    gap: 8, // Increased gap for breathing room
   },
   card: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20, // Softer corners
+    padding: 18,
   },
   sectionTitle: {
     marginBottom: 12,
@@ -464,14 +464,11 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.1)',
-    marginBottom: 0,
+    paddingVertical: 12,
+    marginBottom: 2,
     paddingHorizontal: 8,
-    backgroundColor: Colors[colorScheme].card,
-    borderRadius: 10,
-
+    backgroundColor: Colors[colorScheme].cardBackground,
+    borderRadius: 12,
   },
   historyText: {
     marginLeft: 8,
@@ -536,7 +533,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)'
+    backgroundColor: Colors[colorScheme].separator
   },
   modalContent: {
     backgroundColor: colors.card,
@@ -586,18 +583,18 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     borderRadius: 5,
   },
   clearButtonText: {
-    color: 'white',
+    color: Colors[colorScheme].buttonText,
     fontWeight: 'bold',
   },
   doneButton: {
     marginTop: 10,
     paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: Colors['light'].success,
+    backgroundColor: Colors[colorScheme].success,
     borderRadius: 5,
   },
   doneButtonText: {
-    color: 'white',
+    color: Colors[colorScheme].buttonText,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -609,7 +606,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     marginTop: 20,
   },
   modalCloseButtonText: {
-    color: '#FFFFFF',
+    color: Colors[colorScheme].buttonText,
     fontSize: 18,
     fontWeight: 'bold',
   },

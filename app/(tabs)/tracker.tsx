@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useContext } from 'react';
 import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate, getMiddleOfWeek, addWeeksToDate, subWeeksFromDate, dayIndexToName } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
@@ -23,6 +23,12 @@ export default function VisualAttendanceTracker() {
 
   const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, weekStartsOn, true);
   const { handleSelectClass } = useAttendanceActions();
+  const router = useRouter();
+
+  // Check if there are any classes this week
+  const hasClasses = useMemo(() => {
+    return Object.values(classes).some(dayClasses => dayClasses.length > 0);
+  }, [classes]);
 
   // Update startDate when weekStartsOn changes
   React.useEffect(() => {
@@ -45,12 +51,14 @@ export default function VisualAttendanceTracker() {
   };
 
   const HOUR_HEIGHT = 60;
-  const hourCount = Math.ceil(endHour) - startHour;
+  const HEADER_HEIGHT = 40;
+  const TIME_AXIS_WIDTH = 35;
+  const hourCount = Math.ceil(endHour) - Math.floor(startHour);
   const scheduleHeight = hourCount * HOUR_HEIGHT;
-  const dayColumnWidth = (screenWidth - 70) / 7;
+  const dayColumnWidth = (screenWidth - TIME_AXIS_WIDTH - 32) / 7; // 32 for horizontal padding
 
   const timeSlots = useMemo(() =>
-    Array.from({ length: hourCount + 1 }, (_, i) => i + startHour),
+    Array.from({ length: Math.ceil(hourCount) + 1 }, (_, i) => Math.floor(startHour) + i),
     [hourCount, startHour]
   );
 
@@ -89,12 +97,13 @@ export default function VisualAttendanceTracker() {
       flex: 1,
       overflow: 'visible',
       paddingBottom: 12,
-      marginTop: 50,
     },
     timeAxis: {
-      width: 50,
-      alignItems: 'center',
+      width: TIME_AXIS_WIDTH,
+      alignItems: 'flex-end',
+      paddingRight: 4,
       paddingBottom: 12,
+      paddingTop: HEADER_HEIGHT,
     },
     timeText: {
       fontSize: 10,
@@ -112,27 +121,22 @@ export default function VisualAttendanceTracker() {
     schedule: {
       flex: 1,
       flexDirection: 'row',
-      position: 'relative',
-      borderRightWidth: 1,
-      borderRightColor: Colors[colorScheme].border,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[colorScheme].border,
+      borderRadius: 20, // Softer corners
+      borderWidth: 0, // Remove hard border
+      overflow: 'hidden',
       backgroundColor: Colors[colorScheme].card,
     },
     dayColumn: {
       width: dayColumnWidth,
       borderLeftWidth: 1,
-      borderLeftColor: Colors[colorScheme].border,
-      overflow: 'visible',
+      borderLeftColor: 'rgba(255, 255, 255, 0.04)', // Subtle column separator
     },
     dayColumnHeader: {
       alignItems: 'center',
-      paddingVertical: 5,
-      height: 50,
-      position: 'absolute',
-      top: -50,
-      left: 0,
-      right: 0,
+      justifyContent: 'center',
+      height: HEADER_HEIGHT,
+      borderBottomWidth: 0, // Remove hard border
+      backgroundColor: Colors[colorScheme].card,
     },
     dayInitialText: {
       fontSize: 12,
@@ -150,21 +154,21 @@ export default function VisualAttendanceTracker() {
       left: 0,
       right: 0,
       height: 1,
-      backgroundColor: Colors[colorScheme].border,
+      backgroundColor: 'rgba(255, 255, 255, 0.04)', // Subtle grid lines
     },
     classBlock: {
       position: 'absolute',
-      left: 4,
-      right: 4,
-      borderRadius: 8,
+      left: 3,
+      right: 3,
+      borderRadius: 10, // Softer class block corners
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'hidden',
-      elevation: 3,
+      elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
     },
     verticalTextContainer: {
       position: 'absolute',
@@ -174,20 +178,19 @@ export default function VisualAttendanceTracker() {
       alignItems: 'center',
     },
     presentBlock: {
-      borderColor: Colors[colorScheme].success,
-      borderWidth: 3,
+      borderLeftColor: Colors[colorScheme].success,
+      borderLeftWidth: 5,
     },
     absentBlock: {
-      borderColor: Colors[colorScheme].error,
-      borderWidth: 3,
-      borderStyle: 'dashed',
+      borderLeftColor: Colors[colorScheme].error,
+      borderLeftWidth: 5,
     },
     cancelledBlock: {
-      opacity: 0.5,
+      opacity: 0.4,
       backgroundColor: Colors[colorScheme].border,
     },
     unmarkedBlock: {
-      opacity: 0.7,
+      opacity: 0.8,
     },
     courseCode: {
       fontSize: 12,
@@ -215,17 +218,32 @@ export default function VisualAttendanceTracker() {
       flexShrink: 1,
     },
     manageHolidaysButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: Colors[colorScheme].tint,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      padding: 8,
       borderRadius: 8,
-      gap: 8,
+      backgroundColor: Colors[colorScheme].tint,
     },
-    manageHolidaysButtonText: {
-      color: Colors[colorScheme].background,
-      fontWeight: 'bold',
+    emptyStateContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 32,
+      backgroundColor: Colors[colorScheme].card,
+      borderRadius: 20, // Softer corners
+      marginHorizontal: 16,
+      marginTop: 20,
+    },
+    emptyStateText: {
+      textAlign: 'center',
+      opacity: 0.6,
+      fontSize: 16,
+    },
+    currentTimeIndicator: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: '#FF3B30',
+      zIndex: 10,
     },
   }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
 
@@ -264,8 +282,7 @@ export default function VisualAttendanceTracker() {
         </View>
         <Link href="/manage-holidays" asChild style={{ marginLeft: 'auto' }}>
           <TouchableOpacity style={styles.manageHolidaysButton}>
-            <ThemedText style={styles.manageHolidaysButtonText}>Manage Holidays</ThemedText>
-            <Ionicons name="calendar" size={24} color={Colors[colorScheme].background} />
+            <Ionicons name="calendar" size={20} color={Colors[colorScheme].background} />
           </TouchableOpacity>
         </Link>
       </ThemedView>
@@ -297,11 +314,17 @@ export default function VisualAttendanceTracker() {
       )}
       {loading && <ActivityIndicator size="large" color={Colors[colorScheme].tint} style={{ marginVertical: 20 }} />}
       {error && <ThemedText style={{ color: Colors[colorScheme].error, textAlign: 'center', marginVertical: 20 }}>{error}</ThemedText>}
-      {!loading && !error && (
+      {!loading && !error && !hasClasses && (
+        <View style={styles.emptyStateContainer}>
+          <Ionicons name="calendar-outline" size={48} color={Colors[colorScheme].textSecondary} style={{ marginBottom: 12 }} />
+          <ThemedText style={styles.emptyStateText}>No classes scheduled this week.</ThemedText>
+        </View>
+      )}
+      {!loading && !error && hasClasses && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingRight: 16 }}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -320,9 +343,9 @@ export default function VisualAttendanceTracker() {
                     styles={{ ...styles, endHour }}
                     getBlockStyle={getBlockStyle}
                     handleSelectClass={handleSelectClass}
+                    handleLongPressClass={(classItem) => router.push(`/course/${classItem.course.id}`)}
                     courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
-                  //scheduleHeight={scheduleHeight}
                   />
                 ))}
               </View>

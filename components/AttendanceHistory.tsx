@@ -136,10 +136,11 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.1)',
+    paddingVertical: 8, // Increased padding for breathing room
+    paddingHorizontal: 8,
+    marginBottom: 2,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)', // Subtle hover-like background
   },
   historyText: {
     marginLeft: 8,

@@ -171,7 +171,8 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
       });
 
     if (minHour !== Infinity) {
-      setStartHour(minHour > 0 ? minHour - 1 : 0);
+      // Use 0.5 for half-row padding at start only
+      setStartHour(minHour > 0.5 ? minHour - 0.5 : 0);
       setEndHour(Math.ceil(maxHour));
     } else {
       // Default view when there are no classes

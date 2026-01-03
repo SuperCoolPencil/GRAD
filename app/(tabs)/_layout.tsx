@@ -14,56 +14,56 @@ export default function TabLayout() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Today\'s Classes',
-          tabBarIcon: ({ color }) => <Ionicons name="calendar" size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="courses"
-        options={{
-          title: 'Courses',
-          tabBarIcon: ({ color }) => <Ionicons name="book-outline" size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="tracker"
-        options={{
-          title: 'Tracker',
-          tabBarIcon: ({ color }) => <Ionicons name="checkmark-done-outline" size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          title: 'Analytics',
-          tabBarIcon: ({ color }) => <Ionicons name="analytics-outline" size={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={28} color={color} />,
-        }}
-      />
-    </Tabs>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+          headerShown: false,
+          tabBarButton: HapticTab,
+          tabBarBackground: TabBarBackground,
+          tabBarStyle: Platform.select({
+            ios: {
+              // Use a transparent background on iOS to show the blur effect
+              position: 'absolute',
+            },
+            default: {},
+          }),
+        }}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Classes',
+            tabBarIcon: ({ color }) => <Ionicons name="calendar" size={28} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="courses"
+          options={{
+            title: 'Courses',
+            tabBarIcon: ({ color }) => <Ionicons name="book-outline" size={28} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="tracker"
+          options={{
+            title: 'Tracker',
+            tabBarIcon: ({ color }) => <Ionicons name="checkmark-done-outline" size={28} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="analytics"
+          options={{
+            title: 'Analytics',
+            tabBarIcon: ({ color }) => <Ionicons name="analytics-outline" size={28} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={28} color={color} />,
+          }}
+        />
+      </Tabs>
     </SafeAreaView>
   );
 }

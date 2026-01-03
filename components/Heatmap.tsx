@@ -23,10 +23,10 @@ const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16),
+    }
     : null;
 };
 
@@ -79,11 +79,11 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     const monthLabels: { name: string, columnCount: number }[] = [];
     let lastMonth = -1;
     let columnCount = 0;
-    
+
     for (let i = 0; i < data.length; i++) {
       const d = data[i];
       const month = d.date.getMonth();
-      
+
       if (month !== lastMonth) {
         if (lastMonth !== -1) {
           monthLabels[monthLabels.length - 1].columnCount = columnCount;
@@ -116,9 +116,9 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     }
 
     if (isHoliday && !hasExtraClass) {
-      style.push({ backgroundColor: Colors.light.tint }); // Blue for holidays without extra classes
+      style.push({ backgroundColor: themeColors.tint }); // Blue for holidays without extra classes
     } else if (value === -1) {
-      style.push({ borderColor: colors.border, borderWidth: 1 }); // No class
+      style.push({ backgroundColor: themeColors.border, opacity: 0.2 }); // Subtle fill for no class
     } else if (value === 100) {
       style.push({ backgroundColor: themeColors.success }); // Perfect attendance
     } else {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: CELL_SIZE / 4,
+    borderRadius: CELL_SIZE / 3, // Softer, more modern rounding
     marginVertical: CELL_MARGIN / 2,
   },
   paddingCell: {

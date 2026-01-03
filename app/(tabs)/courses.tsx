@@ -263,20 +263,18 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   coursesList: {
-    gap: 8,
+    gap: 8, // Increased gap for breathing room
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   courseCardContainer: {
-    //borderLeftWidth: 4, // Accent thickness
-    borderRadius: 16,
-    marginBottom: 0, // Reduced margin
-    // Shadows for iOS:
+    borderRadius: 20, // Softer corners
+    marginBottom: 0,
   },
   courseCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 0, // Removed marginBottom from here
+    borderRadius: 20,
+    padding: 18, // Slightly more padding
+    marginBottom: 0,
   },
   courseHeader: {
     flexDirection: 'row',
@@ -306,7 +304,7 @@ const styles = StyleSheet.create({
   },
   sortButton: {
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 10, // Softer button corners
   },
   emptyContainer: {
     alignItems: 'center',
