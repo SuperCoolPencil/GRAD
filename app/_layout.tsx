@@ -43,7 +43,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { courses } = useContext(AppContext);
+  const { triggerRefresh } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -58,23 +58,25 @@ function RootLayoutShell() {
   }, [loaded]);
 
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
       const { courseId, scheduleId } = response.notification.request.content.data as { courseId: string, scheduleId: string };
       const actionIdentifier = response.actionIdentifier;
 
       if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
-        // Call the new utility function to handle the attendance action
-        handleNotificationAttendanceAction(
+        // Call the utility function to handle the attendance action
+        await handleNotificationAttendanceAction(
           courseId,
           scheduleId,
           actionIdentifier as 'present' | 'absent' | 'cancelled',
           response.notification.request.identifier
         );
+        // Refresh the app data to reflect the change immediately
+        triggerRefresh();
       }
     });
 
     return () => subscription.remove();
-  }, [courses]);
+  }, [triggerRefresh]);
 
   if (!loaded) {
     return null;
