@@ -148,6 +148,28 @@ const DayColumn: React.FC<DayColumnProps> = ({
               onLongPress={() => handleLongPressClass?.(classItem)}
               disabled={!isDateInPast(date)}
             >
+              {isDateInPast(date) && classItem.attendance?.status === 'present' && (
+                <View style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 6,
+                  backgroundColor: Colors[colorScheme].success,
+                  zIndex: 2,
+                }} />
+              )}
+              {isDateInPast(date) && classItem.attendance?.status === 'absent' && (
+                <View style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 6,
+                  backgroundColor: Colors[colorScheme].error,
+                  zIndex: 2,
+                }} />
+              )}
               <View style={[
                 styles.verticalTextContainer,
                 {

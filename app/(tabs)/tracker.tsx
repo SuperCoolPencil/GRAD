@@ -51,7 +51,7 @@ export default function VisualAttendanceTracker() {
   };
 
   const HOUR_HEIGHT = 60;
-  const HEADER_HEIGHT = 40;
+  const HEADER_HEIGHT = 60;
   const TIME_AXIS_WIDTH = 35;
   const hourCount = Math.ceil(endHour) - Math.floor(startHour);
   const scheduleHeight = hourCount * HOUR_HEIGHT;
@@ -100,8 +100,7 @@ export default function VisualAttendanceTracker() {
     },
     timeAxis: {
       width: TIME_AXIS_WIDTH,
-      alignItems: 'flex-end',
-      paddingRight: 4,
+      alignItems: 'center',
       paddingBottom: 12,
       paddingTop: HEADER_HEIGHT,
     },
@@ -129,14 +128,15 @@ export default function VisualAttendanceTracker() {
     dayColumn: {
       width: dayColumnWidth,
       borderLeftWidth: 1,
-      borderLeftColor: 'rgba(255, 255, 255, 0.04)', // Subtle column separator
+      borderLeftColor: 'rgba(255, 255, 255, 0.1)', // Subtle column separator
     },
     dayColumnHeader: {
       alignItems: 'center',
-      justifyContent: 'center',
       height: HEADER_HEIGHT,
       borderBottomWidth: 0, // Remove hard border
       backgroundColor: Colors[colorScheme].card,
+      paddingTop: 12,
+      justifyContent: 'flex-start',
     },
     dayInitialText: {
       fontSize: 12,
@@ -154,7 +154,7 @@ export default function VisualAttendanceTracker() {
       left: 0,
       right: 0,
       height: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.04)', // Subtle grid lines
+      backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle grid lines
     },
     classBlock: {
       position: 'absolute',
@@ -178,12 +178,10 @@ export default function VisualAttendanceTracker() {
       alignItems: 'center',
     },
     presentBlock: {
-      borderLeftColor: Colors[colorScheme].success,
-      borderLeftWidth: 5,
+      // styles handled in DayColumn for visibility
     },
     absentBlock: {
-      borderLeftColor: Colors[colorScheme].error,
-      borderLeftWidth: 5,
+      // styles handled in DayColumn for visibility
     },
     cancelledBlock: {
       opacity: 0.4,
