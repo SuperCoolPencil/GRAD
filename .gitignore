@@ -10,3 +10,5 @@ expo-env.d.ts
 .idea
 settings.json
 nohup.out
+
+*.apk
