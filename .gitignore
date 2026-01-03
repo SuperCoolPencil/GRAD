@@ -12,3 +12,4 @@ settings.json
 nohup.out
 
 *.apk
+/tmp
