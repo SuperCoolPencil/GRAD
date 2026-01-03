@@ -119,7 +119,7 @@ export default function TodaysClassesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
-      <View style={[styles.titleContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+      <ThemedView style={styles.titleContainer}>
         <View style={styles.titleTextContainer}>
           <TouchableOpacity
             onPress={() => setShowTomorrow(!showTomorrow)}
@@ -155,7 +155,7 @@ export default function TodaysClassesScreen() {
             color={Colors[colorScheme || "light"].tint}
           />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
       {!showTomorrow && todaysClasses.length > 0 && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
       <TodaysClassesContent
         courses={courses}
@@ -184,7 +184,7 @@ export default function TodaysClassesScreen() {
         ]}
         onClose={() => setShowAlert(false)}
       />
-    </View>
+    </View >
   );
 }
 
@@ -370,7 +370,7 @@ function TodaysClassesContent({
             styles.classCardContent,
             {
               backgroundColor: Colors[colorScheme || 'light'].card,
-              paddingVertical: showTomorrow ? 8 : 16, 
+              paddingVertical: showTomorrow ? 8 : 16,
             },
           ]}
         >
@@ -547,10 +547,10 @@ const styles = StyleSheet.create({
     alignItems: "center", // Vertically center the items
   },
   dateToggleTag: {
-    paddingVertical: 2, // Adjusted padding to match courses.tsx tags
-    paddingHorizontal: 6, // Adjusted padding to match courses.tsx tags
-    borderRadius: 8, // Rounded corners to match courses.tsx tags
-    marginRight: 8, // Space between tag and "Classes"
+    paddingVertical: 2,
+    paddingRight: 6, // Only right padding to keep spacing after the tag text
+    borderRadius: 8,
+    marginRight: 8,
   },
   classesText: {
     // No specific styles needed here, as it will align with the tag due to alignItems: 'center'

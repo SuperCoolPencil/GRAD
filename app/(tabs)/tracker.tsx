@@ -49,8 +49,8 @@ export default function VisualAttendanceTracker() {
   const scheduleHeight = hourCount * HOUR_HEIGHT;
   const dayColumnWidth = (screenWidth - 70) / 7;
 
-  const timeSlots = useMemo(() => 
-    Array.from({ length: hourCount + 1}, (_, i) => i + startHour),
+  const timeSlots = useMemo(() =>
+    Array.from({ length: hourCount + 1 }, (_, i) => i + startHour),
     [hourCount, startHour]
   );
 
@@ -62,7 +62,6 @@ export default function VisualAttendanceTracker() {
     titleContainer: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: 8,
       marginBottom: 16,
       paddingHorizontal: 16,
@@ -240,18 +239,18 @@ export default function VisualAttendanceTracker() {
     ];
 
     if (isDateInPast(date)) {
-      switch(classItem.attendance?.status) {
+      switch (classItem.attendance?.status) {
         case 'present':
           return StyleSheet.flatten([base, styles.presentBlock]);
         case 'absent':
           return StyleSheet.flatten([base, styles.absentBlock]);
         case 'cancelled':
           return StyleSheet.flatten([base, styles.cancelledBlock]);
-        default:                                                                            
+        default:
           return StyleSheet.flatten([base, styles.unmarkedBlock]);
       }
     }
-    
+
     return StyleSheet.flatten([base, styles.unmarkedBlock]);
   }, [courseColors, styles, colorScheme]);
 
@@ -263,14 +262,14 @@ export default function VisualAttendanceTracker() {
         <View style={styles.titleTextContainer}>
           <ThemedText type="title">Tracker</ThemedText>
         </View>
-        <Link href="/manage-holidays" asChild>
+        <Link href="/manage-holidays" asChild style={{ marginLeft: 'auto' }}>
           <TouchableOpacity style={styles.manageHolidaysButton}>
             <ThemedText style={styles.manageHolidaysButtonText}>Manage Holidays</ThemedText>
             <Ionicons name="calendar" size={24} color={Colors[colorScheme].background} />
           </TouchableOpacity>
         </Link>
       </ThemedView>
-      
+
       <View style={styles.dateNavigator}>
 
         <TouchableOpacity onPress={handlePrevWeek} disabled={loading}>
@@ -297,8 +296,8 @@ export default function VisualAttendanceTracker() {
         />
       )}
       {loading && <ActivityIndicator size="large" color={Colors[colorScheme].tint} style={{ marginVertical: 20 }} />}
-        {error && <ThemedText style={{ color: Colors[colorScheme].error, textAlign: 'center', marginVertical: 20 }}>{error}</ThemedText>}
-        {!loading && !error && (
+      {error && <ThemedText style={{ color: Colors[colorScheme].error, textAlign: 'center', marginVertical: 20 }}>{error}</ThemedText>}
+      {!loading && !error && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -318,12 +317,12 @@ export default function VisualAttendanceTracker() {
                     classes={classes[dateString]}
                     timeSlots={timeSlots}
                     startHour={startHour}
-                    styles={{...styles, endHour}}
+                    styles={{ ...styles, endHour }}
                     getBlockStyle={getBlockStyle}
                     handleSelectClass={handleSelectClass}
                     courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
-                    //scheduleHeight={scheduleHeight}
+                  //scheduleHeight={scheduleHeight}
                   />
                 ))}
               </View>

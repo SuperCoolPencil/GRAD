@@ -72,26 +72,26 @@ export default function CoursesScreen() {
         return nameB.localeCompare(nameA);
       }
     } else if (sortBy === 'attendance') {
-        const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
-        const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
+      const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
+      const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
 
-        if (deltaA !== deltaB) {
-          return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
-        }
-
-        // If delta is the same, sort by attendance percentage
-        const percentageA = a.attendancePercentage || 0;
-        const percentageB = b.attendancePercentage || 0;
-
-        if (sortOrder === 'asc') {
-          // For ascending, lower percentage is "worse" so it comes first
-          return percentageA - percentageB;
-        } else {
-          // For descending, higher percentage is "better" so it comes first
-          return percentageB - percentageA;
-        }
+      if (deltaA !== deltaB) {
+        return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
       }
-    
+
+      // If delta is the same, sort by attendance percentage
+      const percentageA = a.attendancePercentage || 0;
+      const percentageB = b.attendancePercentage || 0;
+
+      if (sortOrder === 'asc') {
+        // For ascending, lower percentage is "worse" so it comes first
+        return percentageA - percentageB;
+      } else {
+        // For descending, higher percentage is "better" so it comes first
+        return percentageB - percentageA;
+      }
+    }
+
     return 0;
   });
 
@@ -186,62 +186,58 @@ export default function CoursesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText
+          type="title"
+          numberOfLines={1}
+          style={[{ color: Colors[colorScheme].text }]}
+        >
+          My Courses
+        </ThemedText>
+        <View style={styles.sortContainer}>
+          <TouchableOpacity
+            onPress={() => setSortBy(sortBy === 'alphabetical' ? 'attendance' : 'alphabetical')}
+            style={[
+              styles.sortButton,
+              { backgroundColor: Colors[colorScheme].tint },
+            ]}
+          >
+            <Ionicons
+              name={sortBy === 'alphabetical' ? 'text' : 'stats-chart'}
+              size={20}
+              color={Colors[colorScheme].background}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            style={[
+              styles.sortButton,
+              { backgroundColor: Colors[colorScheme].tint },
+            ]}
+          >
+            <Ionicons
+              name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
+              size={20}
+              color={Colors[colorScheme].background}
+            />
+          </TouchableOpacity>
+        </View>
+        <Link href="/add-course" asChild>
+          <TouchableOpacity style={styles.addButton}>
+            <Ionicons
+              name="add-circle-outline"
+              size={28}
+              color={Colors[colorScheme].tint}
+            />
+          </TouchableOpacity>
+        </Link>
+      </ThemedView>
       <FlatList
         data={sortedCourses}
         showsVerticalScrollIndicator={false}
         renderItem={renderCourseItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.coursesList}
-        ListHeaderComponent={
-          <ThemedView style={styles.titleContainer}>
-            <View style={styles.titleTextContainer}>
-              <ThemedText
-                type="title"
-                numberOfLines={1}
-                style={[{ color: Colors[colorScheme].text }]}
-              >
-                My Courses
-              </ThemedText>
-            </View>
-            <View style={styles.sortContainer}>
-              <TouchableOpacity
-                onPress={() => setSortBy(sortBy === 'alphabetical' ? 'attendance' : 'alphabetical')}
-                style={[
-                  styles.sortButton,
-                  { backgroundColor: Colors[colorScheme].tint },
-                ]}
-              >
-                <Ionicons
-                  name={sortBy === 'alphabetical' ? 'text' : 'stats-chart'}
-                  size={20}
-                  color={Colors[colorScheme].background}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                style={[
-                  styles.sortButton,
-                  { backgroundColor: Colors[colorScheme].tint },
-                ]}
-              >
-                <Ionicons
-                  name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
-                  size={20}
-                  color={Colors[colorScheme].background}
-                />
-              </TouchableOpacity>
-            </View>
-            <Link href="/add-course" asChild>
-              <TouchableOpacity style={styles.addButton}>
-                <Ionicons
-                  name="add-circle-outline"
-                  size={28}
-                  color={Colors[colorScheme].tint}
-                />
-              </TouchableOpacity>
-            </Link>
-          </ThemedView>
-        }
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyContainer}>
             <ThemedText style={styles.emptyText}>
@@ -259,22 +255,17 @@ const styles = StyleSheet.create({
   // Adjust titleContainer style to match index.tsx and settings.tsx pattern
   titleContainer: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingTop: 64,
     backgroundColor: "transparent",
-    alignItems: "center",
-  },
-  titleTextContainer: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   coursesList: {
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    paddingTop: 16,
   },
   courseCardContainer: {
     //borderLeftWidth: 4, // Accent thickness

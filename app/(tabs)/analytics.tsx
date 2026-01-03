@@ -152,7 +152,7 @@ export default function AnalyticsScreen() {
                       fromDate ? formatDateForQuery(fromDate) : undefined,
                       toDate ? formatDateForQuery(toDate) : undefined
                     );
-                    hideAlert(); 
+                    hideAlert();
                   },
                 },
               ]
@@ -165,7 +165,7 @@ export default function AnalyticsScreen() {
   };
 
   const chartData = activeCourses
-    .filter(course => course.showInRadar !== false) 
+    .filter(course => course.showInRadar !== false)
     .map(course => ({
       label: `${course.name}`,
       value: calculateAttendancePercentage(course.presents, course.absents),
@@ -360,73 +360,74 @@ export default function AnalyticsScreen() {
   ));
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Analytics</ThemedText>
       </ThemedView>
-      
-      {chartData.length > 2 && (
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {chartData.length > 2 && (
+          <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
+            <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
+            <RadarChart
+              data={chartData}
+              maxValue={100}
+              gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
+              stroke={['#666', '#666', '#666', '#666', '#666']}
+              strokeWidth={[1, 1, 1, 1, 1]}
+              strokeOpacity={[1, 1, 1, 1, 1]}
+              labelColor={colors.text}
+              dataFillColor="#007AFF"
+              dataFillOpacity={0.8}
+              dataStroke="#007AFF"
+              dataStrokeWidth={2}
+            />
+          </ThemedView>
+        )}
+
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-          <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
-          <RadarChart
-            data={chartData}
-            maxValue={100}
-            gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
-            stroke={['#666', '#666', '#666', '#666', '#666']}
-            strokeWidth={[1, 1, 1, 1, 1]}
-            strokeOpacity={[1, 1, 1, 1, 1]}
-            labelColor={colors.text}
-            dataFillColor="#007AFF"
-            dataFillOpacity={0.8}
-            dataStroke="#007AFF"
-            dataStrokeWidth={2}
+          <View style={styles.heatmapHeader}>
+            <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
+              <Ionicons name="chevron-back" size={24} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
+            </TouchableOpacity>
+            <ThemedText style={styles.sectionTitle} type="subtitle">
+              {formatMonthRange(displayMonth)}
+            </ThemedText>
+            <TouchableOpacity onPress={handleNextPage} disabled={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear()}>
+              <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <HeatmapComponent data={heatmapData} />
+          </ScrollView>
+          <CoursePicker
+            label="Course:"
+            courses={courses}
+            selectedCourseIds={selectedHeatmapCourse}
+            onSelectionChange={setSelectedHeatmapCourse}
+            multiSelect={true}
+            allCoursesOption={true}
+            showArchivedToggle={true}
+            showSaveButton={true}
           />
         </ThemedView>
-      )}
-      
-      <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-        <View style={styles.heatmapHeader}>
-          <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
-            <Ionicons name="chevron-back" size={24} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
-          </TouchableOpacity>
-          <ThemedText style={styles.sectionTitle} type="subtitle">
-            {formatMonthRange(displayMonth)}
-          </ThemedText>
-          <TouchableOpacity onPress={handleNextPage} disabled={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear()}>
-            <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <HeatmapComponent data={heatmapData} />
-        </ScrollView>
-        <CoursePicker
-          label="Course:"
-          courses={courses}
-          selectedCourseIds={selectedHeatmapCourse}
-          onSelectionChange={setSelectedHeatmapCourse}
-          multiSelect={true}
-          allCoursesOption={true}
-          showArchivedToggle={true}
-          showSaveButton={true}
-        />
-      </ThemedView>
 
-      <AttendanceHistory
-        title="Attendance History"
-        records={attendanceRecords}
-        courses={courses}
-        onRecordClick={handleAttendanceClick}
-        ListHeaderComponent={<HistoryFilters />}
-        currentPage={page}
-        totalRecords={totalRecords}
-        recordsPerPage={recordsPerPage}
-        onPageChange={setPage}
-      />
-    </ScrollView>
+        <AttendanceHistory
+          title="Attendance History"
+          records={attendanceRecords}
+          courses={courses}
+          onRecordClick={handleAttendanceClick}
+          ListHeaderComponent={<HistoryFilters />}
+          currentPage={page}
+          totalRecords={totalRecords}
+          recordsPerPage={recordsPerPage}
+          onPageChange={setPage}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -470,7 +471,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     paddingHorizontal: 8,
     backgroundColor: Colors[colorScheme].card,
     borderRadius: 10,
-    
+
   },
   historyText: {
     marginLeft: 8,
