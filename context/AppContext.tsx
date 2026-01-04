@@ -129,7 +129,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0); // New state for refresh
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  
+
   const updateSetting = (key: string, value: any) => {
     console.log(`[AppContext] updateSetting: key=${key}, value=${value}`);
     db.updateSetting(key, value);
@@ -299,7 +299,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const addExtraClass = (courseId: string, date: string, timeStart: string, timeEnd: string) => {
     console.log(`[AppContext] Adding extra class to course: ${courseId}, date: ${date}, time: ${timeStart}-${timeEnd}`);
     const newExtraClass: ExtraClass = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       date,
       timeStart,
       timeEnd,
@@ -433,8 +433,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (existingRecord) {
       console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
       db.deleteAttendanceRecord(existingRecord.id);
-      if (existingRecord.isExtraClass)
-      {
+      if (existingRecord.isExtraClass) {
         deleteExtraClass(course.id, existingRecord.id);
       }
       triggerRefresh(); // Add this line to trigger a refresh
@@ -563,7 +562,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateCourseCounts,
         save,
         loadData,
-        triggerRefresh, 
+        triggerRefresh,
         getCoursesWithRecordsInRange,
         getPaginatedAttendanceRecords,
         attendanceRecords,

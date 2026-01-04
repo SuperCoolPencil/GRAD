@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
 import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
@@ -56,8 +57,9 @@ export const scheduleUpdateNotification = async (version: string) => {
 };
 
 export const cancelUpdateNotification = async () => {
-  console.log('[NOTIF] Cancelling update notification');
-  await Notifications.cancelScheduledNotificationAsync('app-update-notification');
+  console.log('[NOTIF] Cancelling update notifications');
+  await Notifications.cancelScheduledNotificationAsync('app-update-notification-now');
+  await Notifications.cancelScheduledNotificationAsync('app-update-notification-weekly');
 };
 
 // Function to handle notification attendance actions
@@ -219,21 +221,14 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
   if ('day' in item) { // It's a weekly schedule item
     const nextClassDate = getNextClassDate(item, now);
-    const dateString = formatDateToISO(nextClassDate);
-
-    const existingRecord = db.getFirstSync(
-      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
-      [course.id, item.id, dateString]
-    );
-
-    if (existingRecord) {
-      console.log(`[NOTIF] Attendance record for ${course.name} on ${dateString} already exists. Skipping notification.`);
-      return;
-    }
+    // Note: We intentionally do NOT check for existing attendance records here.
+    // Weekly notifications are recurring and should always be scheduled.
+    // The notification handler can suppress the banner if attendance is already marked.
 
     // Adjust hour and minute directly for the trigger
     let triggerHour = nextClassDate.getHours();
     let triggerMinute = nextClassDate.getMinutes() - notificationTime;
+    let triggerWeekday = nextClassDate.getDay() + 1; // expo uses 1-7 (Sun=1)
 
     if (triggerMinute < 0) {
       triggerMinute += 60;
@@ -241,11 +236,16 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     }
     if (triggerHour < 0) {
       triggerHour += 24;
+      // Wrap weekday to previous day
+      triggerWeekday -= 1;
+      if (triggerWeekday < 1) {
+        triggerWeekday = 7; // Wrap Sunday (1) to Saturday (7)
+      }
     }
 
     trigger = {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-      weekday: nextClassDate.getDay() + 1,
+      weekday: triggerWeekday,
       hour: triggerHour,
       minute: triggerMinute,
       channelId: 'default',
@@ -263,17 +263,27 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
     const [year, month, day] = item.date.split('-').map(Number);
     const [hour, minute] = item.timeStart.split(':').map(Number);
-    const date = new Date(year, month - 1, day, hour, minute);
-    date.setMinutes(date.getMinutes() - notificationTime);
+    const classStartTime = new Date(year, month - 1, day, hour, minute);
+    const triggerDate = new Date(classStartTime);
+    triggerDate.setMinutes(triggerDate.getMinutes() - notificationTime);
 
-    if (date < now) { // Don't schedule for past extra classes
+    // If the class itself is in the past, don't schedule
+    if (classStartTime < now) {
+      console.log(`[NOTIF] Extra class ${course.name} on ${item.date} has already passed. Skipping notification.`);
       return;
     }
-    trigger = {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date,
-      channelId: 'default',
-    };
+
+    // If trigger time is in the past but class hasn't started, fire immediately
+    if (triggerDate < now) {
+      console.log(`[NOTIF] Trigger time for extra class ${course.name} is in the past, scheduling immediate notification.`);
+      trigger = null; // Fire immediately
+    } else {
+      trigger = {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+        channelId: 'default',
+      };
+    }
   }
 
   await Notifications.scheduleNotificationAsync({
@@ -292,6 +302,18 @@ export const cancelAllNotifications = async () => {
 };
 
 export const setupNotificationChannels = async () => {
+  // Create the notification channel for Android
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Class Notifications',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+    console.log('[NOTIF] Android notification channel created.');
+  }
+
+  // Set up notification categories for action buttons
   await Notifications.setNotificationCategoryAsync('class-actions', [
     { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: false } },
     { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: false } },
