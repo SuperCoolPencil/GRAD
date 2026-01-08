@@ -219,8 +219,25 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
   const now = new Date();
   let trigger: Notifications.NotificationTriggerInput;
 
+  // Helper to check if a date string (YYYY-MM-DD) is a holiday
+  const isHoliday = (dateStr: string): boolean => {
+    const result = db.getFirstSync(
+      'SELECT id FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1',
+      dateStr,
+      dateStr
+    );
+    return !!result;
+  };
+
   if ('day' in item) { // It's a weekly schedule item
     const nextClassDate = getNextClassDate(item, now);
+    const nextClassDateStr = nextClassDate.toISOString().split('T')[0];
+
+    // Skip notification if next class is on a holiday
+    if (isHoliday(nextClassDateStr)) {
+      console.log(`[NOTIF] Skipping notification for ${course.name} on ${nextClassDateStr} (holiday).`);
+      return;
+    }
     // Note: We intentionally do NOT check for existing attendance records here.
     // Weekly notifications are recurring and should always be scheduled.
     // The notification handler can suppress the banner if attendance is already marked.
@@ -250,6 +267,19 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       minute: triggerMinute,
       channelId: 'default',
     };
+
+    // Catch-up logic: If the notification time for this week has passed but the class hasn't started,
+    // fire an immediate one-off notification so the user doesn't miss it.
+    const scheduledTriggerTime = new Date(nextClassDate);
+    scheduledTriggerTime.setMinutes(scheduledTriggerTime.getMinutes() - notificationTime);
+    if (scheduledTriggerTime < now && nextClassDate > now) {
+      console.log(`[NOTIF] Catch-up: Notification time passed but class ${course.name} hasn't started. Firing immediate notification.`);
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${identifier}-catchup`,
+        content,
+        trigger: null, // Fire immediately
+      });
+    }
   } else { // It's an extra class
     const existingRecord = db.getFirstSync(
       'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
@@ -258,6 +288,12 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
     if (existingRecord) {
       console.log(`[NOTIF] Attendance record for extra class ${course.name} on ${item.date} already exists. Skipping notification.`);
+      return;
+    }
+
+    // Skip notification if extra class is on a holiday
+    if (isHoliday(item.date)) {
+      console.log(`[NOTIF] Skipping notification for extra class ${course.name} on ${item.date} (holiday).`);
       return;
     }
 
@@ -315,9 +351,9 @@ export const setupNotificationChannels = async () => {
 
   // Set up notification categories for action buttons
   await Notifications.setNotificationCategoryAsync('class-actions', [
-    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: false } },
-    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: false } },
-    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground: false } },
+    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: true } },
+    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: true } },
+    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground: true } },
   ]);
 };
 

@@ -59,8 +59,10 @@ function RootLayoutShell() {
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      console.log('[NOTIF_RESPONSE] Listener fired. Response:', JSON.stringify(response, null, 2));
       const { courseId, scheduleId } = response.notification.request.content.data as { courseId: string, scheduleId: string };
       const actionIdentifier = response.actionIdentifier;
+      console.log(`[NOTIF_RESPONSE] Action: ${actionIdentifier}, Course: ${courseId}, Schedule: ${scheduleId}`);
 
       if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
         // Call the utility function to handle the attendance action
