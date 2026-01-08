@@ -21,7 +21,7 @@ This project is built with [Expo](https://expo.dev) and was bootstrapped using [
 <table>
    <tr>
       <td align="center"><img width="300" alt="Logo" src="https://github.com/user-attachments/assets/51be96f3-05de-44c2-9369-092f0f29f09b" /></td>
-      <td align="center"><img width="300" alt="Tracker" src="https://github.com/user-attachments/assets/58506815-5cef-4b07-ac4d-888992fdd546" /></td>
+      <td align="center"><img width="300" alt="Tracker" src="demo-screens/tracker.jpeg" /></td>
    </tr>
   <tr>
     <td align="center"><img src="https://github.com/user-attachments/assets/b021d556-5f72-485b-84c7-2de57feb16ae" alt="Classes" width="300" /></td>
@@ -29,7 +29,7 @@ This project is built with [Expo](https://expo.dev) and was bootstrapped using [
   </tr>
   <tr>
     <td align="center"><img src="https://github.com/user-attachments/assets/1494bc55-2b1a-45df-a579-64772bd896a6" alt="Course Info" width="300" /></td>
-    <td align="center"><img src="https://github.com/user-attachments/assets/9379aab0-4013-4632-90d1-d3ea541a16b5" alt="Settings" width="300" /></td>
+    <td align="center"><img src="demo-screens/settings.jpeg" alt="Settings" width="300" /></td>
   </tr>
    <tr>
       <td align="center"><img width="300" alt="Heatmap" src="https://github.com/user-attachments/assets/308331f7-1773-4d14-97c2-5b46b7f7f5bf" /></td>
