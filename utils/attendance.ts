@@ -258,23 +258,14 @@ export const createMissingAttendanceRecords = (): boolean => {
   for (const course of courses) {
     console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
 
-    // determine lastRecordDate for this course
-    let lastRecordDate = new Date(0);
-    const lastRecord = db.getFirstSync<any>(
-      'SELECT * FROM attendance_records WHERE course_id = ? ORDER BY class_date DESC, time_end DESC LIMIT 1',
-      course.id
-    );
-
-    if (lastRecord && lastRecord.class_date) {
-      const [y, m, d] = lastRecord.class_date.split('-').map(Number);
-      const [hh, mm] = (lastRecord.time_end || '00:00').split(':').map(Number);
-      lastRecordDate = new Date(y, m - 1, d, hh || 0, mm || 0);
-    } else if (course.createdAt) {
+    // Always start from course creation date to fill ALL gaps since the course was created.
+    // The existingRecordIds set prevents duplicate records from being created.
+    let lastRecordDate: Date;
+    if (course.createdAt) {
       lastRecordDate = new Date(course.createdAt);
     } else {
-      // fallback: start a year back if nothing available
+      // fallback: start from today
       lastRecordDate = new Date();
-      lastRecordDate.setFullYear(lastRecordDate.getFullYear() - 1);
     }
 
     console.log(`[ATTEND] Last record date for ${course.name}: ${lastRecordDate.toISOString()}`);

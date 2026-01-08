@@ -260,19 +260,37 @@ export const AppProvider = ({ children }: AppProviderProps) => {
 
   const updateCourse = (updatedCourse: Course) => {
     console.log(`[AppContext] Updating course: ${updatedCourse.name} (${updatedCourse.id})`);
-    db.updateCourse(updatedCourse); // Update the database first
+    // Check if weekly schedule has changed (dates/times)
+    // If so, update createdAt to NOW so we don't retroactively mark attendance
+    // for the new schedule in the distant past. We use JSON.stringify for deep comparison.
+    const oldSchedule = courses.find(c => c.id === updatedCourse.id)?.weeklySchedule || [];
+    const newSchedule = updatedCourse.weeklySchedule || [];
+
+    // Simple deep compare using JSON stringify (sufficient for this data structure)
+    // Sorting potentially needed if order doesn't matter, but usually order is preserved or irrelevant for "change detection" purposes here if strict.
+    // Let's rely on simple stringify for now.
+    const scheduleChanged = JSON.stringify(oldSchedule) !== JSON.stringify(newSchedule);
+
+    let finalCourse = { ...updatedCourse };
+
+    if (scheduleChanged) {
+      console.log(`[AppContext] Schedule changed for ${updatedCourse.name}. Updating createdAt to now.`);
+      finalCourse.createdAt = formatDateToISO(new Date());
+    }
+
+    db.updateCourse(finalCourse); // Update the database first
 
     // Recalculate attendance percentage based on the updated presents/absents from the form
-    const totalClasses = updatedCourse.presents + updatedCourse.absents;
-    const newAttendancePercentage = totalClasses > 0 ? Math.round((updatedCourse.presents / totalClasses) * 100) : 100;
+    const totalClasses = finalCourse.presents + finalCourse.absents;
+    const newAttendancePercentage = totalClasses > 0 ? Math.round((finalCourse.presents / totalClasses) * 100) : 100;
 
     const courseWithCalculatedPercentage = {
-      ...updatedCourse,
+      ...finalCourse,
       attendancePercentage: newAttendancePercentage,
     };
 
-    setCourses(prev => prev.map(c => c.id === updatedCourse.id ? courseWithCalculatedPercentage : c));
-    console.log(`[AppContext] Course updated successfully: ${updatedCourse.name}. New attendance percentage: ${newAttendancePercentage}%`);
+    setCourses(prev => prev.map(c => c.id === finalCourse.id ? courseWithCalculatedPercentage : c));
+    console.log(`[AppContext] Course updated successfully: ${finalCourse.name}. New attendance percentage: ${newAttendancePercentage}%`);
   };
 
   const deleteCourse = async (courseId: string) => {
