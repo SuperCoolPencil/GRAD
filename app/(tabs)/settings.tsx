@@ -28,7 +28,7 @@ import SettingsToggle from '@/components/SettingsToggle';
 import { CustomPicker } from '@/components/CustomPicker';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTime, updateNotificationTime, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, holidayBehavior, toggleHolidayBehavior, save, loadData, settings, updateSetting } = useContext(AppContext);
+  const { courses, clearData, notificationTiming, updateNotificationTiming, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, holidayBehavior, toggleHolidayBehavior, save, loadData, settings, updateSetting } = useContext(AppContext);
   const [isModalVisible, setModalVisible] = useState(false);
   const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
   const [latestVersion, setLatestVersion] = useState('');
@@ -162,7 +162,7 @@ export default function SettingsScreen() {
       await cancelAllNotifications();
       for (const course of courses) {
         if (!course.isArchived) {
-          await scheduleCourseNotifications(course, notificationTime);
+          await scheduleCourseNotifications(course, notificationTiming);
         }
       }
     } else {
@@ -261,7 +261,7 @@ export default function SettingsScreen() {
           {notificationsEnabled && (
             <SettingsButton
               onPress={() => setModalVisible(true)}
-              title={`Notify ${notificationTime} minutes before class`}
+              title={`Notify ${notificationTiming.value} mins ${notificationTiming.anchor === 'before_start' ? 'before start' : notificationTiming.anchor === 'after_start' ? 'after start' : 'after end'}`}
               iconName="time-outline"
               backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
               textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
@@ -364,11 +364,11 @@ export default function SettingsScreen() {
         <NotificationTimeModal
           isVisible={isModalVisible}
           onClose={() => setModalVisible(false)}
-          onSave={(time) => {
-            updateNotificationTime(time);
+          onSave={(timing) => {
+            updateNotificationTiming(timing);
             setModalVisible(false);
           }}
-          initialTime={notificationTime}
+          initialTiming={notificationTiming}
         />
       </ScrollView>
     </ThemedView>

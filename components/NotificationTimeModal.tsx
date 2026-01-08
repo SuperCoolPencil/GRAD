@@ -1,38 +1,49 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { NotificationTiming, NotificationAnchor } from '@/types';
 
 interface NotificationTimeModalProps {
   isVisible: boolean;
   onClose: () => void;
-  onSave: (time: number) => void;
-  initialTime: number;
+  onSave: (timing: NotificationTiming) => void;
+  initialTiming: NotificationTiming;
 }
+
+const ANCHOR_OPTIONS: { label: string; value: NotificationAnchor }[] = [
+  { label: 'Before Start', value: 'before_start' },
+  { label: 'After Start', value: 'after_start' },
+  { label: 'After End', value: 'after_end' },
+];
 
 const NotificationTimeModal: React.FC<NotificationTimeModalProps> = ({
   isVisible,
   onClose,
   onSave,
-  initialTime,
+  initialTiming,
 }) => {
-  const [inputValue, setInputValue] = useState(String(initialTime));
+  const [inputValue, setInputValue] = useState(String(initialTiming.value));
+  const [anchor, setAnchor] = useState<NotificationAnchor>(initialTiming.anchor);
   const colorScheme = useColorScheme() ?? 'light';
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'alertPrimary');
   const tintColor = useThemeColor({}, 'tint');
 
+  useEffect(() => {
+    setInputValue(String(initialTiming.value));
+    setAnchor(initialTiming.anchor);
+  }, [initialTiming]);
+
   const handleSave = () => {
     const newValue = parseInt(inputValue, 10);
     if (!isNaN(newValue) && newValue >= 0) {
-      onSave(newValue);
+      onSave({ value: newValue, anchor });
       onClose();
-    } else {
-      // You might want to show an alert here
     }
   };
 
@@ -48,21 +59,49 @@ const NotificationTimeModal: React.FC<NotificationTimeModalProps> = ({
           <ThemedText type="subtitle" style={styles.modalTitle}>
             Set Notification Time
           </ThemedText>
-          <TextInput
-            style={[
-              styles.modalTextInput,
-              {
-                color: textColor,
-                borderColor: borderColor,
-                backgroundColor: Colors[colorScheme].inputBackground,
-              },
-            ]}
-            keyboardType="number-pad"
-            value={inputValue}
-            onChangeText={setInputValue}
-            placeholder="Enter new time"
-            placeholderTextColor={textColor}
-          />
+
+          {/* Anchor Selector */}
+          <View style={styles.anchorContainer}>
+            {ANCHOR_OPTIONS.map((option) => (
+              <Pressable
+                key={option.value}
+                style={[
+                  styles.anchorButton,
+                  anchor === option.value && { backgroundColor: tintColor, borderColor: tintColor },
+                  { borderColor: tintColor },
+                ]}
+                onPress={() => setAnchor(option.value)}
+              >
+                <ThemedText style={[
+                  styles.anchorButtonText,
+                  anchor === option.value && { color: '#fff' }
+                ]}>
+                  {option.label}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Time Input */}
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[
+                styles.modalTextInput,
+                {
+                  color: textColor,
+                  borderColor: borderColor,
+                  backgroundColor: Colors[colorScheme].inputBackground,
+                },
+              ]}
+              keyboardType="number-pad"
+              value={inputValue}
+              onChangeText={setInputValue}
+              placeholder="Minutes"
+              placeholderTextColor={textColor}
+            />
+            <ThemedText style={styles.minutesLabel}>minutes</ThemedText>
+          </View>
+
           <View style={styles.buttonRow}>
             <Pressable
               style={({ pressed }) => [
@@ -127,13 +166,38 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  anchorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  anchorButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  anchorButtonText: {
+    fontSize: 14,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
   modalTextInput: {
     height: 45,
     borderWidth: 1,
     paddingHorizontal: 15,
     borderRadius: 8,
-    width: '80%',
-    marginBottom: 0,
+    width: 80,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  minutesLabel: {
+    marginLeft: 10,
     fontSize: 16,
   },
   buttonRow: {

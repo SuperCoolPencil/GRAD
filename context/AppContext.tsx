@@ -1,11 +1,13 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import { format } from 'date-fns-tz';
 import { CustomAlert } from "../components/CustomAlert";
-import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday } from "../types";
+import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming } from "../types";
 import { formatDateToISO, parseISOToDate, addDaysToDate } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
 import { calculateAttendancePercentage, createMissingAttendanceRecords } from "@/utils/attendance";
+
+const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = { value: 10, anchor: 'before_start' };
 
 const isValidCourseId = (courseId: string) => {
   const regex = /^[a-zA-Z0-9]*$/;
@@ -19,7 +21,7 @@ interface AppContextType {
   courses: Course[];
   loading: boolean;
   theme: string;
-  notificationTime: number;
+  notificationTiming: NotificationTiming;
   notificationsEnabled: boolean;
   is24Hour: boolean;
   updateNotificationsEnabled: boolean; // New: Update notifications enabled
@@ -29,7 +31,7 @@ interface AppContextType {
   refreshKey: number; // Add refreshKey to context type
   updateSetting: (key: string, value: any) => void;
   toggle24Hour: () => void;
-  updateNotificationTime: (time: number) => void;
+  updateNotificationTiming: (timing: NotificationTiming) => void;
   toggleTheme: () => void;
   toggleNotifications: () => void;
   toggleUpdateNotifications: () => void; // New: Toggle update notifications
@@ -70,7 +72,7 @@ export const AppContext = createContext<AppContextType>({
   courses: [],
   loading: true,
   theme: "light",
-  notificationTime: 10,
+  notificationTiming: DEFAULT_NOTIFICATION_TIMING,
   notificationsEnabled: false,
   is24Hour: false,
   updateNotificationsEnabled: false, // New: Update notifications enabled
@@ -80,7 +82,7 @@ export const AppContext = createContext<AppContextType>({
   refreshKey: 0, // Initialize refreshKey
   updateSetting: () => { },
   toggle24Hour: () => { },
-  updateNotificationTime: () => { },
+  updateNotificationTiming: () => { },
   toggleTheme: () => { },
   toggleNotifications: () => { },
   toggleUpdateNotifications: () => { }, // New: Toggle update notifications
@@ -117,7 +119,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [theme, setTheme] = useState<string>("light");
-  const [notificationTime, setNotificationTime] = useState(10);
+  const [notificationTiming, setNotificationTiming] = useState<NotificationTiming>(DEFAULT_NOTIFICATION_TIMING);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [is24Hour, setIs24Hour] = useState(false);
   const [updateNotificationsEnabled, setUpdateNotificationsEnabled] = useState(false); // New state
@@ -144,7 +146,22 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       console.log('[AppContext] Loaded settings:', loadedSettings);
       setSettings(loadedSettings);
       setTheme(loadedSettings.theme || 'light');
-      setNotificationTime(parseInt(loadedSettings.notificationTime || '10', 10));
+      // Handle backward compatibility: old settings store just a number, new settings store JSON
+      const rawNotifTime = loadedSettings.notificationTiming || loadedSettings.notificationTime;
+      if (rawNotifTime) {
+        try {
+          const parsed = JSON.parse(rawNotifTime);
+          if (typeof parsed === 'object' && 'value' in parsed && 'anchor' in parsed) {
+            setNotificationTiming(parsed);
+          } else {
+            // Fallback for plain number stored as string
+            setNotificationTiming({ value: parseInt(rawNotifTime, 10) || 10, anchor: 'before_start' });
+          }
+        } catch {
+          // If JSON parse fails, it's a plain number
+          setNotificationTiming({ value: parseInt(rawNotifTime, 10) || 10, anchor: 'before_start' });
+        }
+      }
       setNotificationsEnabled(loadedSettings.notificationsEnabled === 'true');
       setIs24Hour(loadedSettings.is24Hour === 'true');
       setUpdateNotificationsEnabled(loadedSettings.updateNotificationsEnabled === 'true'); // Load new setting
@@ -214,10 +231,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.updateSetting('updateNotificationsEnabled', newUpdateNotificationsEnabled.toString());
   };
 
-  const updateNotificationTime = (time: number) => {
-    console.log(`[AppContext] Updating notification time to: ${time}`);
-    setNotificationTime(time);
-    db.updateSetting('notificationTime', time.toString());
+  const updateNotificationTiming = (timing: NotificationTiming) => {
+    console.log(`[AppContext] Updating notification timing to:`, timing);
+    setNotificationTiming(timing);
+    db.updateSetting('notificationTiming', JSON.stringify(timing));
   };
 
   const updateWeekStartsOn = (dayIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6) => {
@@ -351,7 +368,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.clearAllData();
     setCourses([]);
     setTheme('light');
-    setNotificationTime(10);
+    setNotificationTiming(DEFAULT_NOTIFICATION_TIMING);
     setNotificationsEnabled(false);
     setIs24Hour(false);
     console.log('[AppContext] All data cleared.');
@@ -382,7 +399,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Unarchiving course: ${courseId}`);
     const course = courses.find(c => c.id === courseId);
     if (course) {
-      await scheduleCourseNotifications(course, notificationTime);
+      await scheduleCourseNotifications(course, notificationTiming);
       db.unarchiveCourse(courseId);
       setCourses(prev => prev.map(c => c.id === courseId ? { ...c, isArchived: false, archivedAt: undefined } : c));
       console.log(`[AppContext] Course unarchived: ${courseId}`);
@@ -477,7 +494,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const save = async () => {
     console.log('[AppContext] Saving all settings and course data...');
     db.updateSetting('theme', theme);
-    db.updateSetting('notificationTime', notificationTime.toString());
+    db.updateSetting('notificationTiming', JSON.stringify(notificationTiming));
     db.updateSetting('notificationsEnabled', notificationsEnabled.toString());
     db.updateSetting('is24Hour', is24Hour.toString());
     db.updateSetting('updateNotificationsEnabled', updateNotificationsEnabled.toString()); // Save new setting
@@ -497,14 +514,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         await cancelAllNotifications();
         for (const course of courses) {
           if (!course.isArchived) {
-            await scheduleCourseNotifications(course, notificationTime);
+            await scheduleCourseNotifications(course, notificationTiming);
           }
         }
         console.log('[AppContext] All notifications rescheduled.');
       };
       rescheduleAllNotifications();
     }
-  }, [courses, loading, notificationTime]);
+  }, [courses, loading, notificationTiming]);
 
   const getCoursesWithRecordsInRange = async (startDate: string, endDate: string): Promise<Course[]> => {
     console.log(`[AppContext] Getting courses with records in range: ${startDate} to ${endDate}`);
@@ -548,7 +565,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         courses,
         loading,
         theme,
-        notificationTime,
+        notificationTiming,
         notificationsEnabled,
         is24Hour,
         updateNotificationsEnabled,
@@ -558,7 +575,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         refreshKey,
         updateSetting,
         toggle24Hour,
-        updateNotificationTime,
+        updateNotificationTiming,
         toggleTheme,
         toggleNotifications,
         toggleUpdateNotifications,

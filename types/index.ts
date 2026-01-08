@@ -79,3 +79,10 @@ export interface Settings {
   defaultAttendanceStatus: 'present' | 'absent' | 'cancelled';
   holidayBehavior: 'skip' | 'cancel';
 }
+
+export type NotificationAnchor = 'before_start' | 'after_start' | 'after_end';
+
+export interface NotificationTiming {
+  value: number;
+  anchor: NotificationAnchor;
+}

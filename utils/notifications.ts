@@ -1,12 +1,12 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming } from '@/types';
 import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
 import { calculateAttendancePercentage } from './attendance'
 
 // Function to schedule notifications for a single course
-export const scheduleCourseNotifications = async (course: Course, notificationTime: number) => {
+export const scheduleCourseNotifications = async (course: Course, timing: NotificationTiming) => {
   console.log(`[NOTIF] Scheduling notifications for course: ${course.name}`);
   // First, cancel any existing notifications for this course to avoid duplicates
   await cancelCourseNotifications(course.id);
@@ -15,13 +15,13 @@ export const scheduleCourseNotifications = async (course: Course, notificationTi
 
   if (weeklySchedule) {
     for (const item of weeklySchedule) {
-      await scheduleNotification(course, item, notificationTime);
+      await scheduleNotification(course, item, timing);
     }
   }
 
   if (extraClasses) {
     for (const item of extraClasses) {
-      await scheduleNotification(course, item, notificationTime);
+      await scheduleNotification(course, item, timing);
     }
   }
 };
@@ -206,7 +206,7 @@ const getNextClassDate = (item: ScheduleItem, now: Date): Date => {
   return nextClass;
 };
 
-const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraClass, notificationTime: number) => {
+const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraClass, timing: NotificationTiming) => {
   const identifier = `${course.id}-${item.id}`;
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   if (existing.some(n => n.identifier === identifier)) {
@@ -214,7 +214,7 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     return;
   }
 
-  console.log(`[NOTIF] Scheduling notification for course: ${course.name}, item: ${item.id}`);
+  console.log(`[NOTIF] Scheduling notification for course: ${course.name}, item: ${item.id}, timing: ${timing.value} mins ${timing.anchor}`);
   const content = getNotificationContent(course, item);
   const now = new Date();
   let trigger: Notifications.NotificationTriggerInput;
@@ -229,36 +229,45 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     return !!result;
   };
 
+  // Helper to calculate trigger time based on anchor
+  const calculateTriggerTime = (classStart: Date, classEnd: Date): Date => {
+    const triggerDate = new Date();
+    switch (timing.anchor) {
+      case 'before_start':
+        triggerDate.setTime(classStart.getTime() - timing.value * 60 * 1000);
+        break;
+      case 'after_start':
+        triggerDate.setTime(classStart.getTime() + timing.value * 60 * 1000);
+        break;
+      case 'after_end':
+        triggerDate.setTime(classEnd.getTime() + timing.value * 60 * 1000);
+        break;
+    }
+    return triggerDate;
+  };
+
   if ('day' in item) { // It's a weekly schedule item
-    const nextClassDate = getNextClassDate(item, now);
-    const nextClassDateStr = nextClassDate.toISOString().split('T')[0];
+    const nextClassStart = getNextClassDate(item, now);
+    const nextClassDateStr = nextClassStart.toISOString().split('T')[0];
 
     // Skip notification if next class is on a holiday
     if (isHoliday(nextClassDateStr)) {
       console.log(`[NOTIF] Skipping notification for ${course.name} on ${nextClassDateStr} (holiday).`);
       return;
     }
-    // Note: We intentionally do NOT check for existing attendance records here.
-    // Weekly notifications are recurring and should always be scheduled.
-    // The notification handler can suppress the banner if attendance is already marked.
 
-    // Adjust hour and minute directly for the trigger
-    let triggerHour = nextClassDate.getHours();
-    let triggerMinute = nextClassDate.getMinutes() - notificationTime;
-    let triggerWeekday = nextClassDate.getDay() + 1; // expo uses 1-7 (Sun=1)
+    // Calculate class end time
+    const [endHour, endMinute] = item.timeEnd.split(':').map(Number);
+    const nextClassEnd = new Date(nextClassStart);
+    nextClassEnd.setHours(endHour, endMinute, 0, 0);
 
-    if (triggerMinute < 0) {
-      triggerMinute += 60;
-      triggerHour -= 1;
-    }
-    if (triggerHour < 0) {
-      triggerHour += 24;
-      // Wrap weekday to previous day
-      triggerWeekday -= 1;
-      if (triggerWeekday < 1) {
-        triggerWeekday = 7; // Wrap Sunday (1) to Saturday (7)
-      }
-    }
+    const triggerTime = calculateTriggerTime(nextClassStart, nextClassEnd);
+
+    // For weekly recurring, we use WEEKLY trigger type
+    // We need to convert triggerTime to weekday/hour/minute
+    let triggerWeekday = triggerTime.getDay() + 1; // expo uses 1-7 (Sun=1)
+    let triggerHour = triggerTime.getHours();
+    let triggerMinute = triggerTime.getMinutes();
 
     trigger = {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
@@ -268,12 +277,11 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       channelId: 'default',
     };
 
-    // Catch-up logic: If the notification time for this week has passed but the class hasn't started,
-    // fire an immediate one-off notification so the user doesn't miss it.
-    const scheduledTriggerTime = new Date(nextClassDate);
-    scheduledTriggerTime.setMinutes(scheduledTriggerTime.getMinutes() - notificationTime);
-    if (scheduledTriggerTime < now && nextClassDate > now) {
-      console.log(`[NOTIF] Catch-up: Notification time passed but class ${course.name} hasn't started. Firing immediate notification.`);
+    // Catch-up logic: If the trigger time for this week has passed but it's still relevant (class hasn't ended),
+    // fire an immediate one-off notification.
+    const classEndWithBuffer = new Date(nextClassEnd.getTime() + timing.value * 60 * 1000);
+    if (triggerTime < now && classEndWithBuffer > now) {
+      console.log(`[NOTIF] Catch-up: Notification time passed but class ${course.name} is still relevant. Firing immediate notification.`);
       await Notifications.scheduleNotificationAsync({
         identifier: `${identifier}-catchup`,
         content,
@@ -298,18 +306,20 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     }
 
     const [year, month, day] = item.date.split('-').map(Number);
-    const [hour, minute] = item.timeStart.split(':').map(Number);
-    const classStartTime = new Date(year, month - 1, day, hour, minute);
-    const triggerDate = new Date(classStartTime);
-    triggerDate.setMinutes(triggerDate.getMinutes() - notificationTime);
+    const [startHour, startMinute] = item.timeStart.split(':').map(Number);
+    const [endHour, endMinute] = item.timeEnd.split(':').map(Number);
+    const classStartTime = new Date(year, month - 1, day, startHour, startMinute);
+    const classEndTime = new Date(year, month - 1, day, endHour, endMinute);
+    const triggerDate = calculateTriggerTime(classStartTime, classEndTime);
 
-    // If the class itself is in the past, don't schedule
-    if (classStartTime < now) {
-      console.log(`[NOTIF] Extra class ${course.name} on ${item.date} has already passed. Skipping notification.`);
+    // If the class itself has passed (end time + buffer), don't schedule
+    const classEndWithBuffer = new Date(classEndTime.getTime() + timing.value * 60 * 1000);
+    if (classEndWithBuffer < now) {
+      console.log(`[NOTIF] Extra class ${course.name} on ${item.date} is no longer relevant. Skipping notification.`);
       return;
     }
 
-    // If trigger time is in the past but class hasn't started, fire immediately
+    // If trigger time is in the past but class is still relevant, fire immediately
     if (triggerDate < now) {
       console.log(`[NOTIF] Trigger time for extra class ${course.name} is in the past, scheduling immediate notification.`);
       trigger = null; // Fire immediately
