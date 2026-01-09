@@ -1,0 +1,224 @@
+import * as Notifications from 'expo-notifications';
+import { Course, ScheduleItem, ExtraClass, NotificationTiming } from '../../types';
+
+// Mock expo-notifications
+jest.mock('expo-notifications', () => ({
+    getAllScheduledNotificationsAsync: jest.fn(),
+    scheduleNotificationAsync: jest.fn(),
+    cancelScheduledNotificationAsync: jest.fn(),
+    cancelAllScheduledNotificationsAsync: jest.fn(),
+    setNotificationCategoryAsync: jest.fn(),
+    setNotificationChannelAsync: jest.fn(),
+    requestPermissionsAsync: jest.fn(),
+    SchedulableTriggerInputTypes: {
+        WEEKLY: 'weekly',
+        DATE: 'date',
+        TIME_INTERVAL: 'timeInterval',
+    },
+    AndroidImportance: {
+        HIGH: 4,
+    },
+}));
+
+// Mock database
+jest.mock('../database', () => ({
+    db: {
+        getFirstSync: jest.fn(),
+    },
+    getCourseById: jest.fn(),
+    getAttendanceRecords: jest.fn(),
+    updateAttendanceRecord: jest.fn(),
+    addAttendanceRecord: jest.fn(),
+}));
+
+// Mock attendance
+jest.mock('../attendance', () => ({
+    calculateAttendancePercentage: jest.fn().mockReturnValue(75),
+}));
+
+import {
+    scheduleCourseNotifications,
+    cancelCourseNotifications,
+    setupNotificationChannels,
+} from '../notifications';
+import * as db from '../database';
+
+const mockDb = db.db as jest.Mocked<typeof db.db>;
+const mockGetAllScheduled = Notifications.getAllScheduledNotificationsAsync as jest.MockedFunction<typeof Notifications.getAllScheduledNotificationsAsync>;
+const mockScheduleNotification = Notifications.scheduleNotificationAsync as jest.MockedFunction<typeof Notifications.scheduleNotificationAsync>;
+const mockCancelScheduled = Notifications.cancelScheduledNotificationAsync as jest.MockedFunction<typeof Notifications.cancelScheduledNotificationAsync>;
+
+describe('notifications', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetAllScheduled.mockResolvedValue([]);
+        mockScheduleNotification.mockResolvedValue('test-id');
+        (mockDb.getFirstSync as jest.Mock).mockReturnValue(null);
+    });
+
+    describe('scheduleCourseNotifications', () => {
+        const baseCourse: Course = {
+            id: 'CS101',
+            name: 'Computer Science',
+            requiredAttendance: 75,
+            presents: 10,
+            absents: 2,
+            cancelled: 0,
+            weeklySchedule: [
+                { id: 'sched1', day: 'Monday', timeStart: '09:00', timeEnd: '10:00' },
+            ],
+            extraClasses: [],
+        };
+
+        it('should schedule notifications for weekly classes with before_start anchor', async () => {
+            const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
+
+            await scheduleCourseNotifications(baseCourse, timing);
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+            const call = mockScheduleNotification.mock.calls[0][0];
+            expect(call.identifier).toBe('CS101-sched1');
+            expect(call.trigger).toMatchObject({
+                type: 'weekly',
+            });
+        });
+
+        it('should schedule notifications for weekly classes with after_start anchor', async () => {
+            const timing: NotificationTiming = { value: 10, anchor: 'after_start' };
+
+            await scheduleCourseNotifications(baseCourse, timing);
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+            const call = mockScheduleNotification.mock.calls[0][0];
+            expect(call.identifier).toBe('CS101-sched1');
+        });
+
+        it('should schedule notifications for weekly classes with after_end anchor', async () => {
+            const timing: NotificationTiming = { value: 5, anchor: 'after_end' };
+
+            await scheduleCourseNotifications(baseCourse, timing);
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+            const call = mockScheduleNotification.mock.calls[0][0];
+            expect(call.identifier).toBe('CS101-sched1');
+        });
+
+        it('should skip notification if class is on a holiday', async () => {
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => {
+                if (query.includes('holidays')) {
+                    return { id: 'holiday1' }; // Holiday exists
+                }
+                return null;
+            });
+
+            const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
+            await scheduleCourseNotifications(baseCourse, timing);
+
+            // Should cancel existing but not schedule new
+            expect(mockCancelScheduled).not.toHaveBeenCalled(); // No existing to cancel
+            // Since holiday, no new notification should be scheduled
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+
+        it('should not schedule duplicate notifications', async () => {
+            mockGetAllScheduled.mockResolvedValue([
+                { identifier: 'CS101-sched1' } as any,
+            ]);
+
+            const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
+            await scheduleCourseNotifications(baseCourse, timing);
+
+            // Should not schedule since it already exists
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('scheduleCourseNotifications with extra classes', () => {
+        it('should schedule notifications for extra classes', async () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            const course: Course = {
+                id: 'CS101',
+                name: 'Computer Science',
+                requiredAttendance: 75,
+                presents: 10,
+                absents: 2,
+                cancelled: 0,
+                weeklySchedule: [],
+                extraClasses: [
+                    { id: 'extra1', date: tomorrowStr, timeStart: '14:00', timeEnd: '15:00' },
+                ],
+            };
+
+            const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
+            await scheduleCourseNotifications(course, timing);
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+            const call = mockScheduleNotification.mock.calls[0][0];
+            expect(call.identifier).toBe('CS101-extra1');
+        });
+
+        it('should skip extra class notification if attendance already recorded', async () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => {
+                if (query.includes('attendance_records')) {
+                    return { id: 'record1' }; // Attendance exists
+                }
+                return null;
+            });
+
+            const course: Course = {
+                id: 'CS101',
+                name: 'Computer Science',
+                requiredAttendance: 75,
+                presents: 10,
+                absents: 2,
+                cancelled: 0,
+                weeklySchedule: [],
+                extraClasses: [
+                    { id: 'extra1', date: tomorrowStr, timeStart: '14:00', timeEnd: '15:00' },
+                ],
+            };
+
+            const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
+            await scheduleCourseNotifications(course, timing);
+
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('cancelCourseNotifications', () => {
+        it('should cancel all notifications for a course', async () => {
+            mockGetAllScheduled.mockResolvedValue([
+                { identifier: 'CS101-sched1' } as any,
+                { identifier: 'CS101-sched2' } as any,
+                { identifier: 'OTHER-sched1' } as any,
+            ]);
+
+            await cancelCourseNotifications('CS101');
+
+            expect(mockCancelScheduled).toHaveBeenCalledTimes(2);
+            expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched1');
+            expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched2');
+        });
+    });
+
+    describe('setupNotificationChannels', () => {
+        it('should set up notification categories', async () => {
+            const mockSetCategory = Notifications.setNotificationCategoryAsync as jest.MockedFunction<typeof Notifications.setNotificationCategoryAsync>;
+
+            await setupNotificationChannels();
+
+            expect(mockSetCategory).toHaveBeenCalledWith('class-actions', expect.arrayContaining([
+                expect.objectContaining({ identifier: 'present' }),
+                expect.objectContaining({ identifier: 'absent' }),
+                expect.objectContaining({ identifier: 'cancelled' }),
+            ]));
+        });
+    });
+});
