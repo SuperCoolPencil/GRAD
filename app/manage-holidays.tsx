@@ -11,7 +11,8 @@ import { Colors } from '../constants/Colors';
 import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '../context/AlertContext';
-import { getSetting } from '../utils/database'; // Import getSetting
+import { getSetting } from '../utils/database';
+import { calculateTargetDate } from '../utils/attendance';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -168,6 +169,44 @@ const ManageHolidaysScreen: React.FC = () => {
   const upcomingSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) >= new Date());
   const pastSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) < new Date());
 
+  // Calculate maximum target date across all non-archived courses
+  const maxTargetDateInfo = useMemo(() => {
+    const activeCourses = courses.filter(c => !c.isArchived);
+    if (activeCourses.length === 0) return null;
+
+    let maxDate: Date | null = null;
+    let maxClassesNeeded = 0;
+    let courseName = '';
+
+    for (const course of activeCourses) {
+      const result = calculateTargetDate(course, holidays, skipDays);
+      if (result.targetDate) {
+        if (!maxDate || result.targetDate > maxDate) {
+          maxDate = result.targetDate;
+          maxClassesNeeded = result.classesNeeded;
+          courseName = course.name;
+        }
+      } else if (result.classesNeeded > 0 && result.classesNeeded > maxClassesNeeded) {
+        // Track worst case even if no target date found
+        maxClassesNeeded = result.classesNeeded;
+        courseName = course.name;
+      }
+    }
+
+    if (!maxDate && maxClassesNeeded === 0) {
+      return { message: 'All courses meeting target!', date: null, courseName: '' };
+    }
+
+    return {
+      date: maxDate,
+      classesNeeded: maxClassesNeeded,
+      courseName,
+      message: maxDate
+        ? `Latest target: ${maxDate.toLocaleDateString()} (${courseName})`
+        : `${courseName} needs ${maxClassesNeeded} classes`
+    };
+  }, [courses, holidays, skipDays]);
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -284,6 +323,30 @@ const ManageHolidaysScreen: React.FC = () => {
             <ThemedText style={[styles.label, { marginBottom: 12, opacity: 0.7 }]}>
               Mark specific days you plan to be absent. These will be considered when calculating your target attendance date.
             </ThemedText>
+
+            {/* Maximum Target Date Indicator */}
+            {maxTargetDateInfo && (
+              <View style={[styles.holidayItem, { marginBottom: 16, borderLeftWidth: 4, borderLeftColor: maxTargetDateInfo.date ? Colors[colorScheme].success : Colors[colorScheme].warning }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons
+                    name={maxTargetDateInfo.date ? "calendar" : "alert-circle"}
+                    size={20}
+                    color={maxTargetDateInfo.date ? Colors[colorScheme].success : Colors[colorScheme].warning}
+                    style={{ marginRight: 8 }}
+                  />
+                  <View>
+                    <ThemedText style={styles.holidayName}>
+                      {maxTargetDateInfo.date ? `Target by: ${maxTargetDateInfo.date.toLocaleDateString()}` : maxTargetDateInfo.message}
+                    </ThemedText>
+                    {maxTargetDateInfo.courseName && maxTargetDateInfo.date && (
+                      <ThemedText style={styles.holidayDate}>
+                        {maxTargetDateInfo.courseName} has the latest target
+                      </ThemedText>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
 
             <View style={styles.timeContainer}>
               <View style={[styles.timeSection, { flex: 2 }]}>
