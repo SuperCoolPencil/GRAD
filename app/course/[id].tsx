@@ -90,6 +90,13 @@ export default function CourseDetailScreen() {
   const [page, setPage] = useState(1);
   const recordsPerPage = 10;
 
+  // Calculate target date - must be before any early returns to follow hooks rules
+  const targetDateInfo = useMemo(() => {
+    if (!course) return null;
+    return calculateTargetDate(course, holidays, skipDays);
+  }, [course, holidays, skipDays]);
+
+
   useEffect(() => {
     if (course) {
       getPaginatedAttendanceRecords(page, recordsPerPage, [course.id]);
@@ -250,12 +257,6 @@ export default function CourseDetailScreen() {
   } else if (delta < 0) {
     attendanceNote = `Can Bunk: ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
   }
-
-  // Calculate target date
-  const targetDateInfo = useMemo(() => {
-    if (!course) return null;
-    return calculateTargetDate(course, holidays, skipDays);
-  }, [course, holidays, skipDays]);
 
   return (
     <>
