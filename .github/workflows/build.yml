@@ -7,6 +7,10 @@ on:
     tags:
       - 'v*'
 
+# 1. PERMISSIONS: Required to allow the Action to push the new commit
+permissions:
+  contents: write
+
 jobs:
   build_and_release:
     name: Build APK (and Release if Tagged)
@@ -15,6 +19,9 @@ jobs:
     steps:
       - name: 🏗 Setup Repo
         uses: actions/checkout@v4
+        with:
+          # Required for the auto-commit action to work correctly
+          ref: ${{ github.head_ref }}
 
       - name: 🏗 Setup Node
         uses: actions/setup-node@v4
@@ -36,8 +43,6 @@ jobs:
 
       # ----------------------------------------------------------------
       # BUILD STEP
-      # Changed output to .apk
-      # Ensure your eas.json profile has "buildType": "apk"
       # ----------------------------------------------------------------
       - name: 🚀 Build Android APK Locally
         env:
@@ -45,21 +50,24 @@ jobs:
         run: |
           eas build --local \
             --platform android \
-            --profile preview \
+            --profile production \
+            --non-interactive \
             --output=./grad.apk
 
       # ----------------------------------------------------------------
-      # ARTIFACT UPLOAD
+      # COMMIT & PUSH STEP
+      # This commits the APK to the root folder of the 'main' branch
       # ----------------------------------------------------------------
-      - name: 📤 Upload Build Artifact
-        uses: actions/upload-artifact@v4
+      - name: 💾 Commit and Push APK
+        # Only run this on the main branch (not tags, to avoid conflicts)
+        if: github.ref == 'refs/heads/main'
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          name: grad
-          path: ./grad.apk
-          retention-days: 14
+          commit_message: "chore: update grad.apk build [skip ci]"
+          file_pattern: 'grad.apk'
 
       # ----------------------------------------------------------------
-      # RELEASE STEP
+      # RELEASE STEP (Tags Only)
       # ----------------------------------------------------------------
       - name: 🎉 Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
