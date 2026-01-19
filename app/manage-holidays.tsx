@@ -208,7 +208,7 @@ const ManageHolidaysScreen: React.FC = () => {
       classesNeeded: maxClassesNeeded,
       courseName,
       message: maxDate
-        ? `Target by: ${maxDate.toLocaleDateString()}`
+        ? `Target by: ${maxDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
         : `${courseName} needs ${maxClassesNeeded} classes`,
       status: maxDate ? 'warning' as const : 'error' as const
     };
@@ -344,7 +344,7 @@ const ManageHolidaysScreen: React.FC = () => {
                     <ThemedText style={styles.dateLabel}>Start</ThemedText>
                     <TouchableOpacity style={styles.dateButton} onPress={() => setShowStartDatePicker(true)}>
                       <Ionicons name="calendar-outline" size={16} color={Colors[colorScheme].icon} />
-                      <ThemedText style={styles.dateButtonText}>{startDate.toLocaleDateString()}</ThemedText>
+                      <ThemedText style={styles.dateButtonText}>{startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</ThemedText>
                     </TouchableOpacity>
                     {showStartDatePicker && (
                       <DateTimePicker
@@ -370,7 +370,7 @@ const ManageHolidaysScreen: React.FC = () => {
                     <ThemedText style={styles.dateLabel}>End</ThemedText>
                     <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndDatePicker(true)}>
                       <Ionicons name="calendar-outline" size={16} color={Colors[colorScheme].icon} />
-                      <ThemedText style={styles.dateButtonText}>{endDate.toLocaleDateString()}</ThemedText>
+                      <ThemedText style={styles.dateButtonText}>{endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</ThemedText>
                     </TouchableOpacity>
                     {showEndDatePicker && (
                       <DateTimePicker
@@ -457,7 +457,7 @@ const ManageHolidaysScreen: React.FC = () => {
                     <ThemedText style={styles.dateLabel}>Date</ThemedText>
                     <TouchableOpacity style={styles.dateButton} onPress={() => setShowSkipDatePicker(true)}>
                       <Ionicons name="calendar-outline" size={16} color={Colors[colorScheme].icon} />
-                      <ThemedText style={styles.dateButtonText}>{skipDate.toLocaleDateString()}</ThemedText>
+                      <ThemedText style={styles.dateButtonText}>{skipDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</ThemedText>
                     </TouchableOpacity>
                     {showSkipDatePicker && (
                       <DateTimePicker
