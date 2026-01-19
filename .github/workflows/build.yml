@@ -55,16 +55,20 @@ jobs:
             --output=./grad.apk
 
       # ----------------------------------------------------------------
-      # COMMIT & PUSH STEP
-      # This commits the APK to the root folder of the 'main' branch
+      # FORCE ADD & COMMIT STEP
       # ----------------------------------------------------------------
+      - name: ➕ Force Add APK (Bypass .gitignore)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Force add the file because .apk is likely in your .gitignore
+          git add -f grad.apk
+
       - name: 💾 Commit and Push APK
-        # Only run this on the main branch (not tags, to avoid conflicts)
         if: github.ref == 'refs/heads/main'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update grad.apk build [skip ci]"
-          file_pattern: 'grad.apk'
+          # No file_pattern needed here because we manually staged it above
 
       # ----------------------------------------------------------------
       # RELEASE STEP (Tags Only)
