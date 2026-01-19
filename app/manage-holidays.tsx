@@ -263,7 +263,7 @@ const ManageHolidaysScreen: React.FC = () => {
       <View style={styles.listItemContent}>
         <ThemedText style={styles.listItemTitle}>{item.name}</ThemedText>
         <ThemedText style={styles.listItemSubtitle}>
-          {parseISOToDate(item.startDate).toLocaleDateString()} - {parseISOToDate(item.endDate).toLocaleDateString()}
+          {parseISOToDate(item.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {parseISOToDate(item.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </ThemedText>
       </View>
       {showDelete && (
@@ -282,7 +282,7 @@ const ManageHolidaysScreen: React.FC = () => {
       </View>
       <View style={styles.listItemContent}>
         <ThemedText style={styles.listItemTitle}>
-          {parseISOToDate(item.date).toLocaleDateString()}
+          {parseISOToDate(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </ThemedText>
         {item.reason && (
           <ThemedText style={styles.listItemSubtitle}>{item.reason}</ThemedText>

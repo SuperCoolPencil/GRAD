@@ -329,20 +329,22 @@ export default function CourseDetailScreen() {
           </View>
 
           {/* Target Date Row */}
-          {targetDateInfo && targetDateInfo.classesNeeded > 0 && (
-            <View style={styles.attendanceRow}>
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={targetDateInfo.targetDate ? Colors[colorScheme].success : Colors[colorScheme].warning}
-              />
-              <ThemedText style={styles.attendanceText}>
-                {targetDateInfo.targetDate
-                  ? `Target by: ${targetDateInfo.targetDate.toLocaleDateString()}`
-                  : targetDateInfo.message}
-              </ThemedText>
-            </View>
-          )}
+          <View style={styles.attendanceRow}>
+            <Ionicons
+              name="calendar-outline"
+              size={20}
+              color={targetDateInfo && targetDateInfo.classesNeeded > 0
+                ? (targetDateInfo.targetDate ? Colors[colorScheme].warning : Colors[colorScheme].error)
+                : Colors[colorScheme].success}
+            />
+            <ThemedText style={styles.attendanceText}>
+              Target: {targetDateInfo && targetDateInfo.classesNeeded > 0
+                ? (targetDateInfo.targetDate
+                  ? targetDateInfo.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  : targetDateInfo.message)
+                : '✓ Met'}
+            </ThemedText>
+          </View>
 
           <View style={styles.attendanceDetailRow}>
             <View style={styles.attendanceDetailItem}>
