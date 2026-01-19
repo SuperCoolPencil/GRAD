@@ -1,4 +1,4 @@
-import { Course, AttendanceRecord, ScheduleItem, Holiday } from '@/types';
+import { Course, AttendanceRecord, ScheduleItem, Holiday, SkipDay } from '@/types';
 import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts, getCourses } from './database';
 import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
 
@@ -393,4 +393,158 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
   }
 
   return heatmapData;
+};
+
+/**
+ * Calculate the projected date when attendance will reach the target percentage.
+ * 
+ * @param course - The course to calculate for
+ * @param holidays - Array of holidays to skip
+ * @param skipDays - Array of skip days to exclude
+ * @returns Object with targetDate, classesNeeded, and message
+ */
+export const calculateTargetDate = (
+  course: Course,
+  holidays: Holiday[],
+  skipDays: SkipDay[]
+): { targetDate: Date | null; classesNeeded: number; message: string } => {
+  const presents = course.presents || 0;
+  const absents = course.absents || 0;
+  const requiredAttendance = course.requiredAttendance || 75;
+  const totalClasses = presents + absents;
+
+  // Calculate current percentage
+  const currentPercentage = totalClasses > 0 ? (presents / totalClasses) * 100 : 100;
+
+  // If already meeting target
+  if (currentPercentage >= requiredAttendance) {
+    return {
+      targetDate: null,
+      classesNeeded: 0,
+      message: 'Already meeting target'
+    };
+  }
+
+  // Calculate classes needed to reach target
+  // Formula: (presents + x) / (total + x) >= target/100
+  // Solving for x: x >= (target * total - 100 * presents) / (100 - target)
+  const requiredFraction = requiredAttendance / 100;
+  const classesNeeded = Math.ceil(
+    (requiredFraction * totalClasses - presents) / (1 - requiredFraction)
+  );
+
+  if (classesNeeded <= 0) {
+    return {
+      targetDate: null,
+      classesNeeded: 0,
+      message: 'Already meeting target'
+    };
+  }
+
+  // Check if course has any weekly schedule or extra classes
+  const hasWeeklySchedule = course.weeklySchedule && course.weeklySchedule.length > 0;
+  const hasExtraClasses = course.extraClasses && course.extraClasses.length > 0;
+
+  if (!hasWeeklySchedule && !hasExtraClasses) {
+    return {
+      targetDate: null,
+      classesNeeded,
+      message: `Need ${classesNeeded} more classes but no schedule set`
+    };
+  }
+
+  // Build a set of scheduled days (lowercase) for weekly schedule
+  const scheduledDays = new Set<string>();
+  if (hasWeeklySchedule) {
+    course.weeklySchedule!.forEach(s => scheduledDays.add(s.day.toLowerCase()));
+  }
+
+  // Build a map of extra class dates to count (date -> number of classes on that date)
+  const extraClassDates = new Map<string, number>();
+  if (hasExtraClasses) {
+    const todayISO = formatDateToISO(new Date());
+    for (const ec of course.extraClasses!) {
+      // Only count future extra classes
+      if (ec.date >= todayISO) {
+        extraClassDates.set(ec.date, (extraClassDates.get(ec.date) || 0) + 1);
+      }
+    }
+  }
+
+  // Build a set of all holiday dates
+  const holidaySet = new Set<string>();
+  for (const h of holidays) {
+    let current = new Date(h.startDate);
+    const end = new Date(h.endDate);
+    while (current <= end) {
+      holidaySet.add(formatDateToISO(current));
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  // Build a set of skip days (only those applicable to this course or all courses)
+  const skipDaySet = new Set<string>();
+  for (const s of skipDays) {
+    // If courseId is undefined/null, it applies to all courses
+    // If courseId matches this course, it applies
+    if (!s.courseId || s.courseId === course.id) {
+      skipDaySet.add(s.date);
+    }
+  }
+
+  // Day name helper
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  // Iterate through future dates, counting classes until we reach the target
+  const today = new Date();
+  let currentDate = new Date(today);
+  currentDate.setHours(0, 0, 0, 0);
+
+  // Start from tomorrow
+  currentDate.setDate(currentDate.getDate() + 1);
+
+  let classesFound = 0;
+  const maxDaysToSearch = 365; // Limit search to 1 year
+
+  for (let i = 0; i < maxDaysToSearch && classesFound < classesNeeded; i++) {
+    const dateString = formatDateToISO(currentDate);
+    const dayOfWeek = dayNames[currentDate.getDay()];
+
+    // Skip if it's a holiday or skip day
+    if (!holidaySet.has(dateString) && !skipDaySet.has(dateString)) {
+      let classesOnThisDay = 0;
+
+      // Count weekly scheduled classes for this day
+      if (scheduledDays.has(dayOfWeek)) {
+        classesOnThisDay += course.weeklySchedule?.filter(
+          s => s.day.toLowerCase() === dayOfWeek
+        ).length || 0;
+      }
+
+      // Count extra classes on this date
+      if (extraClassDates.has(dateString)) {
+        classesOnThisDay += extraClassDates.get(dateString) || 0;
+      }
+
+      classesFound += classesOnThisDay;
+    }
+
+    // If we've found enough classes, this is our target date
+    if (classesFound >= classesNeeded) {
+      return {
+        targetDate: new Date(currentDate),
+        classesNeeded,
+        message: `Attend ${classesNeeded} more class${classesNeeded === 1 ? '' : 'es'}`
+      };
+    }
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // If we couldn't find enough classes within the limit
+  return {
+    targetDate: null,
+    classesNeeded,
+    message: `Need ${classesNeeded} classes, but not enough scheduled`
+  };
 };

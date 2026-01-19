@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord, Holiday } from '../types';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord, Holiday, SkipDay } from '../types';
 import { formatDateToISO } from './dateHelpers';
 
 export let db = SQLite.openDatabaseSync('grad.db');
@@ -62,6 +62,13 @@ export const initDatabase = () => {
       name TEXT NOT NULL,
       start_date TEXT NOT NULL,
       end_date TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS skip_days (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL,
+      course_id TEXT,
+      reason TEXT,
+      FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
     );
   `);
 
@@ -366,23 +373,23 @@ export const updateCourse = (course: Course) => {
 
     const recordsToDelete = [...existingAttendanceRecordIds].filter(id => !newAttendanceRecordIds.has(id));
     if (recordsToDelete.length > 0) {
-        db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
+      db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
     }
 
     course.attendanceRecords?.forEach(record => {
-        if (existingAttendanceRecordIds.has(record.id)) {
-            // Update existing record
-            db.runSync(
-                'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
-                record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
-            );
-        } else {
-            // Insert new record
-            db.runSync(
-                'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
-            );
-        }
+      if (existingAttendanceRecordIds.has(record.id)) {
+        // Update existing record
+        db.runSync(
+          'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
+          record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
+        );
+      } else {
+        // Insert new record
+        db.runSync(
+          'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
+        );
+      }
     });
   });
 };
@@ -672,4 +679,29 @@ export const addHoliday = (holiday: Holiday) => {
 export const deleteHoliday = (holidayId: string) => {
   console.log(`[DB] Deleting holiday: ${holidayId}`);
   db.runSync('DELETE FROM holidays WHERE id = ?', holidayId);
+};
+
+// Skip Days CRUD
+export const getSkipDays = (): SkipDay[] => {
+  console.log('Getting all skip days');
+  const skipDaysFromDb = db.getAllSync<any>('SELECT * FROM skip_days ORDER BY date ASC');
+  return skipDaysFromDb.map((s: any) => ({
+    id: s.id,
+    date: s.date,
+    courseId: s.course_id || undefined,
+    reason: s.reason || undefined,
+  }));
+};
+
+export const addSkipDay = (skipDay: SkipDay) => {
+  console.log(`Adding skip day: ${skipDay.date}`);
+  db.runSync(
+    'INSERT INTO skip_days (id, date, course_id, reason) VALUES (?, ?, ?, ?)',
+    skipDay.id, skipDay.date, skipDay.courseId || null, skipDay.reason || null
+  );
+};
+
+export const deleteSkipDay = (skipDayId: string) => {
+  console.log(`[DB] Deleting skip day: ${skipDayId}`);
+  db.runSync('DELETE FROM skip_days WHERE id = ?', skipDayId);
 };

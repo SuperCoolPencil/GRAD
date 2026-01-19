@@ -25,6 +25,7 @@ import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
+import { calculateTargetDate } from '@/utils/attendance';
 
 const getAttendanceDelta = (
   presents: number,
@@ -69,6 +70,8 @@ export default function CourseDetailScreen() {
     deleteAttendanceRecord,
     totalRecords,
     loadData,
+    holidays,
+    skipDays,
   } = useContext(AppContext);
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -248,17 +251,23 @@ export default function CourseDetailScreen() {
     attendanceNote = `Can Bunk: ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
   }
 
+  // Calculate target date
+  const targetDateInfo = useMemo(() => {
+    if (!course) return null;
+    return calculateTargetDate(course, holidays, skipDays);
+  }, [course, holidays, skipDays]);
+
   return (
     <>
       <CustomHeader title={course.id} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32, paddingBottom: 16 }}>
         <ThemedText
-            type="title"
-            style={{ maxWidth: '70%', flexShrink: 1, paddingLeft: 10 }}
-            ellipsizeMode="tail"
-          >
-            {course.name}
-          </ThemedText>
+          type="title"
+          style={{ maxWidth: '70%', flexShrink: 1, paddingLeft: 10 }}
+          ellipsizeMode="tail"
+        >
+          {course.name}
+        </ThemedText>
         <View style={{ flexDirection: 'row' }}>
           <TouchableOpacity onPress={() => setConfigModalVisible(true)} style={{ marginRight: 10 }}>
             <Ionicons name="cog-outline" size={24} color={Colors[colorScheme].tint} />
@@ -317,6 +326,22 @@ export default function CourseDetailScreen() {
               {attendanceNote}
             </ThemedText>
           </View>
+
+          {/* Target Date Row */}
+          {targetDateInfo && targetDateInfo.classesNeeded > 0 && (
+            <View style={styles.attendanceRow}>
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={targetDateInfo.targetDate ? Colors[colorScheme].success : Colors[colorScheme].warning}
+              />
+              <ThemedText style={styles.attendanceText}>
+                {targetDateInfo.targetDate
+                  ? `Target by: ${targetDateInfo.targetDate.toLocaleDateString()}`
+                  : targetDateInfo.message}
+              </ThemedText>
+            </View>
+          )}
 
           <View style={styles.attendanceDetailRow}>
             <View style={styles.attendanceDetailItem}>

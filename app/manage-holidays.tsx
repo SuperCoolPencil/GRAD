@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState, useContext } from 'react';
 import { View, StyleSheet, useColorScheme, TouchableOpacity, ScrollView, FlatList, TextInput, SafeAreaView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppContext } from '../context/AppContext';
-import { Holiday } from '../types';
+import { Holiday, SkipDay } from '../types';
 import { ThemedText } from '../components/ThemedText';
 import { ThemedView } from '../components/ThemedView';
 import CustomHeader from '../components/CustomHeader';
@@ -16,7 +16,7 @@ import { getSetting } from '../utils/database'; // Import getSetting
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const ManageHolidaysScreen: React.FC = () => {
-  const { holidays, addHoliday, deleteHoliday, upsertAttendance, courses, triggerRefresh } = useContext(AppContext);
+  const { holidays, addHoliday, deleteHoliday, skipDays, addSkipDay, deleteSkipDay, upsertAttendance, courses, triggerRefresh } = useContext(AppContext);
   const { showAlert } = useCustomAlert();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
@@ -27,12 +27,22 @@ const ManageHolidaysScreen: React.FC = () => {
   const [showStartDatePicker, setShowStartDatePicker] = useState<boolean>(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState<boolean>(false);
 
+  // Skip day form state
+  const [skipDate, setSkipDate] = useState<Date>(() => new Date());
+  const [skipReason, setSkipReason] = useState<string>('');
+  const [showSkipDatePicker, setShowSkipDatePicker] = useState<boolean>(false);
+
   const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
 
   const resetForm = useCallback(() => {
     setName('');
     setStartDate(new Date());
     setEndDate(new Date());
+  }, []);
+
+  const resetSkipDayForm = useCallback(() => {
+    setSkipDate(new Date());
+    setSkipReason('');
   }, []);
 
   const markHolidayAttendance = useCallback((holiday: Holiday, status: 'cancelled' | 'skipped') => {
@@ -128,8 +138,35 @@ const ManageHolidaysScreen: React.FC = () => {
     );
   }, [name, startDate, endDate, addHoliday, resetForm, showAlert, markHolidayAttendance]);
 
+  const handleAddSkipDay = useCallback(() => {
+    const skipDateISO = formatDateToISO(skipDate);
+    const todayISO = formatDateToISO(new Date());
+
+    if (skipDateISO < todayISO) {
+      showAlert('Error', 'Skip date cannot be in the past.');
+      return;
+    }
+
+    // Check if skip day already exists for this date
+    if (skipDays.some(s => s.date === skipDateISO)) {
+      showAlert('Error', 'A skip day already exists for this date.');
+      return;
+    }
+
+    const newSkipDay: SkipDay = {
+      id: Date.now().toString(),
+      date: skipDateISO,
+      reason: skipReason.trim() || undefined,
+    };
+
+    addSkipDay(newSkipDay);
+    resetSkipDayForm();
+  }, [skipDate, skipReason, skipDays, addSkipDay, resetSkipDayForm, showAlert]);
+
   const upcomingHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) >= new Date());
   const pastHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) < new Date());
+  const upcomingSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) >= new Date());
+  const pastSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) < new Date());
 
   return (
     <ThemedView style={styles.container}>
@@ -240,6 +277,103 @@ const ManageHolidaysScreen: React.FC = () => {
               />
             </View>
           )}
+
+          {/* Skip Days Section */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Skip Days</ThemedText>
+            <ThemedText style={[styles.label, { marginBottom: 12, opacity: 0.7 }]}>
+              Mark specific days you plan to be absent. These will be considered when calculating your target attendance date.
+            </ThemedText>
+
+            <View style={styles.timeContainer}>
+              <View style={[styles.timeSection, { flex: 2 }]}>
+                <ThemedText style={styles.label}>Date:</ThemedText>
+                <TouchableOpacity style={styles.timePickerButton} onPress={() => setShowSkipDatePicker(true)}>
+                  <ThemedText style={styles.timePickerText}>{skipDate.toLocaleDateString()}</ThemedText>
+                </TouchableOpacity>
+                {showSkipDatePicker && (
+                  <DateTimePicker
+                    value={skipDate}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      setShowSkipDatePicker(false);
+                      if (selectedDate) setSkipDate(selectedDate);
+                    }}
+                  />
+                )}
+              </View>
+            </View>
+
+            <TextInput
+              style={[styles.input, { marginTop: 8 }]}
+              placeholder="Reason (optional)"
+              value={skipReason}
+              onChangeText={setSkipReason}
+              placeholderTextColor={Colors[colorScheme].text}
+            />
+
+            <TouchableOpacity style={styles.primaryButton} onPress={handleAddSkipDay}>
+              <ThemedText
+                style={styles.primaryButtonText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                allowFontScaling={false}
+              >
+                Add Skip Day
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {upcomingSkipDays.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Upcoming Skip Days</ThemedText>
+              <FlatList
+                data={upcomingSkipDays}
+                keyExtractor={(item) => item.id}
+                nestedScrollEnabled
+                renderItem={({ item }) => (
+                  <View style={styles.holidayItem}>
+                    <View>
+                      <ThemedText style={styles.holidayName}>
+                        {parseISOToDate(item.date).toLocaleDateString()}
+                      </ThemedText>
+                      {item.reason && (
+                        <ThemedText style={styles.holidayDate}>{item.reason}</ThemedText>
+                      )}
+                    </View>
+                    <TouchableOpacity onPress={() => deleteSkipDay(item.id)}>
+                      <Ionicons name="close-circle" size={24} color={Colors[colorScheme].error} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            </View>
+          )}
+
+          {pastSkipDays.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Past Skip Days</ThemedText>
+              <FlatList
+                data={pastSkipDays}
+                keyExtractor={(item) => item.id}
+                nestedScrollEnabled
+                renderItem={({ item }) => (
+                  <View style={styles.holidayItem}>
+                    <View>
+                      <ThemedText style={styles.holidayName}>
+                        {parseISOToDate(item.date).toLocaleDateString()}
+                      </ThemedText>
+                      {item.reason && (
+                        <ThemedText style={styles.holidayDate}>{item.reason}</ThemedText>
+                      )}
+                    </View>
+                  </View>
+                )}
+              />
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -304,7 +438,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     },
     primaryButton: {
       backgroundColor: Colors[colorScheme].tint,
-      paddingVertical: 12,    
+      paddingVertical: 12,
       paddingHorizontal: 16,
       borderRadius: 10,
       alignItems: 'center',

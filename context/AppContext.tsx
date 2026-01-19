@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import { format } from 'date-fns-tz';
 import { CustomAlert } from "../components/CustomAlert";
-import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming } from "../types";
+import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming, SkipDay } from "../types";
 import { formatDateToISO, parseISOToDate, addDaysToDate } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
@@ -18,6 +18,9 @@ interface AppContextType {
   holidays: Holiday[];
   addHoliday: (holiday: Holiday) => void;
   deleteHoliday: (holidayId: string) => void;
+  skipDays: SkipDay[];
+  addSkipDay: (skipDay: SkipDay) => void;
+  deleteSkipDay: (skipDayId: string) => void;
   courses: Course[];
   loading: boolean;
   theme: string;
@@ -69,6 +72,9 @@ export const AppContext = createContext<AppContextType>({
   holidays: [],
   addHoliday: () => { },
   deleteHoliday: () => { },
+  skipDays: [],
+  addSkipDay: () => { },
+  deleteSkipDay: () => { },
   courses: [],
   loading: true,
   theme: "light",
@@ -131,6 +137,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0); // New state for refresh
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [skipDays, setSkipDays] = useState<SkipDay[]>([]);
 
   const updateSetting = (key: string, value: any) => {
     console.log(`[AppContext] updateSetting: key=${key}, value=${value}`);
@@ -174,6 +181,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       const loadedHolidays = db.getHolidays();
       console.log(`[AppContext] Loaded ${loadedHolidays.length} holidays.`);
       setHolidays(loadedHolidays);
+      const loadedSkipDays = db.getSkipDays();
+      console.log(`[AppContext] Loaded ${loadedSkipDays.length} skip days.`);
+      setSkipDays(loadedSkipDays);
       getPaginatedAttendanceRecords(currentPage, 10);
     } catch (error) {
       console.error("[AppContext] Failed to load data from database", error);
@@ -387,6 +397,18 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     setHolidays(prev => prev.filter(h => h.id !== holidayId));
   };
 
+  const addSkipDay = (skipDay: SkipDay) => {
+    console.log(`[AppContext] Adding skip day: ${skipDay.date}`);
+    db.addSkipDay(skipDay);
+    setSkipDays(prev => [...prev, skipDay]);
+  };
+
+  const deleteSkipDay = (skipDayId: string) => {
+    console.log(`[AppContext] Deleting skip day: ${skipDayId}`);
+    db.deleteSkipDay(skipDayId);
+    setSkipDays(prev => prev.filter(s => s.id !== skipDayId));
+  };
+
   const archiveCourse = async (courseId: string) => {
     console.log(`[AppContext] Archiving course: ${courseId}`);
     await cancelCourseNotifications(courseId);
@@ -562,6 +584,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         holidays,
         addHoliday,
         deleteHoliday,
+        skipDays,
+        addSkipDay,
+        deleteSkipDay,
         courses,
         loading,
         theme,

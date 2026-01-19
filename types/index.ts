@@ -16,6 +16,13 @@ export interface Holiday {
   endDate: string;
 }
 
+export interface SkipDay {
+  id: string;
+  date: string;       // ISO format: 'yyyy-MM-dd'
+  courseId?: string;  // Optional: if null/undefined, applies to all courses
+  reason?: string;    // Optional reason for skipping
+}
+
 export interface ScheduleItem {
   id: string;
   day: string;
