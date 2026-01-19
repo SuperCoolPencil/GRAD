@@ -144,9 +144,12 @@ const DayColumn: React.FC<DayColumnProps> = ({
                 getBlockStyle(classItem, date),
                 { top, height },
               ]}
-              onPress={() => handleSelectClass(classItem, date)}
+              onPress={() => {
+                if (isDateInPast(date) || format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
+                  handleSelectClass(classItem, date);
+                }
+              }}
               onLongPress={() => handleLongPressClass?.(classItem)}
-              disabled={!isDateInPast(date)}
             >
               {isDateInPast(date) && classItem.attendance?.status === 'present' && (
                 <View style={{
