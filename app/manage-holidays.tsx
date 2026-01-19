@@ -268,7 +268,7 @@ const ManageHolidaysScreen: React.FC = () => {
       </View>
       {showDelete && (
         <TouchableOpacity onPress={() => deleteHoliday(item.id)} style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={20} color={Colors[colorScheme].error} />
+          <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
         </TouchableOpacity>
       )}
     </View>
@@ -290,7 +290,7 @@ const ManageHolidaysScreen: React.FC = () => {
       </View>
       {showDelete && (
         <TouchableOpacity onPress={() => deleteSkipDay(item.id)} style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={20} color={Colors[colorScheme].error} />
+          <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
         </TouchableOpacity>
       )}
     </View>
@@ -353,7 +353,10 @@ const ManageHolidaysScreen: React.FC = () => {
                         display="default"
                         onChange={(event, selectedDate) => {
                           setShowStartDatePicker(false);
-                          if (selectedDate) setStartDate(selectedDate);
+                          if (selectedDate) {
+                            setStartDate(selectedDate);
+                            setEndDate(selectedDate); // Auto-set end date to start date
+                          }
                         }}
                       />
                     )}
@@ -565,13 +568,8 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     card: {
       backgroundColor: Colors[colorScheme].card,
       borderRadius: 16,
-      padding: 20,
-      marginBottom: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: colorScheme === 'dark' ? 0.3 : 0.08,
-      shadowRadius: 8,
-      elevation: 3,
+      padding: 18,
+      marginBottom: 12,
     },
     cardHeader: {
       flexDirection: 'row',

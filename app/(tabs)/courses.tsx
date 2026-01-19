@@ -10,6 +10,7 @@ import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { calculateTargetDate } from '@/utils/attendance';
 
 const truncate = (str: string, n: number) => {
   return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
@@ -51,11 +52,11 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 
 
 export default function CoursesScreen() {
-  const { courses } = useContext(AppContext);
+  const { courses, holidays, skipDays } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
-  const [sortBy, setSortBy] = useState<'attendance' | 'alphabetical'>('attendance');
+  const [sortBy, setSortBy] = useState<'attendance' | 'alphabetical' | 'targetDate'>('attendance');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Filter out archived courses
@@ -90,6 +91,23 @@ export default function CoursesScreen() {
         // For descending, higher percentage is "better" so it comes first
         return percentageB - percentageA;
       }
+    } else if (sortBy === 'targetDate') {
+      // Sort by target date
+      const targetA = calculateTargetDate(a, holidays, skipDays);
+      const targetB = calculateTargetDate(b, holidays, skipDays);
+
+      // If both have target dates, compare them
+      if (targetA.targetDate && targetB.targetDate) {
+        const dateCompare = targetA.targetDate.getTime() - targetB.targetDate.getTime();
+        return sortOrder === 'asc' ? dateCompare : -dateCompare;
+      }
+      // If only one has a target date, the one without comes last
+      if (targetA.targetDate && !targetB.targetDate) return sortOrder === 'asc' ? -1 : 1;
+      if (!targetA.targetDate && targetB.targetDate) return sortOrder === 'asc' ? 1 : -1;
+
+      // If neither has a target date, sort by classes needed
+      const classesCompare = targetB.classesNeeded - targetA.classesNeeded;
+      return sortOrder === 'asc' ? classesCompare : -classesCompare;
     }
 
     return 0;
@@ -196,14 +214,18 @@ export default function CoursesScreen() {
         </ThemedText>
         <View style={styles.sortContainer}>
           <TouchableOpacity
-            onPress={() => setSortBy(sortBy === 'alphabetical' ? 'attendance' : 'alphabetical')}
+            onPress={() => {
+              if (sortBy === 'attendance') setSortBy('alphabetical');
+              else if (sortBy === 'alphabetical') setSortBy('targetDate');
+              else setSortBy('attendance');
+            }}
             style={[
               styles.sortButton,
               { backgroundColor: Colors[colorScheme].tint },
             ]}
           >
             <Ionicons
-              name={sortBy === 'alphabetical' ? 'text' : 'stats-chart'}
+              name={sortBy === 'alphabetical' ? 'text' : sortBy === 'targetDate' ? 'calendar' : 'stats-chart'}
               size={20}
               color={Colors[colorScheme].background}
             />
