@@ -495,13 +495,12 @@ export const calculateTargetDate = (
   // Day name helper
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-  // Iterate through future dates, counting classes until we reach the target
+  // Iterate through future dates (including today), counting classes until we reach the target
   const today = new Date();
   let currentDate = new Date(today);
   currentDate.setHours(0, 0, 0, 0);
 
-  // Start from tomorrow
-  currentDate.setDate(currentDate.getDate() + 1);
+  // Start from today (not tomorrow) to include today's remaining classes
 
   let classesFound = 0;
   const maxDaysToSearch = 365; // Limit search to 1 year

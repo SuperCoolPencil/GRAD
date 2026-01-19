@@ -93,21 +93,40 @@ export default function CoursesScreen() {
       }
     } else if (sortBy === 'targetDate') {
       // Sort by target date
+      // Ascending: courses needing most attention first (earlier target dates, fewer bunk days)
+      // Descending: courses doing well first (more bunk days, later target dates)
       const targetA = calculateTargetDate(a, holidays, skipDays);
       const targetB = calculateTargetDate(b, holidays, skipDays);
+      const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
+      const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
 
-      // If both have target dates, compare them
+      // Check if courses are meeting target (delta <= 0 means can bunk)
+      const aMeetsTarget = deltaA <= 0;
+      const bMeetsTarget = deltaB <= 0;
+
+      // If both meeting target, sort by bunk days available (more bunk days = better, so first in asc)
+      if (aMeetsTarget && bMeetsTarget) {
+        // deltaA is negative (can bunk that many), so more negative = more bunk days = comes first in asc
+        const bunkCompare = deltaA - deltaB;
+        return sortOrder === 'asc' ? bunkCompare : -bunkCompare;
+      }
+
+      // Courses meeting target come FIRST in ascending (already achieved = minimum target date)
+      if (aMeetsTarget && !bMeetsTarget) return sortOrder === 'asc' ? -1 : 1;
+      if (!aMeetsTarget && bMeetsTarget) return sortOrder === 'asc' ? 1 : -1;
+
+      // Both need to attend - sort by target date or classes needed
       if (targetA.targetDate && targetB.targetDate) {
         const dateCompare = targetA.targetDate.getTime() - targetB.targetDate.getTime();
         return sortOrder === 'asc' ? dateCompare : -dateCompare;
       }
-      // If only one has a target date, the one without comes last
+
+      // If only one has a target date, the one with a date comes first in asc
       if (targetA.targetDate && !targetB.targetDate) return sortOrder === 'asc' ? -1 : 1;
       if (!targetA.targetDate && targetB.targetDate) return sortOrder === 'asc' ? 1 : -1;
 
-      // If neither has a target date, sort by classes needed
-      const classesCompare = targetB.classesNeeded - targetA.classesNeeded;
-      return sortOrder === 'asc' ? classesCompare : -classesCompare;
+      // If neither has a target date, sort by classes needed (delta)
+      return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
     }
 
     return 0;
@@ -177,6 +196,19 @@ export default function CoursesScreen() {
                   <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Required:</ThemedText>
                   <ThemedText style={{ color: Colors[colorScheme].text }}>
                     {item.requiredAttendance}%
+                  </ThemedText>
+                </View>
+                <View style={styles.attendanceRow}>
+                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Target:</ThemedText>
+                  <ThemedText style={{ color: delta <= 0 ? Colors[colorScheme].success : deltaColor }}>
+                    {(() => {
+                      if (delta <= 0) return '✓ Met';
+                      const target = calculateTargetDate(item, holidays, skipDays);
+                      if (target.targetDate) {
+                        return target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      }
+                      return `${target.classesNeeded} classes`;
+                    })()}
                   </ThemedText>
                 </View>
               </View>
