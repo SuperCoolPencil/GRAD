@@ -2,7 +2,7 @@
   "expo": {
     "name": "grad",
     "slug": "grad",
-    "version": "v2.5.1",
+    "version": "2.5.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
