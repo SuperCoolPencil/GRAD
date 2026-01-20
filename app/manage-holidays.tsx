@@ -330,6 +330,9 @@ const ManageHolidaysScreen: React.FC = () => {
                   <Ionicons name="add-circle" size={22} color={Colors[colorScheme].tint} />
                   <ThemedText style={styles.cardTitle}>Add Holiday</ThemedText>
                 </View>
+                <ThemedText style={styles.cardDescription}>
+                  No classes happen on holidays. They don't affect your attendance percentage.
+                </ThemedText>
 
                 <TextInput
                   style={styles.input}
@@ -449,7 +452,7 @@ const ManageHolidaysScreen: React.FC = () => {
                   <ThemedText style={styles.cardTitle}>Add Skip Day</ThemedText>
                 </View>
                 <ThemedText style={styles.cardDescription}>
-                  Mark days you plan to be absent. This helps calculate your target attendance date.
+                  Planned absences that will count against your attendance. Use this to see when you'll reach your target if you skip class.
                 </ThemedText>
 
                 <View style={styles.dateRow}>
