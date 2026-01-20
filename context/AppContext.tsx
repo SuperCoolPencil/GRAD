@@ -29,17 +29,15 @@ interface AppContextType {
   is24Hour: boolean;
   updateNotificationsEnabled: boolean; // New: Update notifications enabled
   weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 for Sunday, 1 for Monday, etc.
-  holidayBehavior: 'skip' | 'cancel'; // New: Holiday behavior setting
   settings: { [key: string]: any };
-  refreshKey: number; // Add refreshKey to context type
+  refreshKey: number;
   updateSetting: (key: string, value: any) => void;
   toggle24Hour: () => void;
   updateNotificationTiming: (timing: NotificationTiming) => void;
   toggleTheme: () => void;
   toggleNotifications: () => void;
-  toggleUpdateNotifications: () => void; // New: Toggle update notifications
-  updateWeekStartsOn: (dayIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6) => void; // New: Update week starts on
-  toggleHolidayBehavior: () => void; // New: Toggle holiday behavior
+  toggleUpdateNotifications: () => void;
+  updateWeekStartsOn: (dayIndex: 0 | 1 | 2 | 3 | 4 | 5 | 6) => void;
   addCourse: (newCourse: Course) => void;
   getCourse: (courseId: string) => Course | undefined;
   updateCourse: (updatedCourse: Course) => void;
@@ -83,17 +81,15 @@ export const AppContext = createContext<AppContextType>({
   is24Hour: false,
   updateNotificationsEnabled: false, // New: Update notifications enabled
   weekStartsOn: 0, // Default to Sunday
-  holidayBehavior: 'skip', // Default holiday behavior
   settings: {},
-  refreshKey: 0, // Initialize refreshKey
+  refreshKey: 0,
   updateSetting: () => { },
   toggle24Hour: () => { },
   updateNotificationTiming: () => { },
   toggleTheme: () => { },
   toggleNotifications: () => { },
-  toggleUpdateNotifications: () => { }, // New: Toggle update notifications
-  updateWeekStartsOn: () => { }, // Initialize updateWeekStartsOn
-  toggleHolidayBehavior: () => { }, // Initialize toggleHolidayBehavior
+  toggleUpdateNotifications: () => { },
+  updateWeekStartsOn: () => { },
   addCourse: () => { },
   getCourse: () => undefined,
   updateCourse: () => { },
@@ -130,7 +126,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [is24Hour, setIs24Hour] = useState(false);
   const [updateNotificationsEnabled, setUpdateNotificationsEnabled] = useState(false); // New state
   const [weekStartsOn, setWeekStartsOn] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0); // New state for weekStartsOn
-  const [holidayBehavior, setHolidayBehavior] = useState<'skip' | 'cancel'>('skip'); // New state for holiday behavior
   const [settings, setSettings] = useState<{ [key: string]: any }>({});
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -173,7 +168,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       setIs24Hour(loadedSettings.is24Hour === 'true');
       setUpdateNotificationsEnabled(loadedSettings.updateNotificationsEnabled === 'true'); // Load new setting
       setWeekStartsOn(parseInt(loadedSettings.weekStartsOn || '0', 10) as 0 | 1 | 2 | 3 | 4 | 5 | 6); // Load new setting
-      setHolidayBehavior((loadedSettings.holidayBehavior as 'skip' | 'cancel') || 'skip'); // Load new setting
 
       const loadedCourses = db.getCourses();
       console.log(`[AppContext] Loaded ${loadedCourses.length} courses.`);
@@ -251,13 +245,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Updating weekStartsOn to: ${dayIndex}`);
     setWeekStartsOn(dayIndex);
     db.updateSetting('weekStartsOn', dayIndex.toString());
-  };
-
-  const toggleHolidayBehavior = () => {
-    const newHolidayBehavior = holidayBehavior === 'skip' ? 'cancel' : 'skip';
-    console.log(`[AppContext] Toggling holiday behavior to: ${newHolidayBehavior}`);
-    setHolidayBehavior(newHolidayBehavior);
-    db.updateSetting('holidayBehavior', newHolidayBehavior);
   };
 
   const addCourse = (newCourse: Course) => {
@@ -521,7 +508,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.updateSetting('is24Hour', is24Hour.toString());
     db.updateSetting('updateNotificationsEnabled', updateNotificationsEnabled.toString()); // Save new setting
     db.updateSetting('weekStartsOn', weekStartsOn.toString()); // Save new setting
-    db.updateSetting('holidayBehavior', holidayBehavior); // Save new setting
 
     courses.forEach(course => {
       db.updateCourse(course);
@@ -595,7 +581,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         is24Hour,
         updateNotificationsEnabled,
         weekStartsOn,
-        holidayBehavior, // Expose new setting
         settings,
         refreshKey,
         updateSetting,
@@ -605,7 +590,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         toggleNotifications,
         toggleUpdateNotifications,
         updateWeekStartsOn,
-        toggleHolidayBehavior, // Expose new toggle function
         addCourse,
         getCourse: (courseId: string) => courses.find((course) => course.id === courseId),
         updateCourse,

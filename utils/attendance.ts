@@ -17,7 +17,6 @@ const processWeeklySchedule = (
   courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
   defaultStatus: string,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
-  holidayBehavior: 'skip' | 'cancel' = 'skip',
   isSkipDay?: (dateString: string, courseId: string) => boolean
 ) => {
   if (!course.weeklySchedule || course.weeklySchedule.length === 0) return;
@@ -56,32 +55,13 @@ const processWeeklySchedule = (
 
           if (exists) continue;
 
-          // holiday detection: use holidaySet if provided, otherwise fall back to DB-range lookup
+          // holiday detection: skip holidays (no attendance records)
           const isHoliday = holidaySet
             ? holidaySet.has(dateString)
             : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', dateString, dateString);
 
           if (isHoliday) {
-            if (holidayBehavior === 'skip') {
-              console.log(`[ATTEND] Skipping scheduled class for ${course.name} on ${dateString} (holiday)`);
-              continue;
-            }
-
-            // create CANCELLED record for holiday
-            newRecords.push({
-              id: attendanceId,
-              course_id: course.id,
-              date: dateString,
-              status: 'cancelled',
-              isExtraClass: false,
-              scheduleItemId: schedule.id,
-              timeStart: schedule.timeStart,
-              timeEnd: schedule.timeEnd,
-            });
-
-            if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-            courseCounts[course.id].cancelled++;
-            console.log(`[ATTEND] Created CANCELLED record for ${course.name} on ${dateString} (holiday)`);
+            console.log(`[ATTEND] Skipping scheduled class for ${course.name} on ${dateString} (holiday)`);
             continue;
           }
 
@@ -138,7 +118,6 @@ const processExtraClasses = (
   courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
   defaultStatus: string,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
-  holidayBehavior: 'cancel' | 'skip' = 'cancel',
   isSkipDay?: (dateString: string, courseId: string) => boolean
 ) => {
   if (!course.extraClasses || course.extraClasses.length === 0) return;
@@ -168,31 +147,13 @@ const processExtraClasses = (
 
         if (exists) continue;
 
-        // holiday detection
+        // holiday detection: skip holidays (no attendance records)
         const isHoliday = holidaySet
           ? holidaySet.has(extraClass.date)
           : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', extraClass.date, extraClass.date);
 
         if (isHoliday) {
-          if (holidayBehavior === 'skip') {
-            console.log(`[ATTEND] Skipping extra class for ${course.name} on ${extraClass.date} (holiday)`);
-            continue;
-          }
-
-          newRecords.push({
-            id: attendanceId,
-            course_id: course.id,
-            date: extraClass.date,
-            status: 'cancelled',
-            isExtraClass: true,
-            scheduleItemId: extraClass.id,
-            timeStart: extraClass.timeStart,
-            timeEnd: extraClass.timeEnd,
-          });
-
-          if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-          courseCounts[course.id].cancelled++;
-          console.log(`[ATTEND] Created CANCELLED extra-class record for ${course.name} on ${extraClass.date} (holiday)`);
+          console.log(`[ATTEND] Skipping extra class for ${course.name} on ${extraClass.date} (holiday)`);
           continue;
         }
 
@@ -247,7 +208,6 @@ export const createMissingAttendanceRecords = (): boolean => {
   console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
   const defaultStatus = (getSetting('defaultAttendanceStatus') as string) || 'absent';
-  const holidayBehavior = ((getSetting('holidayBehavior') as string) || 'skip').toLowerCase(); // 'skip' | 'cancel'
 
   // --- build holidaySet (YYYY-MM-DD) by expanding holiday ranges ----------
   const holidaySet = new Set<string>();
@@ -335,7 +295,7 @@ export const createMissingAttendanceRecords = (): boolean => {
 
     if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
 
-    // call processors (they will consult holidaySet, holidayBehavior & isSkipDay)
+    // call processors (they will consult holidaySet & isSkipDay)
     processWeeklySchedule(
       course,
       lastRecordDate,
@@ -346,7 +306,6 @@ export const createMissingAttendanceRecords = (): boolean => {
       courseCounts,
       defaultStatus,
       holidaySet,
-      (holidayBehavior === 'skip' ? 'skip' : 'cancel'),
       isSkipDay
     );
 
@@ -359,7 +318,6 @@ export const createMissingAttendanceRecords = (): boolean => {
       courseCounts,
       defaultStatus,
       holidaySet,
-      (holidayBehavior === 'skip' ? 'skip' : 'cancel'),
       isSkipDay
     );
   }

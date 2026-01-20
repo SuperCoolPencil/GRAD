@@ -26,7 +26,6 @@ describe('createMissingAttendanceRecords', () => {
         // Default mock implementations
         mockGetSetting.mockImplementation((key: string) => {
             if (key === 'defaultAttendanceStatus') return 'absent';
-            if (key === 'holidayBehavior') return 'skip';
             return null;
         });
         (mockDb.getAllSync as jest.Mock).mockImplementation((query: string) => {
@@ -103,8 +102,8 @@ describe('createMissingAttendanceRecords', () => {
         });
     });
 
-    describe('Holiday Behavior - Skip', () => {
-        it('should skip creating records for holidays when holidayBehavior is skip', () => {
+    describe('Holiday Behavior', () => {
+        it('should skip creating records for holidays (no attendance records)', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -113,12 +112,6 @@ describe('createMissingAttendanceRecords', () => {
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
             const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
-
-            mockGetSetting.mockImplementation((key: string) => {
-                if (key === 'defaultAttendanceStatus') return 'absent';
-                if (key === 'holidayBehavior') return 'skip';
-                return null;
-            });
 
             const mockCourse = {
                 id: 'CS101',
@@ -152,69 +145,9 @@ describe('createMissingAttendanceRecords', () => {
 
             const result = createMissingAttendanceRecords();
 
-            // Should not have created any records since yesterday was a holiday and should be skipped
+            // Should not have created any records since yesterday was a holiday
             expect(result).toBe(false);
             expect(mockBulkAddAttendanceRecords).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('Holiday Behavior - Cancel', () => {
-        it('should create cancelled records for holidays when holidayBehavior is cancel', () => {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-            const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][yesterday.getDay()];
-
-            const twoDaysAgo = new Date();
-            twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
-
-            mockGetSetting.mockImplementation((key: string) => {
-                if (key === 'defaultAttendanceStatus') return 'absent';
-                if (key === 'holidayBehavior') return 'cancel';
-                return null;
-            });
-
-            const mockCourse = {
-                id: 'CS101',
-                name: 'Computer Science',
-                weeklySchedule: [
-                    { id: 'sched1', day: dayOfWeek, timeStart: '09:00', timeEnd: '10:00' },
-                ],
-                extraClasses: [],
-                isArchived: false,
-                createdAt: twoDaysAgoStr,
-            };
-
-            mockGetCourses.mockReturnValue([mockCourse as any]);
-
-            // Mock holiday on yesterday
-            (mockDb.getAllSync as jest.Mock).mockImplementation((query: string) => {
-                if (query.includes('holidays')) {
-                    return [{ start_date: yesterdayStr, end_date: yesterdayStr }];
-                }
-                if (query.includes('attendance_records')) return [];
-                if (query.includes('skip_days')) return [];
-                return [];
-            });
-
-            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string, ...args: any[]) => {
-                if (query.includes('attendance_records') && query.includes('ORDER BY')) {
-                    return { class_date: twoDaysAgoStr, time_end: '10:00' };
-                }
-                return null;
-            });
-
-            const result = createMissingAttendanceRecords();
-
-            // Should have created a cancelled record for the holiday
-            expect(result).toBe(true);
-            expect(mockBulkAddAttendanceRecords).toHaveBeenCalled();
-
-            const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
-            expect(addedRecords.length).toBe(1);
-            expect(addedRecords[0].status).toBe('cancelled');
-            expect(addedRecords[0].date).toBe(yesterdayStr);
         });
     });
 
