@@ -200,16 +200,19 @@ export default function CoursesScreen() {
                 </View>
                 <View style={styles.attendanceRow}>
                   <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Target:</ThemedText>
-                  <ThemedText style={{ color: delta <= 0 ? Colors[colorScheme].success : deltaColor }}>
-                    {(() => {
-                      if (delta <= 0) return '✓ Met';
-                      const target = calculateTargetDate(item, holidays, skipDays);
-                      if (target.targetDate) {
-                        return target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                      }
-                      return `${target.classesNeeded} classes`;
-                    })()}
-                  </ThemedText>
+                  {(() => {
+                    const target = calculateTargetDate(item, holidays, skipDays);
+                    const isMet = target.classesNeeded === 0;
+                    return (
+                      <ThemedText style={{ color: isMet ? Colors[colorScheme].success : deltaColor }}>
+                        {isMet ? '✓ Met' : (
+                          target.targetDate
+                            ? target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            : `${target.classesNeeded} classes`
+                        )}
+                      </ThemedText>
+                    );
+                  })()}
                 </View>
               </View>
               <View style={styles.deltaContainer}>
