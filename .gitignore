@@ -6,7 +6,7 @@ node_modules
 expo-env.d.ts
 # @end expo-cli
 
-.expo
+.expo/
 .idea
 settings.json
 nohup.out
