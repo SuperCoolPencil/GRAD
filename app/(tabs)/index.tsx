@@ -38,31 +38,6 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   return Colors[colorScheme].success; // On target is a success state too
 };
 
-const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (status: "present" | "absent" | "cancelled") => void, colorScheme: 'light' | 'dark' }) => {
-  return (
-    <View style={styles.bulkActionsContainer}>
-      <TouchableOpacity
-        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].success }]}
-        onPress={() => onBulkMark('present')}
-      >
-        <Ionicons name="checkmark-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].error }]}
-        onPress={() => onBulkMark('absent')}
-      >
-        <Ionicons name="close-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.bulkActionButton, { backgroundColor: Colors[colorScheme].warning }]}
-        onPress={() => onBulkMark('cancelled')}
-      >
-        <Ionicons name="remove-circle-outline" size={24} color={Colors[colorScheme].buttonText} />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
 export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, loading, is24Hour, holidays, skipDays } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
@@ -79,13 +54,6 @@ export default function TodaysClassesScreen() {
     }
     setCurrentDate(now);
   }, [showTomorrow]);
-
-  const handleBulkMarkAttendance = (status: "present" | "absent" | "cancelled") => {
-    const dateString = formatDateToISO(currentDate);
-    todaysClasses.forEach(item => {
-      upsertAttendance(item.courseId, item.sourceId, status, item.isExtraClass, item.timeStart, item.timeEnd, dateString);
-    });
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
@@ -121,12 +89,11 @@ export default function TodaysClassesScreen() {
         >
           <Ionicons
             name="add-circle-outline"
-            size={28}
+            size={22}
             color={Colors[colorScheme || "light"].tint}
           />
         </TouchableOpacity>
       </ThemedView>
-      {!showTomorrow && todaysClasses.length > 0 && <BulkAttendanceActions onBulkMark={handleBulkMarkAttendance} colorScheme={colorScheme} />}
       <TodaysClassesContent
         courses={courses}
         upsertAttendance={upsertAttendance}
@@ -472,20 +439,6 @@ function TodaysClassesContent({
 }
 
 const styles = StyleSheet.create({
-  bulkActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  bulkActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerImage: {
     color: Colors.light.icon,
     bottom: -90,
