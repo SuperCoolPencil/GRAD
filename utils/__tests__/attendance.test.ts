@@ -1,6 +1,7 @@
 import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
+import { formatDateToISO } from '../dateHelpers';
 
 // Mock the database module
 jest.mock('../database', () => ({
@@ -567,6 +568,36 @@ describe('calculateTargetDate', () => {
             if (result.targetDate) {
                 expect(formatDate(result.targetDate)).not.toBe(tomorrowStr);
             }
+        });
+
+        it('should still count unskipped sessions on a partially skipped day', () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = formatDateToISO(tomorrow);
+            const tomorrowDay = getDayName(tomorrow);
+
+            const course: Course = {
+                id: 'CS101',
+                name: 'Computer Science',
+                presents: 2,
+                absents: 2,
+                cancelled: 0,
+                requiredAttendance: 50,
+                weeklySchedule: [
+                    { id: 'morning', day: tomorrowDay, timeStart: '09:00', timeEnd: '10:00' },
+                    { id: 'afternoon', day: tomorrowDay, timeStart: '11:00', timeEnd: '12:00' },
+                ],
+            };
+
+            const result = calculateTargetDate(course, [], [{
+                id: 'morning-skip',
+                date: tomorrowStr,
+                courseId: course.id,
+                timeStart: '09:00',
+                timeEnd: '10:00',
+            }]);
+
+            expect(result.targetDate && formatDateToISO(result.targetDate)).toBe(tomorrowStr);
         });
     });
 

@@ -18,33 +18,7 @@ const getWeekdayName = (dateStr: string): string => {
 
 export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
   const colorScheme = useColorScheme() ?? 'light';
-  const activeCourses = courses.filter((c) => !c.isArchived);
-
-  if (activeCourses.length === 0) {
-    return (
-      <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-        <ThemedText type="itemTitle" style={styles.cardTitle}>
-          Overall Attendance
-        </ThemedText>
-        <ThemedText style={styles.emptyText}>No active courses available.</ThemedText>
-      </ThemedView>
-    );
-  }
-
-  // Aggregate stats across all active courses
-  let totalPresents = 0;
-  let totalAbsents = 0;
-  let totalCancelled = 0;
-
-  activeCourses.forEach((course) => {
-    totalPresents += course.presents || 0;
-    totalAbsents += course.absents || 0;
-    totalCancelled += course.cancelled || 0;
-  });
-
-  const totalClasses = totalPresents + totalAbsents;
-  const overallPercentage = totalClasses > 0 ? Math.round((totalPresents / totalClasses) * 100) : 100;
-  const isTargetMet = overallPercentage >= 75;
+  const activeCourses = useMemo(() => courses.filter((c) => !c.isArchived), [courses]);
 
   // Flatten all records chronologically
   const allRecords = useMemo(() => {
@@ -101,6 +75,32 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
     if (activeDays.length === 0) return null;
     return activeDays.reduce((max, d) => (d.pct > max.pct ? d : max), activeDays[0]);
   }, [dayOfWeekStats]);
+
+  if (activeCourses.length === 0) {
+    return (
+      <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+        <ThemedText type="itemTitle" style={styles.cardTitle}>
+          Overall Attendance
+        </ThemedText>
+        <ThemedText style={styles.emptyText}>No active courses available.</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  // Aggregate stats across all active courses
+  let totalPresents = 0;
+  let totalAbsents = 0;
+  let totalCancelled = 0;
+
+  activeCourses.forEach((course) => {
+    totalPresents += course.presents || 0;
+    totalAbsents += course.absents || 0;
+    totalCancelled += course.cancelled || 0;
+  });
+
+  const totalClasses = totalPresents + totalAbsents;
+  const overallPercentage = totalClasses > 0 ? Math.round((totalPresents / totalClasses) * 100) : 100;
+  const isTargetMet = overallPercentage >= 75;
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>

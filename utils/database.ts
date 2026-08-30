@@ -96,11 +96,30 @@ export const initDatabase = () => {
     CREATE TABLE IF NOT EXISTS skip_days (
       id TEXT PRIMARY KEY,
       date TEXT NOT NULL,
+      end_date TEXT,
       course_id TEXT,
       reason TEXT,
+      time_start TEXT,
+      time_end TEXT,
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
     );
     `);
+
+    const skipDayColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(skip_days)');
+    const skipDayColumnNames = skipDayColumns.map(c => c.name);
+
+    if (!skipDayColumnNames.includes('end_date')) {
+      console.log('Migrating database: adding end_date column to skip_days');
+      db.execSync('ALTER TABLE skip_days ADD COLUMN end_date TEXT');
+    }
+    if (!skipDayColumnNames.includes('time_start')) {
+      console.log('Migrating database: adding time_start column to skip_days');
+      db.execSync('ALTER TABLE skip_days ADD COLUMN time_start TEXT');
+    }
+    if (!skipDayColumnNames.includes('time_end')) {
+      console.log('Migrating database: adding time_end column to skip_days');
+      db.execSync('ALTER TABLE skip_days ADD COLUMN time_end TEXT');
+    }
 
     if (schemaVersion < SCHEMA_VERSION) {
       const attendanceColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(attendance_records)');
@@ -676,16 +695,25 @@ export const getSkipDays = (): SkipDay[] => {
   return skipDaysFromDb.map((s: any) => ({
     id: s.id,
     date: s.date,
+    endDate: s.end_date || s.date,
     courseId: s.course_id || undefined,
     reason: s.reason || undefined,
+    timeStart: s.time_start || undefined,
+    timeEnd: s.time_end || undefined,
   }));
 };
 
 export const addSkipDay = (skipDay: SkipDay) => {
   console.log(`Adding skip day: ${skipDay.date}`);
   db.runSync(
-    'INSERT INTO skip_days (id, date, course_id, reason) VALUES (?, ?, ?, ?)',
-    skipDay.id, skipDay.date, skipDay.courseId || null, skipDay.reason || null
+    'INSERT INTO skip_days (id, date, end_date, course_id, reason, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    skipDay.id,
+    skipDay.date,
+    skipDay.endDate || skipDay.date,
+    skipDay.courseId || null,
+    skipDay.reason || null,
+    skipDay.timeStart || null,
+    skipDay.timeEnd || null
   );
 };
 

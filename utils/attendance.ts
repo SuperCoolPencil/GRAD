@@ -29,8 +29,31 @@ export const getAttendanceDelta = (
 };
 
 /**
+ * Helper to check if a specific class session on a given date is matched by any skip day.
+ */
+export const isClassSkippedBySkipDay = (
+  dateString: string,
+  courseId: string,
+  timeStart: string | undefined,
+  timeEnd: string | undefined,
+  skipDays: SkipDay[],
+): boolean => {
+  return skipDays.some((s) => {
+    if (s.courseId && s.courseId !== courseId) return false;
+    const startDate = s.date;
+    const endDate = s.endDate || s.date;
+    if (dateString < startDate || dateString > endDate) return false;
+    if (s.timeStart && s.timeEnd && timeStart && timeEnd) {
+      if (timeStart < s.timeStart || timeEnd > s.timeEnd) return false;
+    }
+    return true;
+  });
+};
+
+/**
  * Counts future classes that have already been planned as absences via skip days.
  * Holidays always win: a class that will not happen cannot be an absence.
+ * Supports date ranges (startDate to endDate) and optional time bounds (timeStart to timeEnd).
  */
 export const getPlannedSkipDayAbsences = (
   course: Course,
@@ -52,24 +75,60 @@ export const getPlannedSkipDayAbsences = (
     }
   }
 
-  const applicableSkipDates = new Set(
-    skipDays
-      .filter(skipDay => (!skipDay.courseId || skipDay.courseId === course.id) && skipDay.date >= firstFutureISO)
-      .map(skipDay => skipDay.date),
-  );
+  let totalAbsences = 0;
+  const countedClasses = new Set<string>();
 
-  return [...applicableSkipDates].reduce((total, dateString) => {
-    if (holidayDates.has(dateString)) return total;
+  for (const skipDay of skipDays) {
+    if (skipDay.courseId && skipDay.courseId !== course.id) continue;
 
-    const date = new Date(`${dateString}T00:00:00`);
-    const dayOfWeek = getDayOfWeek(date);
-    const weeklyClasses = course.weeklySchedule?.filter(schedule =>
-      schedule.day.toLowerCase() === dayOfWeek,
-    ).length ?? 0;
-    const extraClasses = course.extraClasses?.filter(extraClass => extraClass.date === dateString).length ?? 0;
+    const startDateStr = skipDay.date;
+    const endDateStr = skipDay.endDate || skipDay.date;
 
-    return total + weeklyClasses + extraClasses;
-  }, 0);
+    if (endDateStr < firstFutureISO) continue;
+
+    let current = new Date(`${startDateStr}T00:00:00`);
+    const end = new Date(`${endDateStr}T00:00:00`);
+
+    while (current <= end) {
+      const dateString = formatDateToISO(current);
+      if (dateString >= firstFutureISO && !holidayDates.has(dateString)) {
+        const dayOfWeek = getDayOfWeek(current);
+
+        // Check weekly schedule classes
+        course.weeklySchedule?.forEach((schedule) => {
+          if (schedule.day.toLowerCase() === dayOfWeek) {
+            const timeMatch = !skipDay.timeStart || !skipDay.timeEnd ||
+              (schedule.timeStart >= skipDay.timeStart && schedule.timeEnd <= skipDay.timeEnd);
+            if (timeMatch) {
+              const classKey = `${dateString}:${schedule.id}:${schedule.timeStart}`;
+              if (!countedClasses.has(classKey)) {
+                countedClasses.add(classKey);
+                totalAbsences++;
+              }
+            }
+          }
+        });
+
+        // Check extra classes
+        course.extraClasses?.forEach((extraClass) => {
+          if (extraClass.date === dateString) {
+            const timeMatch = !skipDay.timeStart || !skipDay.timeEnd ||
+              (extraClass.timeStart >= skipDay.timeStart && extraClass.timeEnd <= skipDay.timeEnd);
+            if (timeMatch) {
+              const classKey = `${dateString}:extra:${extraClass.id}:${extraClass.timeStart}`;
+              if (!countedClasses.has(classKey)) {
+                countedClasses.add(classKey);
+                totalAbsences++;
+              }
+            }
+          }
+        });
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  return totalAbsences;
 };
 
 /** The calendar-aware attendance delta used anywhere the app shows “bunk” or “attend”. */
@@ -84,6 +143,98 @@ export const getCourseAttendanceDelta = (
   course.requiredAttendance || 75,
   getPlannedSkipDayAbsences(course, holidays, skipDays, now),
 );
+
+export interface BunkSimulationResult {
+  currentPercentage: number;
+  simulatedPercentage: number;
+  currentDelta: number;
+  simulatedDelta: number;
+  isSafe: boolean;
+  message: string;
+  targetDate: Date | null;
+  targetMessage: string;
+}
+
+export interface BunkedClass {
+  date: string;
+  courseId: string;
+  timeStart: string;
+  timeEnd: string;
+}
+
+/**
+ * Simulates the effect of skipping an additional class for a given course.
+ * currentPercentage = actual attendance so far (matches card display)
+ * simulatedPercentage = projected attendance after bunking this class
+ *   (accounts for already-planned skip days too)
+ */
+export const simulateBunkClass = (
+  course: Course,
+  holidays: Holiday[],
+  skipDays: SkipDay[],
+  additionalAbsences: number = 1,
+  bunkedClass?: BunkedClass,
+): BunkSimulationResult => {
+  const presents = course.presents || 0;
+  const absents = course.absents || 0;
+  const required = course.requiredAttendance || 75;
+  const todayISO = formatDateToISO(new Date());
+  const isFutureBunk = bunkedClass?.date && bunkedClass.date > todayISO;
+  const simulatedSkipDays = isFutureBunk && bunkedClass
+    ? [...skipDays, {
+      id: '__bunk-simulation__',
+      date: bunkedClass.date,
+      endDate: bunkedClass.date,
+      courseId: bunkedClass.courseId,
+      timeStart: bunkedClass.timeStart,
+      timeEnd: bunkedClass.timeEnd,
+    }]
+    : skipDays;
+  const plannedSkip = getPlannedSkipDayAbsences(course, holidays, simulatedSkipDays);
+  const immediateAbsences = isFutureBunk ? 0 : additionalAbsences;
+
+  // Effective % = actual + planned future absences already committed to.
+  // This is the "where you're headed" rate, not raw historical attendance.
+  // The card shows raw (presents/total); the sim shows the projection.
+  const effectiveTotal = presents + absents + plannedSkip;
+  const currentPercentage = effectiveTotal > 0 ? Math.round((presents / effectiveTotal) * 100) : 100;
+  const currentDelta = getAttendanceDelta(presents, absents, required, plannedSkip);
+
+  // Simulated % = one additional bunk on top of the effective baseline
+  const totalSimulated = effectiveTotal + immediateAbsences;
+  const simulatedPercentage = totalSimulated > 0 ? Math.round((presents / totalSimulated) * 100) : 100;
+  const simulatedDelta = getAttendanceDelta(presents, absents + immediateAbsences, required, plannedSkip);
+  const target = calculateTargetDate(
+    { ...course, absents: absents + immediateAbsences },
+    holidays,
+    simulatedSkipDays,
+  );
+
+  const isSafe = simulatedDelta <= 0;
+
+  let message = '';
+  if (isSafe) {
+    if (simulatedDelta < 0) {
+      const remainingBunks = Math.abs(simulatedDelta);
+      message = `Still safe! You can miss ${remainingBunks} more class${remainingBunks === 1 ? '' : 'es'} after this.`;
+    } else {
+      message = `On target! Bunking this brings you right to your limit.`;
+    }
+  } else {
+    message = `Careful! You will need to attend ${simulatedDelta} class${simulatedDelta === 1 ? '' : 'es'} to recover.`;
+  }
+
+  return {
+    currentPercentage,
+    simulatedPercentage,
+    currentDelta,
+    simulatedDelta,
+    isSafe,
+    message,
+    targetDate: target.targetDate,
+    targetMessage: target.message,
+  };
+};
 
 const getDayOfWeek = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -545,19 +696,6 @@ export const calculateTargetDate = (
     }
   }
 
-  // Build a set of skip days (only those applicable to this course or all courses)
-  const skipDaySet = new Set<string>();
-  console.log(`[TARGET] Processing ${skipDays.length} skip days for course ${course.id}`);
-  for (const s of skipDays) {
-    // If courseId is undefined/null, it applies to all courses
-    // If courseId matches this course, it applies
-    const applies = !s.courseId || s.courseId === course.id;
-    console.log(`[TARGET] Skip day ${s.date}: courseId=${s.courseId || 'ALL'}, applies=${applies}`);
-    if (applies) {
-      skipDaySet.add(s.date);
-    }
-  }
-
   // This is the same calendar-aware calculation used by the “bunk / attend” delta.
   const futureAbsences = getPlannedSkipDayAbsences(course, holidays, skipDays);
 
@@ -631,20 +769,25 @@ export const calculateTargetDate = (
     const dateString = formatDateToISO(currentDate);
     const dayOfWeek = dayNames[currentDate.getDay()];
 
-    // Skip if it's a holiday or skip day (can't attend on these days)
-    if (!holidaySet.has(dateString) && !skipDaySet.has(dateString)) {
+    // A holiday cancels every class. Skip days can instead apply to one session,
+    // so filter sessions individually below.
+    if (!holidaySet.has(dateString)) {
       let classesOnThisDay = 0;
 
       // Count weekly scheduled classes for this day
       if (scheduledDays.has(dayOfWeek)) {
-        classesOnThisDay += course.weeklySchedule?.filter(
-          s => s.day.toLowerCase() === dayOfWeek
+        classesOnThisDay += course.weeklySchedule?.filter(s =>
+          s.day.toLowerCase() === dayOfWeek &&
+          !isClassSkippedBySkipDay(dateString, course.id, s.timeStart, s.timeEnd, skipDays)
         ).length || 0;
       }
 
       // Count extra classes on this date
       if (extraClassDates.has(dateString)) {
-        classesOnThisDay += extraClassDates.get(dateString) || 0;
+        classesOnThisDay += course.extraClasses?.filter(extraClass =>
+          extraClass.date === dateString &&
+          !isClassSkippedBySkipDay(dateString, course.id, extraClass.timeStart, extraClass.timeEnd, skipDays)
+        ).length || 0;
       }
 
       if (classesOnThisDay > 0) {
@@ -652,8 +795,7 @@ export const calculateTargetDate = (
       }
       classesFound += classesOnThisDay;
     } else {
-      const reason = holidaySet.has(dateString) ? 'holiday' : 'skip day';
-      console.log(`[TARGET] ${dateString} (${dayOfWeek}): SKIPPED (${reason})`);
+      console.log(`[TARGET] ${dateString} (${dayOfWeek}): SKIPPED (holiday)`);
     }
 
     // If we've found enough classes, this is our target date

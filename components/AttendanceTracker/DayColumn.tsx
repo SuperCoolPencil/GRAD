@@ -7,6 +7,7 @@ import { ClassItem } from '@/hooks/useAttendanceData';
 import { Colors } from '@/constants/Colors';
 import { AppContext } from '@/context/AppContext';
 import { Ionicons } from '@expo/vector-icons';
+import { isClassSkippedBySkipDay } from '@/utils/attendance';
 
 interface DayColumnProps {
   dateString: string;
@@ -43,7 +44,11 @@ const DayColumn: React.FC<DayColumnProps> = ({
     const endDate = parseISOToDate(h.endDate);
     return date >= startDate && date <= endDate;
   });
-  const skipDay = skipDays.find(day => day.date === dateString && !day.courseId);
+  const skipDay = skipDays.find(day => {
+    const startDate = day.date;
+    const endDate = day.endDate || day.date;
+    return !day.courseId && !day.timeStart && dateString >= startDate && dateString <= endDate;
+  });
   const dayEvent = holiday
     ? { label: holiday.name, backgroundColor: 'rgba(255, 255, 255, 0.08)' }
     : skipDay
@@ -163,17 +168,24 @@ const DayColumn: React.FC<DayColumnProps> = ({
           const top = (startTime - startHour) * 60;
           const height = duration;
 
+          const isSkippedByPlan = isClassSkippedBySkipDay(
+            dateString,
+            classItem.course.id,
+            classItem.schedule.timeStart,
+            classItem.schedule.timeEnd,
+            skipDays
+          );
+
           return (
             <TouchableOpacity
               key={`${classItem.course.id}-${index}`}
               style={[
                 getBlockStyle(classItem, date),
                 { top, height },
+                isSkippedByPlan && { opacity: 0.8 },
               ]}
               onPress={() => {
-                if (isDateInPast(date) || format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
-                  handleSelectClass(classItem, date);
-                }
+                handleSelectClass(classItem, date);
               }}
               onLongPress={() => handleLongPressClass?.(classItem)}
             >
@@ -198,6 +210,16 @@ const DayColumn: React.FC<DayColumnProps> = ({
                   backgroundColor: Colors[colorScheme].error,
                   zIndex: 2,
                 }} />
+              )}
+              {isSkippedByPlan && (
+                <View style={{
+                  position: 'absolute',
+                  right: 2,
+                  top: 2,
+                  zIndex: 3,
+                }}>
+                  <Ionicons name="close-circle" size={12} color="rgba(255, 255, 255, 0.9)" />
+                </View>
               )}
               <View style={[
                 styles.verticalTextContainer,

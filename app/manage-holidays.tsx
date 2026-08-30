@@ -33,8 +33,10 @@ const ManageHolidaysScreen: React.FC = () => {
 
   // Skip day form state
   const [skipDate, setSkipDate] = useState<Date>(() => new Date());
+  const [skipEndDate, setSkipEndDate] = useState<Date>(() => new Date());
   const [skipReason, setSkipReason] = useState<string>('');
   const [showSkipDatePicker, setShowSkipDatePicker] = useState<boolean>(false);
+  const [showSkipEndDatePicker, setShowSkipEndDatePicker] = useState<boolean>(false);
 
   // Collapsible state
   const [showPastHolidays, setShowPastHolidays] = useState<boolean>(false);
@@ -50,6 +52,7 @@ const ManageHolidaysScreen: React.FC = () => {
 
   const resetSkipDayForm = useCallback(() => {
     setSkipDate(new Date());
+    setSkipEndDate(new Date());
     setSkipReason('');
   }, []);
 
@@ -89,27 +92,29 @@ const ManageHolidaysScreen: React.FC = () => {
 
   const handleAddSkipDay = useCallback(() => {
     const skipDateISO = formatDateToISO(skipDate);
+    const skipEndDateISO = formatDateToISO(skipEndDate);
     const todayISO = formatDateToISO(new Date());
+
+    if (skipEndDateISO < skipDateISO) {
+      showAlert('Error', 'End date cannot be before start date.');
+      return;
+    }
 
     if (skipDateISO < todayISO) {
       showAlert('Error', 'Skip date cannot be in the past.');
       return;
     }
 
-    if (skipDays.some(s => s.date === skipDateISO)) {
-      showAlert('Error', 'A skip day already exists for this date.');
-      return;
-    }
-
     const newSkipDay: SkipDay = {
       id: Date.now().toString(),
       date: skipDateISO,
+      endDate: skipEndDateISO,
       reason: skipReason.trim() || undefined,
     };
 
     addSkipDay(newSkipDay);
     resetSkipDayForm();
-  }, [skipDate, skipReason, skipDays, addSkipDay, resetSkipDayForm, showAlert]);
+  }, [skipDate, skipEndDate, skipReason, addSkipDay, resetSkipDayForm, showAlert]);
 
   const upcomingHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) >= new Date());
   const pastHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) < new Date());
@@ -215,26 +220,37 @@ const ManageHolidaysScreen: React.FC = () => {
   );
 
   // Skip Day Item Component
-  const SkipDayItem = ({ item, showDelete = true }: { item: SkipDay; showDelete?: boolean }) => (
-    <View style={styles.listItem}>
-      <View style={styles.listItemIcon}>
-        <Ionicons name="close-circle" size={20} color={Colors[colorScheme].error} />
-      </View>
-      <View style={styles.listItemContent}>
-        <ThemedText style={styles.listItemTitle}>
-          {parseISOToDate(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </ThemedText>
-        {item.reason && (
-          <ThemedText style={styles.listItemSubtitle}>{item.reason}</ThemedText>
+  const SkipDayItem = ({ item, showDelete = true }: { item: SkipDay; showDelete?: boolean }) => {
+    const course = item.courseId ? courses.find(c => c.id === item.courseId) : null;
+    const startDateStr = parseISOToDate(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endDateStr = item.endDate && item.endDate !== item.date
+      ? parseISOToDate(item.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null;
+    const dateText = endDateStr ? `${startDateStr} - ${endDateStr}` : startDateStr;
+    const timeText = item.timeStart && item.timeEnd ? ` · ${item.timeStart}-${item.timeEnd}` : '';
+    const courseText = course ? ` · ${course.name}` : '';
+
+    return (
+      <View style={styles.listItem}>
+        <View style={styles.listItemIcon}>
+          <Ionicons name="close-circle" size={20} color={Colors[colorScheme].error} />
+        </View>
+        <View style={styles.listItemContent}>
+          <ThemedText style={styles.listItemTitle}>
+            {dateText}{courseText}{timeText}
+          </ThemedText>
+          {item.reason && (
+            <ThemedText style={styles.listItemSubtitle}>{item.reason}</ThemedText>
+          )}
+        </View>
+        {showDelete && (
+          <TouchableOpacity onPress={() => deleteSkipDay(item.id)} style={styles.deleteButton}>
+            <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
+          </TouchableOpacity>
         )}
       </View>
-      {showDelete && (
-        <TouchableOpacity onPress={() => deleteSkipDay(item.id)} style={styles.deleteButton}>
-          <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+    );
+  };
 
   // Collapsible Section Header
   const CollapsibleHeader = ({ title, count, isOpen, onToggle }: { title: string; count: number; isOpen: boolean; onToggle: () => void }) => (
@@ -396,8 +412,8 @@ const ManageHolidaysScreen: React.FC = () => {
                 </ThemedText>
 
                 <View style={styles.dateRow}>
-                  <View style={[styles.dateField, { flex: 1 }]}>
-                    <ThemedText style={styles.dateLabel}>Date</ThemedText>
+                  <View style={styles.dateField}>
+                    <ThemedText style={styles.dateLabel}>Start</ThemedText>
                     <TouchableOpacity style={styles.dateButton} onPress={() => setShowSkipDatePicker(true)}>
                       <Ionicons name="calendar-outline" size={16} color={Colors[colorScheme].icon} />
                       <ThemedText style={styles.dateButtonText}>{skipDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</ThemedText>
@@ -410,7 +426,34 @@ const ManageHolidaysScreen: React.FC = () => {
                         minimumDate={new Date()}
                         onChange={(event, selectedDate) => {
                           setShowSkipDatePicker(false);
-                          if (selectedDate) setSkipDate(selectedDate);
+                          if (selectedDate) {
+                            setSkipDate(selectedDate);
+                            setSkipEndDate(selectedDate);
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.dateArrow}>
+                    <Ionicons name="arrow-forward" size={20} color={Colors[colorScheme].icon} />
+                  </View>
+
+                  <View style={styles.dateField}>
+                    <ThemedText style={styles.dateLabel}>End</ThemedText>
+                    <TouchableOpacity style={styles.dateButton} onPress={() => setShowSkipEndDatePicker(true)}>
+                      <Ionicons name="calendar-outline" size={16} color={Colors[colorScheme].icon} />
+                      <ThemedText style={styles.dateButtonText}>{skipEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</ThemedText>
+                    </TouchableOpacity>
+                    {showSkipEndDatePicker && (
+                      <DateTimePicker
+                        value={skipEndDate}
+                        mode="date"
+                        display="default"
+                        minimumDate={skipDate}
+                        onChange={(event, selectedDate) => {
+                          setShowSkipEndDatePicker(false);
+                          if (selectedDate) setSkipEndDate(selectedDate);
                         }}
                       />
                     )}

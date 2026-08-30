@@ -3,11 +3,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Pressable,
   View,
   useColorScheme,
 } from "react-native";
-import { Colors } from "@/constants/Colors"; // Ensure this path matches your project structure
+import { Colors } from "@/constants/Colors";
 import { AppContext } from "@/context/AppContext";
+import { useCustomAlert } from "@/context/AlertContext";
 import { formatTime } from "@/utils/time";
 import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
 import { AttendanceRecord, ClassItem, Course, ScheduleItem, ExtraClass, Holiday, SkipDay } from "@/types";
@@ -15,9 +17,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { CustomAlert } from "@/components/CustomAlert";
 import ExtraClassTag from "@/components/ui/ExtraClassTag";
-import { getCourseAttendanceDelta } from '@/utils/attendance';
+import { getCourseAttendanceDelta, simulateBunkClass, type BunkSimulationResult } from '@/utils/attendance';
+import { BunkSimModal } from '@/components/BunkSimModal';
 
 const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
 
@@ -40,20 +42,11 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
 
 export default function TodaysClassesScreen() {
   const { courses, upsertAttendance, loading, is24Hour, holidays, skipDays } = useContext(AppContext);
+  const { showAlert } = useCustomAlert();
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
-  const [showAlert, setShowAlert] = useState(false);
-  const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
+  const [showTomorrow, setShowTomorrow] = useState(false);
   const colorScheme: "light" | "dark" = useColorScheme() as "light" | "dark";
   const router = useRouter();
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  useEffect(() => {
-    const now = new Date();
-    if (showTomorrow) {
-      now.setDate(now.getDate() + 1);
-    }
-    setCurrentDate(now);
-  }, [showTomorrow]);
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme || "light"].background }}>
@@ -63,7 +56,7 @@ export default function TodaysClassesScreen() {
             onPress={() => setShowTomorrow(!showTomorrow)}
             style={[
               styles.dateToggleTag,
-              { backgroundColor: Colors[colorScheme || "light"].cardBackground }, // Background color from courses.tsx tags
+              { backgroundColor: Colors[colorScheme || "light"].cardBackground },
             ]}
           >
             <ThemedText type="title" style={{ color: Colors[colorScheme || "light"].text }}>
@@ -81,7 +74,14 @@ export default function TodaysClassesScreen() {
           style={[styles.addButton, { backgroundColor: Colors[colorScheme || 'light'].cardBackground }]}
           onPress={() => {
             if (courses.filter(course => !course.isArchived).length === 0) {
-              setShowAlert(true);
+              showAlert(
+                "No Courses",
+                "Create a course first",
+                [
+                  { text: "OK" },
+                  { text: "Create Course", onPress: () => router.push("/add-course") }
+                ]
+              );
             } else {
               router.push("/add-extra-class");
             }
@@ -102,26 +102,11 @@ export default function TodaysClassesScreen() {
         setTodaysClasses={setTodaysClasses}
         colorScheme={colorScheme}
         is24Hour={is24Hour}
-        showTomorrow={showTomorrow} // Pass new state
+        showTomorrow={showTomorrow}
         holidays={holidays}
         skipDays={skipDays}
       />
-      <CustomAlert
-        isVisible={showAlert}
-        title="No Courses"
-        message="Create a course first"
-        buttons={[
-          { text: "OK", onPress: () => setShowAlert(false) },
-          {
-            text: "Create Course", onPress: () => {
-              setShowAlert(false);
-              router.push("/add-course");
-            }
-          }
-        ]}
-        onClose={() => setShowAlert(false)}
-      />
-    </View >
+    </View>
   );
 }
 
@@ -149,8 +134,10 @@ function TodaysClassesContent({
   skipDays: SkipDay[];
 }) {
   const router = useRouter();
+  const { showAlert } = useCustomAlert();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [holiday, setHoliday] = useState<Holiday | undefined>(undefined);
+  const [activeSim, setActiveSim] = useState<{ courseName: string; simulation: BunkSimulationResult } | null>(null);
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
@@ -268,6 +255,13 @@ function TodaysClassesContent({
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
+    const course = courses.find(c => c.id === item.courseId);
+    const simulation = course ? simulateBunkClass(course, holidays, skipDays, 1, {
+      date: formatDateToISO(currentDate),
+      courseId: item.courseId,
+      timeStart: item.timeStart,
+      timeEnd: item.timeEnd,
+    }) : null;
     const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
     const cardBackground =
       colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
@@ -295,7 +289,7 @@ function TodaysClassesContent({
             styles.classCardContent,
             {
               backgroundColor: Colors[colorScheme || 'light'].card,
-              paddingVertical: showTomorrow ? 8 : 16,
+              paddingVertical: showTomorrow ? 12 : 16,
             },
           ]}
         >
@@ -340,6 +334,31 @@ function TodaysClassesContent({
                   {attendanceNote}
                 </ThemedText>
               </View>
+              {simulation && (
+                <Pressable
+                  style={({ pressed }) => ({
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginTop: 2,
+                    marginVertical: 2,
+                    opacity: pressed ? 0.6 : 1,
+                  })}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setActiveSim({ courseName: item.courseName, simulation });
+                  }}
+                >
+                  <Ionicons
+                    name={simulation.isSafe ? "shield-checkmark-outline" : "warning-outline"}
+                    size={16}
+                    color={simulation.isSafe ? Colors[colorScheme || 'light'].success : Colors[colorScheme || 'light'].error}
+                    style={{ marginRight: 4 }}
+                  />
+                  <ThemedText style={{ fontSize: 14, color: simulation.isSafe ? Colors[colorScheme || 'light'].success : Colors[colorScheme || 'light'].error }}>
+                    Bunk Sim: {simulation.currentPercentage}% → {simulation.simulatedPercentage}%
+                  </ThemedText>
+                </Pressable>
+              )}
               {item.status && (
                 <View
                   style={{
@@ -434,6 +453,14 @@ function TodaysClassesContent({
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: Colors[colorScheme || "light"].background }}
       />
+      {activeSim && (
+        <BunkSimModal
+          isVisible
+          courseName={activeSim.courseName}
+          simulation={activeSim.simulation}
+          onClose={() => setActiveSim(null)}
+        />
+      )}
     </ThemedView>
   );
 }

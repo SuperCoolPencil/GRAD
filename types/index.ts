@@ -27,9 +27,12 @@ export interface Holiday {
 
 export interface SkipDay {
   id: string;
-  date: string;       // ISO format: 'yyyy-MM-dd'
+  date: string;       // ISO format: 'yyyy-MM-dd' (serves as start date)
+  endDate?: string;   // Optional ISO format: 'yyyy-MM-dd' (defaults to date if not set)
   courseId?: string;  // Optional: if null/undefined, applies to all courses
   reason?: string;    // Optional reason for skipping
+  timeStart?: string; // Optional: specific class time start filter ('HH:mm')
+  timeEnd?: string;   // Optional: specific class time end filter ('HH:mm')
 }
 
 export interface ScheduleItem {
