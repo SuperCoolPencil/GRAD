@@ -341,7 +341,7 @@ export default function CourseDetailScreen() {
           </View>
 
           <View style={styles.forecastLine}>
-            <Ionicons name="sparkles-outline" size={15} color={deltaColor} />
+            <Ionicons name="trending-up-outline" size={15} color={deltaColor} />
             <View style={styles.forecastCopy}>
               <ThemedText style={styles.forecastText}>{forecastSummary}</ThemedText>
               {forecastGuidance && <ThemedText style={[styles.forecastText, styles.forecastGuidance]}>{forecastGuidance}</ThemedText>}

@@ -1,10 +1,9 @@
 import { StyleSheet, FlatList, TouchableOpacity, View } from 'react-native';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import AttendanceProgressRing from '@/components/AttendanceProgressRing';
 import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
@@ -20,14 +19,43 @@ const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   return Colors[colorScheme].success; // On target is a success state too
 };
 
+type CourseSort = 'attendance' | 'alphabetical' | 'targetDate';
+type SortOrder = 'asc' | 'desc';
+
+const isCourseSort = (value: unknown): value is CourseSort =>
+  value === 'attendance' || value === 'alphabetical' || value === 'targetDate';
+
+const isSortOrder = (value: unknown): value is SortOrder => value === 'asc' || value === 'desc';
+
 
 export default function CoursesScreen() {
-  const { courses, holidays, skipDays } = useContext(AppContext);
+  const { courses, holidays, skipDays, settings, updateSetting } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
-  const [sortBy, setSortBy] = useState<'attendance' | 'alphabetical' | 'targetDate'>('attendance');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<CourseSort>('attendance');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  useEffect(() => {
+    if (isCourseSort(settings.coursesSortBy)) setSortBy(settings.coursesSortBy);
+    if (isSortOrder(settings.coursesSortOrder)) setSortOrder(settings.coursesSortOrder);
+  }, [settings.coursesSortBy, settings.coursesSortOrder]);
+
+  const changeSortBy = () => {
+    const nextSortBy: CourseSort = sortBy === 'attendance'
+      ? 'alphabetical'
+      : sortBy === 'alphabetical'
+        ? 'targetDate'
+        : 'attendance';
+    setSortBy(nextSortBy);
+    updateSetting('coursesSortBy', nextSortBy);
+  };
+
+  const toggleSortOrder = () => {
+    const nextSortOrder: SortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(nextSortOrder);
+    updateSetting('coursesSortOrder', nextSortOrder);
+  };
 
   // Filter out archived courses
   let activeCourses = courses.filter(course => !course.isArchived);
@@ -109,19 +137,17 @@ export default function CoursesScreen() {
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage ?? 0;
-    const requiredAttendance = item.requiredAttendance ?? 75;
-
-    const presentCount = item.presents || 0;
-    const absentCount = item.absents || 0;
     const delta = getCourseAttendanceDelta(item, holidays, skipDays);
     const deltaColor = getDeltaColor(delta, colorScheme);
-
-    // Calculate progress for the ring
-    const totalClasses = presentCount + absentCount;
-    let progress = 0;
-    if (totalClasses > 0) {
-      progress = attendancePercentage / 100;
-    }
+    const attendanceGuidance = !Number.isFinite(delta)
+      ? 'Target is no longer reachable'
+      : delta > 0
+        ? `Need to attend ${delta} class${delta === 1 ? '' : 'es'}`
+        : delta < 0
+          ? `Can bunk ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`
+          : 'On track';
+    const target = calculateTargetDate(item, holidays, skipDays);
+    const isTargetMet = target.classesNeeded === 0;
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
@@ -149,48 +175,54 @@ export default function CoursesScreen() {
                 </View>
                 <View style={styles.infoRow}>
                   <Ionicons
-                    name="stats-chart-outline"
+                    name={delta > 0 ? 'alert-circle-outline' : 'checkmark-circle-outline'}
                     size={16}
                     color={Colors[colorScheme].icon}
                     style={{ marginRight: 4 }}
                   />
-                  <ThemedText style={{ fontSize: 13, color: Colors[colorScheme].textSecondary }}>
-                    Attendance {attendancePercentage}% · Target {requiredAttendance}%
+                  <ThemedText numberOfLines={1} style={[styles.courseStatusText, { color: Colors[colorScheme].textSecondary }]}>
+                    {Number.isFinite(delta) ? delta !== 0 ? (
+                      <>
+                        {delta > 0 ? 'Need to attend ' : 'Can bunk '}
+                        <ThemedText style={{ color: Colors[colorScheme].white }}>
+                          {Math.abs(delta)} class{Math.abs(delta) === 1 ? '' : 'es'}
+                        </ThemedText>
+                      </>
+                    ) : (
+                      <ThemedText style={{ color: Colors[colorScheme].white }}>
+                        {attendanceGuidance}
+                      </ThemedText>
+                    ) : attendanceGuidance}
                   </ThemedText>
                 </View>
                 <View style={styles.infoRow}>
-                  {(() => {
-                    const target = calculateTargetDate(item, holidays, skipDays);
-                    const isMet = target.classesNeeded === 0;
-                    const statusColor = isMet ? Colors[colorScheme].success : deltaColor;
-                    return (
-                      <>
-                        <Ionicons
-                          name={isMet ? "checkmark-circle-outline" : "alert-circle-outline"}
-                          size={16}
-                          color={statusColor}
-                          style={{ marginRight: 4 }}
-                        />
-                        <ThemedText style={{ fontSize: 13, color: statusColor }}>
-                          {isMet ? 'Target Met' : (
-                            target.targetDate
-                              ? `Target by ${target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                              : target.message
-                          )}
-                        </ThemedText>
-                      </>
-                    );
-                  })()}
+                  <Ionicons
+                    name="calendar-outline"
+                    size={16}
+                    color={Colors[colorScheme].icon}
+                    style={{ marginRight: 4 }}
+                  />
+                  <ThemedText numberOfLines={1} style={[styles.courseStatusText, { color: Colors[colorScheme].textSecondary }]}>
+                    {isTargetMet
+                      ? <ThemedText style={{ color: Colors[colorScheme].white }}>Target Met</ThemedText>
+                      : target.targetDate
+                        ? <>
+                            Target by{' '}
+                            <ThemedText style={{ color: Colors[colorScheme].white }}>
+                              {target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </ThemedText>
+                          </>
+                        : target.message}
+                  </ThemedText>
                 </View>
               </View>
-              <View style={styles.deltaContainer}>
-                <AttendanceProgressRing
-                  progress={progress}
-                  color={deltaColor}
-                  size={48}
-                  strokeWidth={4}
-                  delta={delta}
-                />
+              <View style={styles.attendanceMetric}>
+                <ThemedText style={[styles.attendanceMetricValue, { color: deltaColor }]}>
+                  {attendancePercentage}%
+                </ThemedText>
+                <ThemedText style={[styles.attendanceMetricLabel, { color: Colors[colorScheme].textSecondary }]}>
+                  attendance
+                </ThemedText>
               </View>
               <Ionicons
                 name="chevron-forward"
@@ -216,11 +248,7 @@ export default function CoursesScreen() {
         </ThemedText>
         <View style={styles.sortContainer}>
           <TouchableOpacity
-            onPress={() => {
-              if (sortBy === 'attendance') setSortBy('alphabetical');
-              else if (sortBy === 'alphabetical') setSortBy('targetDate');
-              else setSortBy('attendance');
-            }}
+            onPress={changeSortBy}
             style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
           >
             <Ionicons
@@ -230,7 +258,7 @@ export default function CoursesScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            onPress={toggleSortOrder}
             style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
           >
             <Ionicons
@@ -305,11 +333,24 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  deltaContainer: {
-    marginLeft: 8, // Shift more left, closer to course info
-    marginRight: 8, // Add some margin to the right of the circle
-    justifyContent: 'center',
-    alignItems: 'center',
+  attendanceMetric: {
+    minWidth: 54,
+    marginLeft: 8,
+    marginRight: 8,
+    alignItems: 'flex-end',
+  },
+  attendanceMetricValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 24,
+    letterSpacing: -0.4,
+  },
+  attendanceMetricLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   addButton: {
     marginLeft: 'auto',
@@ -352,5 +393,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 2,
+  },
+  courseStatusText: {
+    flexShrink: 1,
+    fontSize: 13,
   },
 });
