@@ -66,7 +66,7 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
             <View style={styles.configRow}>
               <ThemedText type="defaultSemiBold">Show in Tracker</ThemedText>
               <Switch
-                value={tempCourse.showInTracker}
+                value={Boolean(tempCourse.showInTracker)}
                 onValueChange={(newValue) => {
                   setTempCourse({ ...tempCourse, showInTracker: newValue });
                 }}
@@ -77,7 +77,7 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
             <View style={styles.configRow}>
               <ThemedText type="defaultSemiBold">Show in Heatmap</ThemedText>
               <Switch
-                value={tempCourse.showInHeatmap}
+                value={Boolean(tempCourse.showInHeatmap)}
                 onValueChange={(newValue) => {
                   setTempCourse({ ...tempCourse, showInHeatmap: newValue });
                 }}
@@ -88,7 +88,7 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
             <View style={[styles.configRow, { borderBottomWidth: 0 }]}>
               <ThemedText type="defaultSemiBold">Show in Radar</ThemedText>
               <Switch
-                value={tempCourse.showInRadar}
+                value={Boolean(tempCourse.showInRadar)}
                 onValueChange={(newValue) => {
                   setTempCourse({ ...tempCourse, showInRadar: newValue });
                 }}
