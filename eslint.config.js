@@ -6,4 +6,9 @@ module.exports = defineConfig([
   {
     ignores: ['android/**'],
   },
+  {
+    rules: {
+      'react/no-unescaped-entities': 'off',
+    },
+  },
 ]);

@@ -128,7 +128,8 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
+            // Use release signing when keystore env vars are set (CI), otherwise fall back to debug
+            signingConfig (releaseKeystorePath ? signingConfigs.release : signingConfigs.debug)
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

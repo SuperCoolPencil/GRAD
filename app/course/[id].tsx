@@ -235,7 +235,7 @@ export default function CourseDetailScreen() {
       <ThemedView style={styles.centered}>
         <Stack.Screen options={{ title: 'Not Found' }} />
         <ThemedText type="subtitle">Course Not Found</ThemedText>
-        <ThemedText>The course with ID &apos;{id}&apos; could not be found.</ThemedText>
+        <ThemedText>The course with ID '{id}' could not be found.</ThemedText>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={{ color: Colors[colorScheme].tint }}>Go Back</ThemedText>
         </TouchableOpacity>
