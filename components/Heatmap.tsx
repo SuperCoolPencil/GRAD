@@ -125,7 +125,7 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
       // For partial attendance, calculate a color on a gradient from red to a lighter red.
       const startColor = '#ff0000'; // This is a deep red.
       const endColor = '#ffff00'; // A yellow.
-      const factor = value / 100;
+      const factor = Math.min(1, Math.max(0, value / 100));
       const interpolatedColor = interpolateColor(startColor, endColor, factor);
       if (interpolatedColor) {
         style.push({ backgroundColor: interpolatedColor });

@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Course, ScheduleItem } from '@/types';
 import { useCustomAlert } from '@/context/AlertContext';
 import { formatTime as formatTimeUtil } from '@/utils/time';
+import { formatTimeTo24H } from '@/utils/dateHelpers';
 
 interface CourseFormProps {
   initialData?: Partial<Course>;
@@ -31,7 +32,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
   const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
   const [courseName, setCourseName] = useState(initialData?.name || '');
   const [courseId, setCourseId] = useState(initialData?.id || '');
-  const [requiredAttendance, setRequiredAttendance] = useState(initialData?.requiredAttendance || 75);
+  const [requiredAttendance, setRequiredAttendance] = useState(initialData?.requiredAttendance ?? 75);
   const [weeklySchedule, setWeeklySchedule] = useState<ScheduleItem[]>(initialData?.weeklySchedule || []);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -43,12 +44,12 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
     if (!initialData) return;
     setCourseName(initialData.name || '');
     setCourseId(initialData.id || '');
-    setRequiredAttendance(initialData.requiredAttendance || 75);
+    setRequiredAttendance(initialData.requiredAttendance ?? 75);
     setWeeklySchedule(initialData.weeklySchedule || []);
   }, [initialData]);
 
   const formatTime = (date: Date) => formatTimeUtil(date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), is24Hour);
-  const getTimeForStorage = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const getTimeForStorage = (date: Date) => formatTimeTo24H(date);
   const sortSchedule = (items: ScheduleItem[]) => [...items].sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day) || a.timeStart.localeCompare(b.timeStart));
 
   const addWeeklyClass = () => {

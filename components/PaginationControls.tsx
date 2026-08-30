@@ -17,7 +17,7 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
   recordsPerPage,
   onPageChange,
 }) => {
-  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const totalPages = recordsPerPage > 0 ? Math.ceil(Math.max(0, totalRecords) / recordsPerPage) : 0;
   const colorScheme = useColorScheme() ?? 'light';
 
   if (totalPages <= 1) {

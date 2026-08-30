@@ -22,6 +22,7 @@ import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
 import { UpdateCountModal } from '@/components/UpdateCountModal';
 import { calculateTargetDate, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '@/utils/attendance';
+import { parseISOToDate } from '@/utils/dateHelpers';
 
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
   if (delta > 0) return Colors[colorScheme].error;
@@ -77,7 +78,7 @@ export default function CourseDetailScreen() {
   const handleAttendanceClick = (record: AttendanceRecord) => {
     if (!course || !record) return;
 
-    const recordDate = new Date(record.date);
+    const recordDate = parseISOToDate(record.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
@@ -231,8 +232,8 @@ export default function CourseDetailScreen() {
   const presents = course.presents || 0;
   const absents = course.absents || 0;
   const cancelled = course.cancelled || 0;
-  const attendancePercentage = course.attendancePercentage || 0;
-  const requiredAttendance = course.requiredAttendance || 75;
+  const attendancePercentage = course.attendancePercentage ?? 0;
+  const requiredAttendance = course.requiredAttendance ?? 75;
   const delta = getCourseAttendanceDelta(course, holidays, skipDays);
   const deltaColor = getDeltaColor(delta, colorScheme);
   const plannedAbsences = getPlannedSkipDayAbsences(course, holidays, skipDays);
@@ -242,7 +243,9 @@ export default function CourseDetailScreen() {
     : 100;
 
   let attendanceNote = 'On target';
-  if (delta > 0) {
+  if (!Number.isFinite(delta)) {
+    attendanceNote = '100% target is no longer reachable';
+  } else if (delta > 0) {
     attendanceNote = `Attend ${delta} more class${delta === 1 ? '' : 'es'}`;
   } else if (delta < 0) {
     attendanceNote = `Can miss ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;

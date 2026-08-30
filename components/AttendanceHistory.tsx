@@ -7,6 +7,7 @@ import { Colors } from '@/constants/Colors';
 import { AttendanceRecord, Course } from '@/types';
 import PaginationControls from './PaginationControls';
 import ExtraClassTag from './ui/ExtraClassTag';
+import { parseISOToDate } from '@/utils/dateHelpers';
 
 interface AttendanceHistoryProps {
   title: string;
@@ -41,7 +42,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   const styles = getStyles(colorScheme);
 
   const renderItem = ({ item }: { item: AttendanceRecord }) => {
-    const recordDate = new Date(item.date);
+    const recordDate = parseISOToDate(item.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
       day: 'numeric',
       month: 'short',

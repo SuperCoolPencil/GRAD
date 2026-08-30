@@ -258,7 +258,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
     const courseWithInitializedCounters = {
       ...newCourse,
-      requiredAttendance: newCourse.requiredAttendance || 75,
+      requiredAttendance: newCourse.requiredAttendance ?? 75,
       attendanceRecords: newCourse.attendanceRecords || [],
       weeklySchedule: newCourse.weeklySchedule || [],
       extraClasses: newCourse.extraClasses || [],

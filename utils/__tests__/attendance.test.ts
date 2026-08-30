@@ -28,6 +28,33 @@ describe('getAttendanceDelta', () => {
     ])('returns the attendance gap for %i present and %i absent', (presents, absents, required, expected) => {
         expect(getAttendanceDelta(presents, absents, required)).toBe(expected);
     });
+
+    it('matches brute-force attendance outcomes across ordinary targets and counts', () => {
+        for (let target = 5; target <= 95; target += 5) {
+            for (let presents = 0; presents <= 20; presents++) {
+                for (let absents = 0; absents <= 20; absents++) {
+                    if (presents + absents === 0) continue;
+                    const delta = getAttendanceDelta(presents, absents, target);
+                    const fraction = target / 100;
+                    if (presents / (presents + absents) >= fraction) {
+                        let missable = 0;
+                        while (presents / (presents + absents + missable + 1) >= fraction - 1e-12) missable++;
+                        expect(delta).toBe(missable > 0 ? -missable : 0);
+                    } else {
+                        let needed = 0;
+                        while ((presents + needed) / (presents + absents + needed) < fraction - 1e-12) needed++;
+                        expect(delta).toBe(needed);
+                    }
+                }
+            }
+        }
+    });
+
+    it('handles zero and mathematically unreachable 100% targets', () => {
+        expect(getAttendanceDelta(3, 1, 0)).toBe(0);
+        expect(getAttendanceDelta(3, 0, 100)).toBe(0);
+        expect(getAttendanceDelta(3, 1, 100)).toBe(Number.POSITIVE_INFINITY);
+    });
 });
 
 describe('generateHeatmapData', () => {
@@ -112,6 +139,11 @@ describe('calendar-aware attendance delta', () => {
 
         expect(getPlannedSkipDayAbsences(rangedCourse, [], [rangedSkip], now)).toBe(2);
     });
+
+    it('does not double-count a session covered by overlapping skip plans', () => {
+        const duplicateSkip: SkipDay = { ...skipDay, id: 'skip-2', courseId: course.id };
+        expect(getPlannedSkipDayAbsences(course, [], [skipDay, duplicateSkip], now)).toBe(1);
+    });
 });
 
 describe('simulateBunkClass', () => {
@@ -132,6 +164,30 @@ describe('simulateBunkClass', () => {
 
         expect(simulation.currentPercentage).toBe(75);
         expect(simulation.simulatedPercentage).toBe(60);
+    });
+
+    it('adds a new bunk on top of existing planned absences', () => {
+        const first = new Date();
+        first.setDate(first.getDate() + 1);
+        const second = new Date(first);
+        second.setDate(second.getDate() + 1);
+        const firstDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][first.getDay()];
+        const secondDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][second.getDay()];
+        const course: Course = {
+            id: 'CS101', name: 'Computer Science', presents: 8, absents: 2, cancelled: 0,
+            requiredAttendance: 75,
+            weeklySchedule: [
+                { id: 'first', day: firstDay, timeStart: '09:00', timeEnd: '10:00' },
+                { id: 'second', day: secondDay, timeStart: '09:00', timeEnd: '10:00' },
+            ],
+        };
+        const existing: SkipDay = { id: 'existing', date: formatDateToISO(first), courseId: course.id };
+        const simulation = simulateBunkClass(course, [], [existing], 1, {
+            date: formatDateToISO(second), courseId: course.id, timeStart: '09:00', timeEnd: '10:00',
+        });
+
+        expect(simulation.currentPercentage).toBe(73);
+        expect(simulation.simulatedPercentage).toBe(67);
     });
 });
 
@@ -571,6 +627,27 @@ describe('calculateTargetDate', () => {
 
             expect(result.classesNeeded).toBe(0);
             expect(result.targetDate).toBeNull();
+        });
+    });
+
+    describe('Target edge cases', () => {
+        it('reports a 100% target as unreachable after an absence', () => {
+            const result = calculateTargetDate({
+                id: 'PERFECT', name: 'Perfect', presents: 3, absents: 1, cancelled: 0,
+                requiredAttendance: 100,
+            }, [], []);
+
+            expect(result.targetDate).toBeNull();
+            expect(result.classesNeeded).toBe(Number.POSITIVE_INFINITY);
+            expect(result.message).toContain('cannot be recovered');
+        });
+
+        it('treats a zero-percent target as already met', () => {
+            const result = calculateTargetDate({
+                id: 'ZERO', name: 'Zero', presents: 0, absents: 4, cancelled: 0,
+                requiredAttendance: 0,
+            }, [], []);
+            expect(result.classesNeeded).toBe(0);
         });
     });
 

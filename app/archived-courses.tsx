@@ -84,8 +84,8 @@ function ArchivedCoursesContent({
       const nameB = b.name.toLowerCase();
       return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     } else {
-      const percentageA = a.attendancePercentage || 0;
-      const percentageB = b.attendancePercentage || 0;
+      const percentageA = a.attendancePercentage ?? 0;
+      const percentageB = b.attendancePercentage ?? 0;
       return sortOrder === 'asc' ? percentageA - percentageB : percentageB - percentageA;
     }
   });
@@ -108,8 +108,8 @@ function ArchivedCoursesContent({
   };
 
   const renderCourseItem = ({ item }: { item: Course }) => {
-    const attendancePercentage = item.attendancePercentage || 0;
-    const requiredAttendance = item.requiredAttendance || 75;
+    const attendancePercentage = item.attendancePercentage ?? 0;
+    const requiredAttendance = item.requiredAttendance ?? 75;
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>

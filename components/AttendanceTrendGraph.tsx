@@ -5,13 +5,15 @@ import { Colors } from '@/constants/Colors';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Ionicons } from '@expo/vector-icons';
+import { calculateAttendancePercentage } from '@/utils/attendance';
+import { parseISOToDate } from '@/utils/dateHelpers';
 
 interface AttendanceTrendGraphProps {
   courses: Course[];
 }
 
 const getWeekdayName = (dateStr: string): string => {
-  const d = new Date(`${dateStr}T00:00:00`);
+  const d = parseISOToDate(dateStr);
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   return days[d.getDay()];
 };
@@ -28,19 +30,21 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
         list.push(...c.attendanceRecords);
       }
     });
-    list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    list.sort((a, b) => a.date.localeCompare(b.date) || a.timeStart.localeCompare(b.timeStart));
     return list;
   }, [activeCourses]);
 
   // Day-of-the-Week Breakdown Stats
   const dayOfWeekStats = useMemo(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const map: Record<string, { present: number; absent: number; total: number }> = {
       Mon: { present: 0, absent: 0, total: 0 },
       Tue: { present: 0, absent: 0, total: 0 },
       Wed: { present: 0, absent: 0, total: 0 },
       Thu: { present: 0, absent: 0, total: 0 },
       Fri: { present: 0, absent: 0, total: 0 },
+      Sat: { present: 0, absent: 0, total: 0 },
+      Sun: { present: 0, absent: 0, total: 0 },
     };
 
     allRecords.forEach((r) => {
@@ -58,7 +62,7 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
 
     return days.map((day) => {
       const { present, absent, total } = map[day];
-      const pct = total > 0 ? Math.round((present / total) * 100) : 100;
+      const pct = calculateAttendancePercentage(present, absent);
       return { day, present, absent, total, pct };
     });
   }, [allRecords]);
@@ -99,8 +103,10 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
   });
 
   const totalClasses = totalPresents + totalAbsents;
-  const overallPercentage = totalClasses > 0 ? Math.round((totalPresents / totalClasses) * 100) : 100;
-  const isTargetMet = overallPercentage >= 75;
+  const overallPercentage = calculateAttendancePercentage(totalPresents, totalAbsents);
+  const isTargetMet = activeCourses.every(course =>
+    calculateAttendancePercentage(course.presents || 0, course.absents || 0) >= (course.requiredAttendance ?? 75)
+  );
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>

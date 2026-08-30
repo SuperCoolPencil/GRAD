@@ -116,10 +116,11 @@ const ManageHolidaysScreen: React.FC = () => {
     resetSkipDayForm();
   }, [skipDate, skipEndDate, skipReason, addSkipDay, resetSkipDayForm, showAlert]);
 
-  const upcomingHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) >= new Date());
-  const pastHolidays = holidays.filter((h: Holiday) => new Date(h.endDate) < new Date());
-  const upcomingSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) >= new Date());
-  const pastSkipDays = skipDays.filter((s: SkipDay) => new Date(s.date) < new Date());
+  const todayISO = formatDateToISO(new Date());
+  const upcomingHolidays = holidays.filter((h: Holiday) => h.endDate >= todayISO);
+  const pastHolidays = holidays.filter((h: Holiday) => h.endDate < todayISO);
+  const upcomingSkipDays = skipDays.filter((s: SkipDay) => (s.endDate || s.date) >= todayISO);
+  const pastSkipDays = skipDays.filter((s: SkipDay) => (s.endDate || s.date) < todayISO);
 
   // Calculate maximum target date across all non-archived courses
   const maxTargetDateInfo = useMemo(() => {
@@ -129,9 +130,14 @@ const ManageHolidaysScreen: React.FC = () => {
     let maxDate: Date | null = null;
     let maxClassesNeeded = 0;
     let courseName = '';
+    let unreachableCourseName = '';
 
     for (const course of activeCourses) {
       const result = calculateTargetDate(course, holidays, skipDays);
+      if (!Number.isFinite(result.classesNeeded)) {
+        unreachableCourseName = course.name;
+        continue;
+      }
       if (result.targetDate) {
         if (!maxDate || result.targetDate > maxDate) {
           maxDate = result.targetDate;
@@ -142,6 +148,15 @@ const ManageHolidaysScreen: React.FC = () => {
         maxClassesNeeded = result.classesNeeded;
         courseName = course.name;
       }
+    }
+
+    if (unreachableCourseName) {
+      return {
+        message: `${unreachableCourseName}'s 100% target is unreachable`,
+        date: null,
+        courseName: unreachableCourseName,
+        status: 'error' as const,
+      };
     }
 
     if (!maxDate && maxClassesNeeded === 0) {

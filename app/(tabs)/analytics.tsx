@@ -14,7 +14,7 @@ import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { CoursePicker } from '@/components/CoursePicker';
 import { AttendanceTrendGraph } from '@/components/AttendanceTrendGraph';
-import { formatDateToISO } from '@/utils/dateHelpers';
+import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
 
 const formatMonthRange = (date: Date): string => {
   const startMonth = date.toLocaleString('default', { month: 'short' });
@@ -67,7 +67,7 @@ export default function AnalyticsScreen() {
     const course = courses.find(c => c.id === record.course_id);
     if (!record || !course) return;
 
-    const recordDate = new Date(record.date);
+    const recordDate = parseISOToDate(record.date);
     const formattedDate = recordDate.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',

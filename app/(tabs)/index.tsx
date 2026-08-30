@@ -169,8 +169,8 @@ function TodaysClassesContent({
         return;
       }
 
-      const required = course.requiredAttendance || 75;
-      const attendancePercentage = course.attendancePercentage || 0;
+      const required = course.requiredAttendance ?? 75;
+      const attendancePercentage = course.attendancePercentage ?? 0;
           const delta = getCourseAttendanceDelta(course, holidays, skipDays);
 
       // Process weekly scheduled classes only if it's not a holiday
@@ -266,7 +266,9 @@ function TodaysClassesContent({
       colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
     // We can color-code the text that indicates how many you must attend/bunk
     let attendanceNote = 'On target';
-    if (item.needToAttend > 0) {
+    if (!Number.isFinite(item.needToAttend)) {
+      attendanceNote = '100% target is no longer reachable';
+    } else if (item.needToAttend > 0) {
       attendanceNote = `Attend ${item.needToAttend} more class${item.needToAttend === 1 ? '' : 'es'}`;
     } else if (item.needToAttend < 0) {
       const available = Math.abs(item.needToAttend);

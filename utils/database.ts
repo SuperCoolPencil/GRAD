@@ -28,7 +28,7 @@ const adjustCourseAttendanceCount = (
   amount: 1 | -1,
 ): void => {
   const field = getAttendanceCountField(status);
-  db.runSync(`UPDATE courses SET ${field} = ${field} + ? WHERE id = ?`, amount, courseId);
+  db.runSync(`UPDATE courses SET ${field} = MAX(0, ${field} + ?) WHERE id = ?`, amount, courseId);
 };
 
 export const reopenDatabase = () => {
@@ -257,9 +257,9 @@ const getCourseFromDbRow = (
       timeEnd: r.time_end,
     }));
 
-  const presents = c.presents;
-  const absents = c.absents;
-  const cancelled = c.cancelled;
+  const presents = Math.max(0, Number.isFinite(c.presents) ? c.presents : 0);
+  const absents = Math.max(0, Number.isFinite(c.absents) ? c.absents : 0);
+  const cancelled = Math.max(0, Number.isFinite(c.cancelled) ? c.cancelled : 0);
   const totalClasses = presents + absents;
   const attendancePercentage = totalClasses > 0 ? Math.round((presents / totalClasses) * 100) : 100;
 

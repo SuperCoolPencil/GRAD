@@ -21,9 +21,10 @@ const AttendanceProgressRing: React.FC<AttendanceProgressRingProps> = ({
   strokeWidth,
   delta,
 }) => {
-  const radius = (size - strokeWidth) / 2;
+  const safeProgress = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
+  const radius = Math.max(0, (size - strokeWidth) / 2);
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - progress * circumference;
+  const strokeDashoffset = circumference - safeProgress * circumference;
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
@@ -55,7 +56,7 @@ const AttendanceProgressRing: React.FC<AttendanceProgressRingProps> = ({
           <Ionicons name="checkmark-sharp" size={30} color={color} />
         ) : (
           <ThemedText style={[styles.deltaText, { color: delta > 0 ? Colors[colorScheme].error : Colors[colorScheme].success }]}>
-            {delta > 0 ? `${delta}` : Math.abs(delta)}
+            {Number.isFinite(delta) ? (delta > 0 ? `${delta}` : Math.abs(delta)) : '∞'}
           </ThemedText>
         )}
       </View>

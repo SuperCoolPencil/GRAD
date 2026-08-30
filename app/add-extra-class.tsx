@@ -17,7 +17,7 @@ import { useFocusEffect, useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
 import CustomHeader from '@/components/CustomHeader';
 import { formatTime as formatTimeUtil } from '@/utils/time';
-import { formatDateToISO } from '@/utils/dateHelpers';
+import { formatDateToISO, formatTimeTo24H } from '@/utils/dateHelpers';
 import { CoursePicker } from '@/components/CoursePicker';
 
 const AddExtraClassScreen = () => {
@@ -65,13 +65,7 @@ const AddExtraClassScreen = () => {
     return formatTimeUtil(timeString, is24Hour);
   };
 
-  const getTimeForStorage = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
+  const getTimeForStorage = formatTimeTo24H;
 
   // Date picker handler
   const handleDateChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
@@ -118,12 +112,25 @@ const AddExtraClassScreen = () => {
       return;
     }
 
+    const start = getTimeForStorage(startTime);
+    const end = getTimeForStorage(endTime);
+    const course = courses.find(item => item.id === selectedCourse);
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+    const overlaps = [
+      ...(course?.weeklySchedule?.filter(item => item.day === dayName) || []),
+      ...(course?.extraClasses?.filter(item => item.date === formatDateToISO(date)) || []),
+    ].some(item => start < item.timeEnd && end > item.timeStart);
+    if (overlaps) {
+      showAlert('Error', 'This extra class overlaps another class in the selected course.');
+      return;
+    }
+
     try {
       await addExtraClass(
         selectedCourse,
         formatDateToISO(date),  // date should be YYYY-MM-DD format
-        startTime ? getTimeForStorage(startTime) : '',
-        endTime ? getTimeForStorage(endTime) : ''
+        start,
+        end,
       );
 
       showAlert("Success", "Extra class added successfully!", [

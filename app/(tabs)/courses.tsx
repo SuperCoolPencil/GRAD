@@ -51,8 +51,8 @@ export default function CoursesScreen() {
       }
 
       // If delta is the same, sort by attendance percentage
-      const percentageA = a.attendancePercentage || 0;
-      const percentageB = b.attendancePercentage || 0;
+      const percentageA = a.attendancePercentage ?? 0;
+      const percentageB = b.attendancePercentage ?? 0;
 
       if (sortOrder === 'asc') {
         // For ascending, lower percentage is "worse" so it comes first
@@ -96,6 +96,11 @@ export default function CoursesScreen() {
       if (!targetA.targetDate && targetB.targetDate) return sortOrder === 'asc' ? 1 : -1;
 
       // If neither has a target date, sort by classes needed (delta)
+      if (!Number.isFinite(deltaA) || !Number.isFinite(deltaB)) {
+        if (deltaA === deltaB) return 0;
+        const comparison = !Number.isFinite(deltaA) ? 1 : -1;
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
       return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
     }
 
@@ -103,8 +108,8 @@ export default function CoursesScreen() {
   });
 
   const renderCourseItem = ({ item }: { item: Course }) => {
-    const attendancePercentage = item.attendancePercentage || 0;
-    const requiredAttendance = item.requiredAttendance || 75;
+    const attendancePercentage = item.attendancePercentage ?? 0;
+    const requiredAttendance = item.requiredAttendance ?? 75;
 
     const presentCount = item.presents || 0;
     const absentCount = item.absents || 0;
@@ -170,7 +175,7 @@ export default function CoursesScreen() {
                           {isMet ? 'Target Met' : (
                             target.targetDate
                               ? `Target by ${target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                              : `${target.classesNeeded} classes needed`
+                              : target.message
                           )}
                         </ThemedText>
                       </>

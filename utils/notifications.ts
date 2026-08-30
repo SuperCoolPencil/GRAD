@@ -167,17 +167,19 @@ export const cancelCourseNotifications = async (courseId: string) => {
 // Function to format the notification content
 const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass, occurrenceDate?: string) => {
 
-  const attendancePercentage = course.attendancePercentage || 0;
+  const attendancePercentage = course.attendancePercentage ?? 0;
   const presents = course.presents || 0;
   const absents = course.absents || 0;
-  const requiredAttendance = course.requiredAttendance || 75;
+  const requiredAttendance = course.requiredAttendance ?? 75;
 
   const attendanceDelta = getAttendanceDelta(presents, absents, requiredAttendance);
   const type = attendanceDelta > 0 ? 'attend' : 'bunk';
   const count = Math.abs(attendanceDelta);
   let deltaMessage: string;
 
-  if (type === 'attend' && count > 0) {
+  if (!Number.isFinite(attendanceDelta)) {
+    deltaMessage = 'A 100% target is no longer reachable after an absence.';
+  } else if (type === 'attend' && count > 0) {
     deltaMessage = `You need to attend ${count} more class(es).`;
   } else {
     deltaMessage = `You can bunk ${count} class(es)!`;

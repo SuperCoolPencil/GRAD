@@ -59,7 +59,9 @@ export default function VisualAttendanceTracker() {
 
   const handleDayHeaderPress = (dateString: string) => {
     const holiday = holidays.find(day => dateString >= day.startDate && dateString <= day.endDate);
-    const skipDay = skipDays.find(day => day.date === dateString && !day.courseId);
+    const skipDay = skipDays.find(day =>
+      !day.courseId && !day.timeStart && dateString >= day.date && dateString <= (day.endDate || day.date)
+    );
 
     if (holiday) {
       showAlert(

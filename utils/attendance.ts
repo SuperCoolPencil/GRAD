@@ -1,6 +1,6 @@
 import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, Holiday, SkipDay } from '@/types';
 import { db, getSetting, bulkAddAttendanceRecords, getCourses } from './database';
-import { formatDateToISO } from './dateHelpers';
+import { formatDateToISO, parseISOToDate } from './dateHelpers';
 import {
   addAttendanceStatusToCounts,
   decideAutomaticAttendance,
@@ -18,14 +18,25 @@ export const getAttendanceDelta = (
   requiredAttendance: number,
   plannedAbsences = 0,
 ): number => {
-  const total = presents + absents + plannedAbsences;
-  const requiredFraction = requiredAttendance / 100;
+  const safePresents = Math.max(0, Number.isFinite(presents) ? presents : 0);
+  const safeAbsents = Math.max(0, Number.isFinite(absents) ? absents : 0);
+  const safePlannedAbsences = Math.max(0, Number.isFinite(plannedAbsences) ? plannedAbsences : 0);
+  const total = safePresents + safeAbsents + safePlannedAbsences;
+  const requiredFraction = Math.min(1, Math.max(0, Number.isFinite(requiredAttendance) ? requiredAttendance / 100 : 0.75));
 
-  if (total === 0 || requiredFraction <= 0 || requiredFraction >= 1) return 0;
+  if (total === 0 || requiredFraction <= 0) return 0;
+  if (requiredFraction === 1) {
+    return safePresents === total ? 0 : Number.POSITIVE_INFINITY;
+  }
 
-  return presents / total >= requiredFraction
-    ? -Math.floor(presents / requiredFraction - total) || 0
-    : Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
+  // The epsilon prevents exact boundaries such as 75% from flipping because of
+  // binary floating-point representation.
+  const epsilon = 1e-10;
+  if (safePresents / total >= requiredFraction) {
+    const missable = Math.floor(safePresents / requiredFraction - total + epsilon);
+    return missable > 0 ? -missable : 0;
+  }
+  return Math.ceil((requiredFraction * total - safePresents) / (1 - requiredFraction) - epsilon);
 };
 
 /**
@@ -67,8 +78,8 @@ export const getPlannedSkipDayAbsences = (
 
   const holidayDates = new Set<string>();
   for (const holiday of holidays) {
-    const date = new Date(`${holiday.startDate}T00:00:00`);
-    const endDate = new Date(`${holiday.endDate}T00:00:00`);
+    const date = parseISOToDate(holiday.startDate);
+    const endDate = parseISOToDate(holiday.endDate);
     while (date <= endDate) {
       holidayDates.add(formatDateToISO(date));
       date.setDate(date.getDate() + 1);
@@ -86,8 +97,8 @@ export const getPlannedSkipDayAbsences = (
 
     if (endDateStr < firstFutureISO) continue;
 
-    let current = new Date(`${startDateStr}T00:00:00`);
-    const end = new Date(`${endDateStr}T00:00:00`);
+    let current = parseISOToDate(startDateStr);
+    const end = parseISOToDate(endDateStr);
 
     while (current <= end) {
       const dateString = formatDateToISO(current);
@@ -140,7 +151,7 @@ export const getCourseAttendanceDelta = (
 ): number => getAttendanceDelta(
   course.presents || 0,
   course.absents || 0,
-  course.requiredAttendance || 75,
+  course.requiredAttendance ?? 75,
   getPlannedSkipDayAbsences(course, holidays, skipDays, now),
 );
 
@@ -175,9 +186,9 @@ export const simulateBunkClass = (
   additionalAbsences: number = 1,
   bunkedClass?: BunkedClass,
 ): BunkSimulationResult => {
-  const presents = course.presents || 0;
-  const absents = course.absents || 0;
-  const required = course.requiredAttendance || 75;
+  const presents = Math.max(0, Number.isFinite(course.presents) ? course.presents : 0);
+  const absents = Math.max(0, Number.isFinite(course.absents) ? course.absents : 0);
+  const required = Number.isFinite(course.requiredAttendance) ? course.requiredAttendance : 75;
   const todayISO = formatDateToISO(new Date());
   const isFutureBunk = bunkedClass?.date && bunkedClass.date > todayISO;
   const simulatedSkipDays = isFutureBunk && bunkedClass
@@ -221,6 +232,8 @@ export const simulateBunkClass = (
     } else {
       message = `On target! Bunking this brings you right to your limit.`;
     }
+  } else if (!Number.isFinite(simulatedDelta)) {
+    message = 'A 100% target cannot be recovered after an absence.';
   } else {
     message = `Careful! You will need to attend ${simulatedDelta} class${simulatedDelta === 1 ? '' : 'es'} to recover.`;
   }
@@ -304,7 +317,7 @@ const processWeeklySchedule = (
         );
 
         if (classDateTime > lastRecordDate && classDateTime <= now) {
-          const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+          const dateString = formatDateToISO(currentDate);
           const attendanceId = `${course.id}-${schedule.id}-${dateString}`;
 
           // check local existing ids first
@@ -496,7 +509,9 @@ export const createMissingAttendanceRecords = (): boolean => {
     // The existingRecordIds set prevents duplicate records from being created.
     let lastRecordDate: Date;
     if (course.createdAt) {
-      lastRecordDate = new Date(course.createdAt);
+      lastRecordDate = /^\d{4}-\d{2}-\d{2}$/.test(course.createdAt)
+        ? parseISOToDate(course.createdAt)
+        : new Date(course.createdAt);
     } else {
       // fallback: start from today
       lastRecordDate = new Date();
@@ -549,11 +564,13 @@ export const createMissingAttendanceRecords = (): boolean => {
 
 
 export const calculateAttendancePercentage = (presents: number, absents: number): number => {
-  const totalClasses = presents + absents;
+  const safePresents = Math.max(0, Number.isFinite(presents) ? presents : 0);
+  const safeAbsents = Math.max(0, Number.isFinite(absents) ? absents : 0);
+  const totalClasses = safePresents + safeAbsents;
   if (totalClasses === 0) {
     return 100; // Return 100 if no classes have been held
   }
-  const percentage = (presents / totalClasses) * 100;
+  const percentage = (safePresents / totalClasses) * 100;
   return Math.round(percentage);
 };
 
@@ -561,9 +578,9 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
   if (courses.length === 0) return null;
 
   // we need to filter out courses that should not be shown in heatmap
-  const filteredCourses = courses.filter(course => course.attendanceRecords && course.showInHeatmap);
+  const filteredCourses = courses.filter(course => course.attendanceRecords && course.showInHeatmap !== false);
 
-  const allDates = filteredCourses.flatMap(c => c.attendanceRecords?.map(r => new Date(r.date)) ?? []);
+  const allDates = filteredCourses.flatMap(c => c.attendanceRecords?.map(r => parseISOToDate(r.date)) ?? []);
   if (allDates.length === 0) return null;
 
   return new Date(Math.min(...allDates.map(d => d.getTime())));
@@ -596,8 +613,8 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
   const holidayMap: { [key: string]: boolean } = {};
 
   holidays.forEach(holiday => {
-    let current = new Date(holiday.startDate);
-    const end = new Date(holiday.endDate);
+    let current = parseISOToDate(holiday.startDate);
+    const end = parseISOToDate(holiday.endDate);
     while (current <= end) {
       holidayMap[formatDateToISO(current)] = true;
       current.setDate(current.getDate() + 1);
@@ -605,7 +622,7 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
   });
 
   courses.forEach(course => {
-    if (course.attendanceRecords && course.showInHeatmap) {
+    if (course.attendanceRecords && course.showInHeatmap !== false) {
       course.attendanceRecords.forEach(record => {
         const date = record.date;
         if (!dateMap[date]) {
@@ -667,9 +684,12 @@ export const calculateTargetDate = (
   holidays: Holiday[],
   skipDays: SkipDay[]
 ): { targetDate: Date | null; classesNeeded: number; message: string } => {
-  const presents = course.presents || 0;
-  const absents = course.absents || 0;
-  const requiredAttendance = course.requiredAttendance || 75;
+  const presents = Math.max(0, Number.isFinite(course.presents) ? course.presents : 0);
+  const absents = Math.max(0, Number.isFinite(course.absents) ? course.absents : 0);
+  const rawRequiredAttendance = course.requiredAttendance ?? 75;
+  const requiredAttendance = Number.isFinite(rawRequiredAttendance)
+    ? Math.min(100, Math.max(0, rawRequiredAttendance))
+    : 75;
 
   // Check if course has any weekly schedule or extra classes
   const hasWeeklySchedule = course.weeklySchedule && course.weeklySchedule.length > 0;
@@ -687,8 +707,8 @@ export const calculateTargetDate = (
   // Build a set of all holiday dates
   const holidaySet = new Set<string>();
   for (const h of holidays) {
-    let current = new Date(h.startDate);
-    const end = new Date(h.endDate);
+    let current = parseISOToDate(h.startDate);
+    const end = parseISOToDate(h.endDate);
     while (current <= end) {
       holidaySet.add(formatDateToISO(current));
       current.setDate(current.getDate() + 1);
@@ -705,11 +725,14 @@ export const calculateTargetDate = (
 
   // Calculate projected percentage after skip days
   const projectedPercentage = projectedTotal > 0 ? (presents / projectedTotal) * 100 : 100;
-  console.log(`[TARGET] Current: ${presents}P/${absents}A = ${(presents / (presents + absents) * 100).toFixed(1)}%`);
+  const currentPercentage = totalClasses > 0 ? (presents / totalClasses) * 100 : 100;
+  console.log(`[TARGET] Current: ${presents}P/${absents}A = ${currentPercentage.toFixed(1)}%`);
   console.log(`[TARGET] Projected: ${presents}P/${projectedAbsents}A (total ${projectedTotal}) = ${projectedPercentage.toFixed(1)}%`);
 
+  const attendanceDelta = getAttendanceDelta(presents, absents, requiredAttendance, futureAbsences);
+
   // If already meeting target (even after accounting for future skip day absences)
-  if (projectedPercentage >= requiredAttendance) {
+  if (attendanceDelta <= 0) {
     console.log(`[TARGET] Still meeting target after skip days`);
     return {
       targetDate: null,
@@ -718,13 +741,16 @@ export const calculateTargetDate = (
     };
   }
 
-  // Calculate classes needed to reach target after accounting for future absences
-  // Formula: (presents + x) / (projectedTotal + x) >= target/100
-  // Solving for x: x >= (target * projectedTotal - 100 * presents) / (100 - target)
-  const requiredFraction = requiredAttendance / 100;
-  const classesNeeded = Math.ceil(
-    (requiredFraction * projectedTotal - presents) / (1 - requiredFraction)
-  );
+  if (!Number.isFinite(attendanceDelta)) {
+    return {
+      targetDate: null,
+      classesNeeded: Number.POSITIVE_INFINITY,
+      message: 'A 100% target cannot be recovered after an absence',
+    };
+  }
+
+  // The shared delta formula is the single source of truth for recovery classes.
+  const classesNeeded = attendanceDelta;
 
   if (classesNeeded <= 0) {
     return {
