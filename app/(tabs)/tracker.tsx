@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useMemo, useContext } from 'react';
-import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useColorScheme, useWindowDimensions, ScrollView, ActivityIndicator, StyleProp, ViewStyle, Modal, TextInput } from 'react-native';
 import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
 import { Link, useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { getWeekStartDate, getWeekEndDate, isDateInPast, addWeeksToDate, subWeeksFromDate } from '@/utils/dateHelpers';
+import { formatDateToISO, getWeekStartDate, getWeekEndDate, isDateInPast, addWeeksToDate, subWeeksFromDate, parseISOToDate } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,12 +13,16 @@ import { useAttendanceData, ClassItem } from '@/hooks/useAttendanceData';
 import { useAttendanceActions } from '@/hooks/useAttendanceActions';
 import TimeAxis from '@/components/AttendanceTracker/TimeAxis';
 import DayColumn from '@/components/AttendanceTracker/DayColumn';
+import { useCustomAlert } from '@/context/AlertContext';
 
 export default function VisualAttendanceTracker() {
-  const { is24Hour, weekStartsOn } = useContext(AppContext);
+  const { is24Hour, weekStartsOn, holidays, skipDays, addHoliday, deleteHoliday, addSkipDay, deleteSkipDay } = useContext(AppContext);
+  const { showAlert } = useCustomAlert();
   const colorScheme = useColorScheme() ?? 'light';
   const [startDate, setStartDate] = useState(() => getWeekStartDate(new Date(), weekStartsOn));
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dayEventToName, setDayEventToName] = useState<{ date: string; type: 'holiday' | 'skip' } | null>(null);
+  const [dayEventName, setDayEventName] = useState('');
   const { width: screenWidth } = useWindowDimensions();
 
   const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, weekStartsOn, true);
@@ -48,6 +52,55 @@ export default function VisualAttendanceTracker() {
 
   const handleNextWeek = () => {
     setStartDate(prevDate => addWeeksToDate(prevDate, 1));
+  };
+
+  const handleDayHeaderPress = (dateString: string) => {
+    const holiday = holidays.find(day => dateString >= day.startDate && dateString <= day.endDate);
+    const skipDay = skipDays.find(day => day.date === dateString && !day.courseId);
+
+    if (holiday) {
+      showAlert(
+        holiday.name,
+        `${dateString} is marked as a holiday.`,
+        [
+          { text: 'Remove Holiday', style: 'destructive', onPress: () => deleteHoliday(holiday.id) },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+      return;
+    }
+
+    if (skipDay) {
+      showAlert(
+        'Skip Day',
+        `${dateString} is marked as a skip day.`,
+        [
+          { text: 'Remove Skip Day', style: 'destructive', onPress: () => deleteSkipDay(skipDay.id) },
+          { text: 'Cancel', style: 'cancel' },
+        ],
+      );
+      return;
+    }
+
+    const isPastDate = dateString < formatDateToISO(new Date());
+    showAlert(
+      format(dateString, 'EEE, MMM d'),
+      'How should this day affect your schedule?',
+      [
+        {
+          text: 'Mark Holiday',
+          onPress: () => {
+            setDayEventToName({ date: dateString, type: 'holiday' });
+            setDayEventName('');
+          },
+        },
+        ...(!isPastDate ? [{ text: 'Mark Skip Day', onPress: () => {
+          setDayEventToName({ date: dateString, type: 'skip' });
+          setDayEventName('');
+        } }] : []),
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
   };
 
   const HOUR_HEIGHT = 60;
@@ -246,6 +299,50 @@ export default function VisualAttendanceTracker() {
       backgroundColor: '#FF3B30',
       zIndex: 10,
     },
+    eventModalBackdrop: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.58)',
+      padding: 24,
+    },
+    eventModal: {
+      width: '100%',
+      maxWidth: 360,
+      borderRadius: 16,
+      padding: 20,
+      backgroundColor: Colors[colorScheme].card,
+    },
+    eventModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 6,
+    },
+    eventModalSubtitle: {
+      color: Colors[colorScheme].textSecondary,
+      marginBottom: 16,
+    },
+    eventNameInput: {
+      borderWidth: 1,
+      borderColor: Colors[colorScheme].separator,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: Colors[colorScheme].text,
+      backgroundColor: Colors[colorScheme].inputBackground,
+      fontSize: 16,
+    },
+    eventModalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 8,
+      marginTop: 20,
+    },
+    eventModalButton: {
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
   }), [colorScheme, dayColumnWidth]);
 
   const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
@@ -313,6 +410,63 @@ export default function VisualAttendanceTracker() {
           onChange={handleDateChange}
         />
       )}
+      <Modal
+        visible={dayEventToName !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDayEventToName(null)}
+      >
+        <View style={styles.eventModalBackdrop}>
+          <View style={styles.eventModal}>
+            <ThemedText style={styles.eventModalTitle}>
+              Name this {dayEventToName?.type === 'skip' ? 'skip day' : 'holiday'}
+            </ThemedText>
+            <ThemedText style={styles.eventModalSubtitle}>
+              {dayEventToName ? format(parseISOToDate(dayEventToName.date), 'EEEE, MMMM d') : ''}
+            </ThemedText>
+            <TextInput
+              autoFocus
+              value={dayEventName}
+              onChangeText={setDayEventName}
+              placeholder={dayEventToName?.type === 'skip' ? 'e.g. Study leave' : 'e.g. Gandhi Jayanti'}
+              placeholderTextColor={Colors[colorScheme].placeholder}
+              style={styles.eventNameInput}
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (!dayEventToName || !dayEventName.trim()) return;
+                if (dayEventToName.type === 'holiday') {
+                  addHoliday({ id: Date.now().toString(), name: dayEventName.trim(), startDate: dayEventToName.date, endDate: dayEventToName.date });
+                } else {
+                  addSkipDay({ id: Date.now().toString(), date: dayEventToName.date, reason: dayEventName.trim() });
+                }
+                setDayEventToName(null);
+              }}
+            />
+            <View style={styles.eventModalActions}>
+              <TouchableOpacity style={styles.eventModalButton} onPress={() => setDayEventToName(null)}>
+                <ThemedText style={{ color: Colors[colorScheme].tint }}>Cancel</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.eventModalButton, { backgroundColor: Colors[colorScheme].tint, opacity: dayEventName.trim() ? 1 : 0.45 }]}
+                disabled={!dayEventName.trim()}
+                onPress={() => {
+                  if (!dayEventToName) return;
+                  if (dayEventToName.type === 'holiday') {
+                    addHoliday({ id: Date.now().toString(), name: dayEventName.trim(), startDate: dayEventToName.date, endDate: dayEventToName.date });
+                  } else {
+                    addSkipDay({ id: Date.now().toString(), date: dayEventToName.date, reason: dayEventName.trim() });
+                  }
+                  setDayEventToName(null);
+                }}
+              >
+                <ThemedText style={{ color: Colors[colorScheme].buttonText, fontWeight: 'bold' }}>
+                  Add {dayEventToName?.type === 'skip' ? 'Skip Day' : 'Holiday'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {loading && <ActivityIndicator size="large" color={Colors[colorScheme].tint} style={{ marginVertical: 20 }} />}
       {error && <ThemedText style={{ color: Colors[colorScheme].error, textAlign: 'center', marginVertical: 20 }}>{error}</ThemedText>}
       {!loading && !error && !hasClasses && (
@@ -362,6 +516,7 @@ export default function VisualAttendanceTracker() {
                     handleLongPressClass={(classItem) => router.push(`/course/${classItem.course.id}`)}
                     courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
+                    onHeaderPress={handleDayHeaderPress}
                   />
                 ))}
               </View>

@@ -6,6 +6,7 @@ import { parseISOToDate, parse24HToDate, isDateInPast } from '@/utils/dateHelper
 import { ClassItem } from '@/hooks/useAttendanceData';
 import { Colors } from '@/constants/Colors';
 import { AppContext } from '@/context/AppContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface DayColumnProps {
   dateString: string;
@@ -17,6 +18,7 @@ interface DayColumnProps {
   handleLongPressClass?: (classItem: ClassItem) => void;
   courseColors: Record<string, string>;
   weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  onHeaderPress: (dateString: string) => void;
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({
@@ -29,8 +31,9 @@ const DayColumn: React.FC<DayColumnProps> = ({
   handleLongPressClass,
   courseColors,
   weekStartsOn,
+  onHeaderPress,
 }) => {
-  const { holidays } = useContext(AppContext);
+  const { holidays, skipDays } = useContext(AppContext);
   const date = parseISOToDate(dateString);
   const colorScheme = useColorScheme() ?? 'light';
   const dayOfWeek = format(date, 'EEEEE', { weekStartsOn });
@@ -40,6 +43,75 @@ const DayColumn: React.FC<DayColumnProps> = ({
     const endDate = parseISOToDate(h.endDate);
     return date >= startDate && date <= endDate;
   });
+  const skipDay = skipDays.find(day => day.date === dateString && !day.courseId);
+  const dayEvent = holiday
+    ? { label: holiday.name, backgroundColor: 'rgba(255, 255, 255, 0.08)' }
+    : skipDay
+      ? {
+          label: skipDay.reason || 'Skip Day',
+          backgroundColor: colorScheme === 'dark' ? 'rgba(201, 61, 51, 0.14)' : 'rgba(251, 30, 8, 0.12)',
+        }
+      : null;
+
+  const renderHeader = () => (
+    <TouchableOpacity
+      style={styles.dayColumnHeader}
+      onPress={() => onHeaderPress(dateString)}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Manage ${format(date, 'EEEE, MMMM d')}`}
+    >
+      <ThemedText style={styles.dayInitialText}>{dayOfWeek}</ThemedText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        <ThemedText style={styles.dateNumberText}>{format(date, 'd')}</ThemedText>
+        {holiday && <Ionicons name="calendar" size={11} color={Colors[colorScheme].tint} />}
+        {!holiday && skipDay && <Ionicons name="close-circle" size={11} color={Colors[colorScheme].error} />}
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderDayEventTint = (backgroundColor: string) => (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor,
+      }}
+    />
+  );
+
+  const renderDayEventLabel = (label: string) => (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <View
+        style={[
+          styles.verticalTextContainer,
+          {
+            width: gridHeight,
+            height: styles.dayColumn.width,
+          },
+        ]}
+      >
+        <ThemedText style={[styles.courseCode, { color: Colors[colorScheme].text }]}>{label}</ThemedText>
+      </View>
+    </View>
+  );
 
   const gridHeight = styles.gridHeight;
 
@@ -52,48 +124,16 @@ const DayColumn: React.FC<DayColumnProps> = ({
     ? (currentHour - startHour) * 60
     : 0;
 
-  if (holiday) {
+  if (dayEvent) {
     return (
       <View style={styles.dayColumn}>
         {/* Header - inline */}
-        <View style={styles.dayColumnHeader}>
-          <ThemedText style={styles.dayInitialText}>{dayOfWeek}</ThemedText>
-          <ThemedText style={styles.dateNumberText}>{format(date, 'd')}</ThemedText>
-        </View>
+        {renderHeader()}
 
-        {/* Grid content with holiday block */}
+        {/* Full-day event lane */}
         <View style={[styles.dayColumnContent, { height: gridHeight }]}>
-          {/* Holiday - full column, no margins */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              justifyContent: 'center',
-              alignItems: 'center',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)', // Subtle holiday background
-            }}
-            accessible
-            accessibilityLabel={`Holiday: ${holiday.name}`}
-          >
-            <View
-              style={[
-                styles.verticalTextContainer,
-                {
-                  width: gridHeight,
-                  height: styles.dayColumn?.width || 40,
-                }
-              ]}
-            >
-              <ThemedText
-                style={[styles.courseCode, { color: Colors[colorScheme].text }]}
-              >
-                {holiday.name}
-              </ThemedText>
-            </View>
-          </View>
+          {renderDayEventTint(dayEvent.backgroundColor)}
+          {renderDayEventLabel(dayEvent.label)}
         </View>
       </View>
     );
@@ -102,10 +142,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
   return (
     <View style={styles.dayColumn}>
       {/* Header - inline */}
-      <View style={styles.dayColumnHeader}>
-        <ThemedText style={styles.dayInitialText}>{dayOfWeek}</ThemedText>
-        <ThemedText style={styles.dateNumberText}>{format(date, 'd')}</ThemedText>
-      </View>
+      {renderHeader()}
 
       {/* Grid content */}
       <View style={[styles.dayColumnContent, { height: gridHeight }]}>
