@@ -8,9 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CustomHeaderProps {
   title: string;
+  rightElement?: React.ReactNode;
 }
 
-const CustomHeader = ({ title }: CustomHeaderProps) => {
+const CustomHeader = ({ title, rightElement }: CustomHeaderProps) => {
   const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -25,6 +26,11 @@ const CustomHeader = ({ title }: CustomHeaderProps) => {
           <Ionicons name="arrow-back" size={24} color={Colors[colorScheme].text} />
         </TouchableOpacity>
         <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
+        {rightElement && (
+          <View style={styles.rightElementContainer}>
+            {rightElement}
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -42,6 +48,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: 'bold',
+  },
+  rightElementContainer: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });
 

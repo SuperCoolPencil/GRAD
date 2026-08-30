@@ -188,6 +188,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
       data={weeklySchedule}
       renderItem={renderScheduleItem}
       keyExtractor={(item) => item.id}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
       style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
       contentContainerStyle={styles.contentContainer}
       ListHeaderComponent={

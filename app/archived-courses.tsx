@@ -1,5 +1,5 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Pressable } from 'react-native';
-import { useContext } from 'react';
+import { StyleSheet, FlatList, TouchableOpacity, View } from 'react-native';
+import { useContext, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useCustomAlert } from '@/context/AlertContext';
 import CustomHeader from '@/components/CustomHeader';
@@ -11,27 +11,84 @@ import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
+
 export default function ArchivedCoursesScreen() {
   const { courses } = useContext(AppContext);
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
 
+  const [sortBy, setSortBy] = useState<'attendance' | 'alphabetical'>('attendance');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const headerRightControls = (
+    <View style={styles.sortContainer}>
+      <TouchableOpacity
+        onPress={() => setSortBy(sortBy === 'attendance' ? 'alphabetical' : 'attendance')}
+        style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
+      >
+        <Ionicons
+          name={sortBy === 'alphabetical' ? 'text' : 'stats-chart'}
+          size={20}
+          color={Colors[colorScheme].tint}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+        style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
+      >
+        <Ionicons
+          name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
+          size={20}
+          color={Colors[colorScheme].tint}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
-      <CustomHeader title="Archived Courses" />
+      <CustomHeader title="Archived Courses" rightElement={headerRightControls} />
       <ArchivedCoursesContent
         courses={courses}
         colorScheme={colorScheme}
         router={router}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
       />
     </View>
   );
 }
 
-function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Course[]; colorScheme: 'light' | 'dark'; router: any }) {
-  const archivedCourses = courses.filter(course => course.isArchived === true);
+function ArchivedCoursesContent({
+  courses,
+  colorScheme,
+  router,
+  sortBy,
+  sortOrder,
+}: {
+  courses: Course[];
+  colorScheme: 'light' | 'dark';
+  router: any;
+  sortBy: 'attendance' | 'alphabetical';
+  sortOrder: 'asc' | 'desc';
+}) {
   const { unarchiveCourse } = useContext(AppContext);
   const { showAlert } = useCustomAlert();
+
+  const archivedCourses = courses.filter(course => course.isArchived === true);
+
+  const sortedCourses = [...archivedCourses].sort((a, b) => {
+    if (sortBy === 'alphabetical') {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+    } else {
+      const percentageA = a.attendancePercentage || 0;
+      const percentageB = b.attendancePercentage || 0;
+      return sortOrder === 'asc' ? percentageA - percentageB : percentageB - percentageA;
+    }
+  });
 
   const handleUnarchive = (item: Course) => {
     showAlert(
@@ -52,21 +109,11 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
 
   const renderCourseItem = ({ item }: { item: Course }) => {
     const attendancePercentage = item.attendancePercentage || 0;
-
-    const getAccentColor = () => {
-      if (attendancePercentage >= item.requiredAttendance)
-        return Colors[colorScheme].success;
-      if (attendancePercentage >= item.requiredAttendance - 10)
-        return Colors[colorScheme].warning;
-      return Colors[colorScheme].error;
-    };
-
-    const accentColor = getAccentColor();
+    const requiredAttendance = item.requiredAttendance || 75;
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
         <View style={[styles.courseCardContainer, {
-          borderLeftColor: accentColor,
           shadowColor: Colors[colorScheme].shadow,
           backgroundColor: Colors[colorScheme].card,
         }]}>
@@ -80,23 +127,31 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
           >
             <ThemedView style={styles.courseHeader}>
               <View style={styles.courseInfo}>
-                <ThemedText
-                  type="subtitle"
-                  style={{ color: Colors[colorScheme].text }}
-                >
-                  {item.name} ({item.id})
-                </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme].textSecondary }}>
-                  Attendance {attendancePercentage}% · Target {item.requiredAttendance}%
-                </ThemedText>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <ThemedText
+                    type="subtitle"
+                    style={{ color: Colors[colorScheme].text }}
+                  >
+                    {truncate(item.name, 24)}
+                  </ThemedText>
+                </View>
+                <View style={styles.attendanceRow}>
+                  <ThemedText style={{ fontSize: 13, color: Colors[colorScheme].textSecondary }}>
+                    Attendance {attendancePercentage}% · Target {requiredAttendance}%
+                  </ThemedText>
+                </View>
               </View>
-              <Pressable onPress={() => handleUnarchive(item)}>
+              <TouchableOpacity
+                onPress={() => handleUnarchive(item)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.unarchiveButton}
+              >
                 <Ionicons
                   name="arrow-up-circle-outline"
-                  size={32}
-                  color={Colors[colorScheme].icon}
+                  size={28}
+                  color={Colors[colorScheme].tint}
                 />
-              </Pressable>
+              </TouchableOpacity>
             </ThemedView>
           </ThemedView>
         </View>
@@ -106,8 +161,9 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
 
   return (
     <FlatList
-      data={archivedCourses}
+      data={sortedCourses}
       showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
       renderItem={renderCourseItem}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.coursesList}
@@ -127,11 +183,10 @@ const styles = StyleSheet.create({
   coursesList: {
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 24,
     paddingTop: 16,
   },
   courseCardContainer: {
-    borderLeftWidth: 4,
     borderRadius: 16,
     marginBottom: 0,
   },
@@ -145,9 +200,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'transparent',
+    flex: 1,
   },
   courseInfo: {
     flex: 1,
+    gap: 4,
+  },
+  unarchiveButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sortButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attendanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
   emptyContainer: {

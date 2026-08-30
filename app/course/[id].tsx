@@ -40,6 +40,7 @@ export default function CourseDetailScreen() {
     updateCourse,
     updateCourseCounts,
     archiveCourse,
+    unarchiveCourse,
     deleteExtraClass,
     is24Hour,
     getPaginatedAttendanceRecords,
@@ -183,10 +184,29 @@ export default function CourseDetailScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Archive',
-          style: 'destructive', // Use destructive style for clarity
+          style: 'destructive',
           onPress: () => {
             archiveCourse(course.id);
-            router.back(); // Go back after archiving
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUnarchive = () => {
+    if (!course) return;
+    showAlert(
+      'Unarchive Course',
+      `Are you sure you want to unarchive "${course.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unarchive',
+          style: 'destructive',
+          onPress: () => {
+            unarchiveCourse(course.id);
+            router.back();
           },
         },
       ]
@@ -250,8 +270,12 @@ export default function CourseDetailScreen() {
           >
             <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
           </TouchableOpacity>
-          {/* Add Archive Button */}
-          {course.isArchived !== true && (
+          {/* Add Archive / Unarchive Button */}
+          {course.isArchived ? (
+            <TouchableOpacity onPress={handleUnarchive} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+              <Ionicons name="arrow-up-circle-outline" size={24} color={Colors[colorScheme].tint} />
+            </TouchableOpacity>
+          ) : (
             <TouchableOpacity onPress={handleArchive} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
               <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
             </TouchableOpacity>
