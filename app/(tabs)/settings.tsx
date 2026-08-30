@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, StyleSheet, Linking, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
+import { View, StyleSheet, Linking, ScrollView, useColorScheme } from 'react-native';
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -19,17 +19,37 @@ import {
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext';
+import SettingsSection from '@/components/SettingsSection';
 import SettingsButton from '@/components/SettingsButton';
 import SettingsToggle from '@/components/SettingsToggle';
+import SettingsSegmentedRow from '@/components/SettingsSegmentedRow';
 import { CustomPicker } from '@/components/CustomPicker';
 
 export default function SettingsScreen() {
-  const { courses, clearData, notificationTiming, updateNotificationTiming, notificationsEnabled, toggleNotifications, is24Hour, toggle24Hour, updateNotificationsEnabled, toggleUpdateNotifications, weekStartsOn, updateWeekStartsOn, save, loadData, settings, updateSetting } = useContext(AppContext);
+  const {
+    courses,
+    clearData,
+    notificationTiming,
+    updateNotificationTiming,
+    notificationsEnabled,
+    toggleNotifications,
+    is24Hour,
+    toggle24Hour,
+    updateNotificationsEnabled,
+    toggleUpdateNotifications,
+    weekStartsOn,
+    updateWeekStartsOn,
+    save,
+    loadData,
+    settings,
+    updateSetting,
+  } = useContext(AppContext);
+
   const [isModalVisible, setModalVisible] = useState(false);
-  const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState('absent');
+  const [defaultAttendanceStatus, setDefaultAttendanceStatus] = useState<'present' | 'absent' | 'cancelled'>('absent');
   const [latestVersion, setLatestVersion] = useState('');
+  const [isWeekPickerVisible, setWeekPickerVisible] = useState(false);
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   useEffect(() => {
@@ -38,7 +58,6 @@ export default function SettingsScreen() {
         const response = await fetch('https://api.github.com/repos/SuperCoolPencil/GRAD/releases/latest');
         const data = await response.json();
         setLatestVersion(data.tag_name);
-        // Schedule update notification if enabled and update is available
         if (updateNotificationsEnabled && data.tag_name && data.tag_name !== `v${Constants.expoConfig?.version}`) {
           await scheduleUpdateNotification(data.tag_name);
         } else if (!updateNotificationsEnabled || data.tag_name === `v${Constants.expoConfig?.version}`) {
@@ -50,11 +69,11 @@ export default function SettingsScreen() {
     };
 
     fetchLatestVersion();
-  }, [updateNotificationsEnabled]); // Add updateNotificationsEnabled to dependency array
+  }, [updateNotificationsEnabled]);
 
   useEffect(() => {
     if (settings.defaultAttendanceStatus) {
-      setDefaultAttendanceStatus(settings.defaultAttendanceStatus);
+      setDefaultAttendanceStatus(settings.defaultAttendanceStatus as 'present' | 'absent' | 'cancelled');
     }
   }, [settings.defaultAttendanceStatus]);
 
@@ -62,60 +81,58 @@ export default function SettingsScreen() {
     setDefaultAttendanceStatus(status);
     updateSetting('defaultAttendanceStatus', status);
   };
+
   const router = useRouter();
-  const { colors } = useTheme();
-  const colorScheme = useColorScheme();
-  const activeColorScheme = colorScheme ?? 'light';
-  const { showAlert } = useCustomAlert(); // Use the custom alert hook
+  const colorScheme = useColorScheme() ?? 'light';
+  const activeColorScheme = colorScheme;
+  const { showAlert } = useCustomAlert();
 
   const handleClearData = async () => {
     showAlert(
-      "Clear All Data",
-      "Are you sure you want to clear all data? This action cannot be undone.",
+      'Clear All Data',
+      'Are you sure you want to clear all data? This action cannot be undone.',
       [
         {
-          text: "Cancel",
-          style: "cancel",
+          text: 'Cancel',
+          style: 'cancel',
         },
         {
-          text: "OK",
-          style: "destructive",
+          text: 'Clear Data',
+          style: 'destructive',
           onPress: async () => {
             await clearData();
-            showAlert("Data Cleared", "All application data has been removed.");
-          }
-        }
+            showAlert('Data Cleared', 'All application data has been removed.');
+          },
+        },
       ]
     );
   };
 
   const handleExportData = async () => {
-    await save(); // Ensure all data is saved before exporting
-
-    // Close the database to ensure all data is written to the file
+    await save();
     db.closeSync();
 
     const dbUri = FileSystem.documentDirectory + 'SQLite/grad.db';
     const fileInfo = await FileSystem.getInfoAsync(dbUri);
     if (!fileInfo.exists) {
-      showAlert("Error", "Database file not found.");
-      reopenDatabase(); // Reopen the database even if sharing fails
+      showAlert('Error', 'Database file not found.');
+      reopenDatabase();
       return;
     }
 
     try {
       await Sharing.shareAsync(dbUri);
     } catch {
-      showAlert("Error", "Failed to share the database file.");
+      showAlert('Error', 'Failed to share the database file.');
     } finally {
-      reopenDatabase(); // Reopen the database after sharing is complete
+      reopenDatabase();
     }
   };
 
   const handleImportData = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/octet-stream', // For .db files
+        type: 'application/octet-stream',
       });
 
       if (result.canceled) {
@@ -126,28 +143,25 @@ export default function SettingsScreen() {
         const fileUri = result.assets[0].uri;
         const dbPath = FileSystem.documentDirectory + 'SQLite/grad.db';
 
-        // Close the current database connection
         db.closeSync();
 
-        // Overwrite the existing database file
         await FileSystem.copyAsync({
           from: fileUri,
           to: dbPath,
         });
 
-        // Reopen the database and load data
         reopenDatabase();
         initDatabase();
         if (loadData) {
           loadData();
         }
 
-        showAlert("Success", "Database imported successfully. Please restart the app if you encounter any issues.");
+        showAlert('Success', 'Database imported successfully. Please restart the app if you encounter any issues.');
       }
     } catch (error) {
-      console.error("Failed to import database:", error);
-      showAlert("Error", "Failed to import the database file.");
-      reopenDatabase(); // Reopen the database even if import fails
+      console.error('Failed to import database:', error);
+      showAlert('Error', 'Failed to import the database file.');
+      reopenDatabase();
     }
   };
 
@@ -172,190 +186,169 @@ export default function SettingsScreen() {
 
   const handleUpdateNotificationToggle = async () => {
     toggleUpdateNotifications();
-    if (!updateNotificationsEnabled) { // If it's about to be enabled
+    if (!updateNotificationsEnabled) {
       await requestPermissions();
       if (latestVersion && latestVersion !== `v${Constants.expoConfig?.version}`) {
         await scheduleUpdateNotification(latestVersion);
       }
-    } else { // If it's about to be disabled
+    } else {
       await cancelUpdateNotification();
     }
   };
 
+  const hasUpdate = latestVersion && latestVersion !== `v${Constants.expoConfig?.version}`;
 
   return (
-    <ThemedView style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">
-          Settings
-        </ThemedText>
+        <ThemedText type="title">Settings</ThemedText>
       </ThemedView>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        style={{ flex: 1, backgroundColor: colors.background }}
+        style={{ flex: 1, backgroundColor: Colors[colorScheme].background }}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* General Settings Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>General Settings</ThemedText>
+        {/* Section 1: Preferences */}
+        <SettingsSection title="Preferences">
           <SettingsToggle
             title="24-Hour Clock"
+            subtitle="Display time in 24-hour format"
             iconName="time-outline"
             value={is24Hour}
             onValueChange={toggle24Hour}
           />
-        </View>
-
-        {/* Default Attendance Status Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Default Attendance Status</ThemedText>
-          <View style={styles.statusButtonsContainer}>
-            <TouchableOpacity
-              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].success }, defaultAttendanceStatus === 'present' && { backgroundColor: Colors[activeColorScheme].success }]}
-              onPress={() => handleDefaultStatusChange('present')}
-            >
-              <ThemedText style={defaultAttendanceStatus === 'present' ? styles.selectedButtonText : {}}>Present</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].error }, defaultAttendanceStatus === 'absent' && { backgroundColor: Colors[activeColorScheme].error }]}
-              onPress={() => handleDefaultStatusChange('absent')}
-            >
-              <ThemedText style={defaultAttendanceStatus === 'absent' ? styles.selectedButtonText : {}}>Absent</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].icon }, defaultAttendanceStatus === 'cancelled' && { backgroundColor: Colors[activeColorScheme].icon }]}
-              onPress={() => handleDefaultStatusChange('cancelled')}
-            >
-              <ThemedText style={defaultAttendanceStatus === 'cancelled' ? styles.selectedButtonText : {}}>Cancelled</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Start of Week Setting */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Start of Week</ThemedText>
-          <CustomPicker
-            label=""
-            selectedValue={weekStartsOn}
-            onValueChange={(value) => updateWeekStartsOn(value as 0 | 1 | 2 | 3 | 4 | 5 | 6)}
-            options={daysOfWeek.map((day, index) => ({ label: day, value: index }))}
-            modalTitle="Select Start Day of Week"
+          <SettingsButton
+            title="Start of Week"
+            subtitle="First day shown on timetables"
+            value={daysOfWeek[weekStartsOn]}
+            iconName="calendar-outline"
+            onPress={() => setWeekPickerVisible(true)}
           />
-        </View>
+          <SettingsSegmentedRow
+            title="Default Attendance Status"
+            iconName="checkmark-circle-outline"
+            value={defaultAttendanceStatus}
+            onValueChange={handleDefaultStatusChange}
+            options={[
+              { label: 'Present', value: 'present', activeColor: Colors[activeColorScheme].success },
+              { label: 'Absent', value: 'absent', activeColor: Colors[activeColorScheme].error },
+              { label: 'Cancelled', value: 'cancelled', activeColor: Colors[activeColorScheme].icon },
+            ]}
+          />
+        </SettingsSection>
 
-        {/* Notifications Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Notifications</ThemedText>
+        {/* Section 2: Notifications */}
+        <SettingsSection title="Notifications">
           <SettingsToggle
-            title="Enable Class Notifications"
+            title="Class Notifications"
+            subtitle="Get reminders before or after classes"
             iconName="notifications-outline"
             value={notificationsEnabled}
             onValueChange={handleNotificationToggle}
           />
           {notificationsEnabled && (
             <SettingsButton
+              title="Notification Timing"
+              value={`${notificationTiming.value} mins ${
+                notificationTiming.anchor === 'before_start'
+                  ? 'before start'
+                  : notificationTiming.anchor === 'after_start'
+                  ? 'after start'
+                  : 'after end'
+              }`}
+              iconName="timer-outline"
               onPress={() => setModalVisible(true)}
-              title={`Notify ${notificationTiming.value} mins ${notificationTiming.anchor === 'before_start' ? 'before start' : notificationTiming.anchor === 'after_start' ? 'after start' : 'after end'}`}
-              iconName="time-outline"
-              backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-              textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
             />
           )}
           <SettingsToggle
-            title="Enable App Update Notifications"
+            title="App Update Notifications"
+            subtitle="Notify when new versions are available"
             iconName="cloud-download-outline"
             value={updateNotificationsEnabled}
             onValueChange={handleUpdateNotificationToggle}
           />
-        </View>
+        </SettingsSection>
 
-        {/* Data Management Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Data Management</ThemedText>
+        {/* Section 3: Data & Storage */}
+        <SettingsSection title="Data & Storage">
           <SettingsButton
-            onPress={() => router.push("/manage-holidays")}
             title="Manage Holidays"
-            iconName="calendar-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
+            subtitle="Set institution breaks and non-class dates"
+            iconName="calendar-clear-outline"
+            onPress={() => router.push('/manage-holidays')}
           />
           <SettingsButton
-            onPress={() => router.push("/archived-courses")}
             title="View Archived Courses"
+            subtitle="Browse past or inactive courses"
             iconName="archive-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            onPress={() => router.push('/archived-courses')}
           />
           <SettingsButton
-            onPress={handleExportData}
             title="Export Database"
+            subtitle="Backup your attendance data"
             iconName="download-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            onPress={handleExportData}
           />
           <SettingsButton
-            onPress={handleImportData}
             title="Import Database"
+            subtitle="Restore from a saved database file"
             iconName="cloud-upload-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            onPress={handleImportData}
           />
           <SettingsButton
+            title="Refresh Course Colors"
+            subtitle="Re-assign theme colors to courses"
+            iconName="refresh-outline"
             onPress={() => {
               clearCourseColors();
               if (loadData) {
                 loadData();
               }
-              showAlert("Colors Refreshed", "Course colors have been updated.");
+              showAlert('Colors Refreshed', 'Course colors have been updated.');
             }}
-            title="Refresh Course Colors"
-            iconName="refresh-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
           />
           <SettingsButton
-            onPress={handleClearData}
             title="Clear All Data"
+            subtitle="Permanently erase all courses and records"
             iconName="trash-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.error : Colors.light.error}
+            isDestructive
+            onPress={handleClearData}
           />
-        </View>
+        </SettingsSection>
 
-        {/* About Section */}
-        <View style={styles.sectionContainer}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>About</ThemedText>
+        {/* Section 4: About & Support */}
+        <SettingsSection title="About & Support">
           <SettingsButton
-            onPress={() => { }}
-            title={`Version v${Constants.expoConfig?.version}` || 'N/A'}
+            title="App Version"
+            value={`v${Constants.expoConfig?.version || '1.0.0'}`}
             iconName="information-circle-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
             isInformational
           />
-          {latestVersion && latestVersion !== `v${Constants.expoConfig?.version}` && (
+          {hasUpdate && (
             <SettingsButton
+              title="Update Available"
+              value={latestVersion}
+              iconName="arrow-up-circle-outline"
+              iconColor={Colors[colorScheme].tint}
               onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD/releases/latest')}
-              title={`Update available: ${latestVersion}`}
-              iconName="download-outline"
-              backgroundColor={colorScheme === 'dark' ? Colors.dark.tint : Colors.light.tint}
-              textColor={colorScheme === 'dark' ? Colors.dark.white : Colors.light.white}
             />
           )}
           <SettingsButton
-            onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD')}
             title="GitHub Repository"
+            subtitle="Source code and issue tracker"
             iconName="logo-github"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            onPress={() => Linking.openURL('https://github.com/SuperCoolPencil/GRAD')}
           />
           <SettingsButton
-            onPress={() => Linking.openURL('mailto:thesupercoolpencil@gmail.com')}
             title="Contact Us"
+            subtitle="Send feedback or report bugs"
             iconName="mail-outline"
-            backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
-            textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            onPress={() => Linking.openURL('mailto:thesupercoolpencil@gmail.com')}
           />
-        </View>
+        </SettingsSection>
 
+        {/* Notification Time Modal */}
         <NotificationTimeModal
           isVisible={isModalVisible}
           onClose={() => setModalVisible(false)}
@@ -365,52 +358,38 @@ export default function SettingsScreen() {
           }}
           initialTiming={notificationTiming}
         />
+
+        {/* Start of Week Picker Modal */}
+        {isWeekPickerVisible && (
+          <CustomPicker
+            label=""
+            selectedValue={weekStartsOn}
+            onValueChange={(value) => {
+              updateWeekStartsOn(value as 0 | 1 | 2 | 3 | 4 | 5 | 6);
+              setWeekPickerVisible(false);
+            }}
+            options={daysOfWeek.map((day, index) => ({ label: day, value: index as 0 | 1 | 2 | 3 | 4 | 5 | 6 }))}
+            modalTitle="Select Start Day of Week"
+          />
+        )}
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 8,
-    width: 60,
-    textAlign: 'center',
-  },
   titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
     paddingHorizontal: 16,
     paddingTop: 64,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  sectionContainer: {
-    marginBottom: 16,
-    backgroundColor: 'transparent',
-  },
-  sectionTitle: {
-    marginBottom: 12,
-  },
-  statusButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
-  statusButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  selectedButtonText: {
-    color: '#fff',
+    paddingTop: 4,
+    paddingBottom: 32,
   },
 });
