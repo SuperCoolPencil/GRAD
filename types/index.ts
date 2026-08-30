@@ -1,8 +1,17 @@
+export type AttendanceStatus = 'present' | 'absent' | 'cancelled';
+export type AttendanceCountField = 'presents' | 'absents' | 'cancelled';
+
+export interface AttendanceCounts {
+  presents: number;
+  absents: number;
+  cancelled: number;
+}
+
 export interface AttendanceRecord {
   id: string;
   course_id: string;
   date: string;
-  status: 'present' | 'absent' | 'cancelled';
+  status: AttendanceStatus;
   isExtraClass: boolean;
   scheduleItemId?: string;
   timeStart: string;

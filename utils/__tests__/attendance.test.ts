@@ -1,4 +1,4 @@
-import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, getAttendanceDelta } from '../attendance';
+import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
 
@@ -26,6 +26,37 @@ describe('getAttendanceDelta', () => {
         [6, 1, 75, -1],
     ])('returns the attendance gap for %i present and %i absent', (presents, absents, required, expected) => {
         expect(getAttendanceDelta(presents, absents, required)).toBe(expected);
+    });
+});
+
+describe('calendar-aware attendance delta', () => {
+    const course: Course = {
+        id: 'CS101',
+        name: 'Computer Science',
+        presents: 4,
+        absents: 1,
+        cancelled: 0,
+        requiredAttendance: 75,
+        weeklySchedule: [{ id: 'monday', day: 'Monday', timeStart: '09:00', timeEnd: '10:00' }],
+    };
+    const now = new Date('2026-01-10T12:00:00');
+    const skipDay: SkipDay = { id: 'skip-1', date: '2026-01-12' };
+
+    it('includes future applicable skip-day classes as planned absences', () => {
+        expect(getPlannedSkipDayAbsences(course, [], [skipDay], now)).toBe(1);
+        expect(getCourseAttendanceDelta(course, [], [skipDay], now)).toBe(2);
+    });
+
+    it('does not count a skip day that falls on a holiday', () => {
+        const holidays: Holiday[] = [{
+            id: 'holiday-1',
+            name: 'Holiday',
+            startDate: '2026-01-12',
+            endDate: '2026-01-12',
+        }];
+
+        expect(getPlannedSkipDayAbsences(course, holidays, [skipDay], now)).toBe(0);
+        expect(getCourseAttendanceDelta(course, holidays, [skipDay], now)).toBe(0);
     });
 });
 

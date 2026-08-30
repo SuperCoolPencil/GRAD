@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord, Holiday, SkipDay } from '../types';
+import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, ExtraClass, Holiday, ScheduleItem, SkipDay } from '../types';
 import { formatDateToISO } from './dateHelpers';
+import { getAttendanceCountField } from './attendanceStatus';
 
 const DATABASE_NAME = 'grad.db';
 const SCHEMA_VERSION = 1;
@@ -20,6 +21,15 @@ const openDatabase = () => {
 };
 
 export let db = openDatabase();
+
+const adjustCourseAttendanceCount = (
+  courseId: string,
+  status: AttendanceStatus,
+  amount: 1 | -1,
+): void => {
+  const field = getAttendanceCountField(status);
+  db.runSync(`UPDATE courses SET ${field} = ${field} + ? WHERE id = ?`, amount, courseId);
+};
 
 export const reopenDatabase = () => {
   db = openDatabase();
@@ -408,7 +418,7 @@ export const updateCourse = (course: Course) => {
   });
 };
 
-export const updateAttendanceRecord = (recordId: string, newStatus: "present" | "absent" | "cancelled") => {
+export const updateAttendanceRecord = (recordId: string, newStatus: AttendanceStatus) => {
   console.log(`[DB] Updating attendance record ${recordId} to status: ${newStatus}`);
   db.withTransactionSync(() => {
     const existingRecord = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
@@ -429,27 +439,8 @@ export const updateAttendanceRecord = (recordId: string, newStatus: "present" | 
       newStatus, recordId
     );
 
-    // Adjust course counts based on status change
-    const courseId = existingRecord.course_id;
-    const oldStatus = existingRecord.status;
-
-    // Decrement count for old status
-    if (oldStatus === 'present') {
-      db.runSync('UPDATE courses SET presents = presents - 1 WHERE id = ?', courseId);
-    } else if (oldStatus === 'absent') {
-      db.runSync('UPDATE courses SET absents = absents - 1 WHERE id = ?', courseId);
-    } else if (oldStatus === 'cancelled') {
-      db.runSync('UPDATE courses SET cancelled = cancelled - 1 WHERE id = ?', courseId);
-    }
-
-    // Increment count for new status
-    if (newStatus === 'present') {
-      db.runSync('UPDATE courses SET presents = presents + 1 WHERE id = ?', courseId);
-    } else if (newStatus === 'absent') {
-      db.runSync('UPDATE courses SET absents = absents + 1 WHERE id = ?', courseId);
-    } else if (newStatus === 'cancelled') {
-      db.runSync('UPDATE courses SET cancelled = cancelled + 1 WHERE id = ?', courseId);
-    }
+    adjustCourseAttendanceCount(existingRecord.course_id, existingRecord.status, -1);
+    adjustCourseAttendanceCount(existingRecord.course_id, newStatus, 1);
   });
 };
 
@@ -464,18 +455,7 @@ export const deleteAttendanceRecord = (recordId: string) => {
   db.withTransactionSync(() => {
     db.runSync('DELETE FROM attendance_records WHERE id = ?', recordId);
 
-    let updateColumn = '';
-    if (record.status === 'present') {
-      updateColumn = 'presents';
-    } else if (record.status === 'absent') {
-      updateColumn = 'absents';
-    } else if (record.status === 'cancelled') {
-      updateColumn = 'cancelled';
-    }
-
-    if (updateColumn) {
-      db.runSync(`UPDATE courses SET ${updateColumn} = ${updateColumn} - 1 WHERE id = ?`, record.course_id);
-    }
+    adjustCourseAttendanceCount(record.course_id, record.status, -1);
   });
 };
 
@@ -492,24 +472,13 @@ export const addAttendanceRecord = (record: AttendanceRecord) => {
       record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
     );
 
-    let updateColumn = '';
-    if (record.status === 'present') {
-      updateColumn = 'presents';
-    } else if (record.status === 'absent') {
-      updateColumn = 'absents';
-    } else if (record.status === 'cancelled') {
-      updateColumn = 'cancelled';
-    }
-
-    if (updateColumn) {
-      db.runSync(`UPDATE courses SET ${updateColumn} = ${updateColumn} + 1 WHERE id = ?`, record.course_id);
-    }
+    adjustCourseAttendanceCount(record.course_id, record.status, 1);
   });
 };
 
 export const bulkAddAttendanceRecords = (
   records: AttendanceRecord[],
-  courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } }
+  courseCounts: Record<string, AttendanceCounts>,
 ) => {
   if (records.length === 0) return;
   console.log(`Bulk adding ${records.length} attendance records`);

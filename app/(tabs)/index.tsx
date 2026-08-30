@@ -10,14 +10,14 @@ import { Colors } from "@/constants/Colors"; // Ensure this path matches your pr
 import { AppContext } from "@/context/AppContext";
 import { formatTime } from "@/utils/time";
 import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
-import { AttendanceRecord, ClassItem, Course, ScheduleItem, ExtraClass, Holiday } from "@/types";
+import { AttendanceRecord, ClassItem, Course, ScheduleItem, ExtraClass, Holiday, SkipDay } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { CustomAlert } from "@/components/CustomAlert";
 import ExtraClassTag from "@/components/ui/ExtraClassTag";
-import { getAttendanceDelta } from '@/utils/attendance';
+import { getCourseAttendanceDelta } from '@/utils/attendance';
 
 const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
 
@@ -64,7 +64,7 @@ const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (statu
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, upsertAttendance, loading, is24Hour, holidays } = useContext(AppContext);
+  const { courses, upsertAttendance, loading, is24Hour, holidays, skipDays } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
@@ -137,6 +137,7 @@ export default function TodaysClassesScreen() {
         is24Hour={is24Hour}
         showTomorrow={showTomorrow} // Pass new state
         holidays={holidays}
+        skipDays={skipDays}
       />
       <CustomAlert
         isVisible={showAlert}
@@ -167,6 +168,7 @@ function TodaysClassesContent({
   is24Hour,
   showTomorrow,
   holidays,
+  skipDays,
 }: {
   courses: Course[];
   upsertAttendance: (courseId: string, scheduleId: string, status: AttendanceRecord['status'], isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
@@ -177,6 +179,7 @@ function TodaysClassesContent({
   is24Hour: boolean;
   showTomorrow: boolean;
   holidays: Holiday[];
+  skipDays: SkipDay[];
 }) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -213,11 +216,9 @@ function TodaysClassesContent({
         return;
       }
 
-      const presents = course.presents || 0;
-      const absents = course.absents || 0;
       const required = course.requiredAttendance || 75;
       const attendancePercentage = course.attendancePercentage || 0;
-      const delta = getAttendanceDelta(presents, absents, required);
+          const delta = getCourseAttendanceDelta(course, holidays, skipDays);
 
       // Process weekly scheduled classes only if it's not a holiday
       if (!currentHoliday) {
@@ -285,7 +286,7 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, showTomorrow, holidays, setTodaysClasses]);
+  }, [courses, loading, showTomorrow, holidays, skipDays, setTodaysClasses]);
 
   const handleMarkAttendance = (
     courseId: string,

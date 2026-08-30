@@ -23,7 +23,7 @@ import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
-import { calculateTargetDate, getAttendanceDelta } from '@/utils/attendance';
+import { calculateTargetDate, getCourseAttendanceDelta } from '@/utils/attendance';
 
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
   if (delta > 0) return Colors[colorScheme].error;
@@ -226,7 +226,7 @@ export default function CourseDetailScreen() {
   const cancelled = course.cancelled || 0;
   const attendancePercentage = course.attendancePercentage || 0;
   const requiredAttendance = course.requiredAttendance || 75;
-  const delta = getAttendanceDelta(presents, absents, requiredAttendance);
+  const delta = getCourseAttendanceDelta(course, holidays, skipDays);
   const deltaColor = getDeltaColor(delta, colorScheme);
 
   let attendanceNote = 'Meeting required attendance';

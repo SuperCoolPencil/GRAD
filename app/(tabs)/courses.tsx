@@ -9,7 +9,7 @@ import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { calculateTargetDate, getAttendanceDelta } from '@/utils/attendance';
+import { calculateTargetDate, getCourseAttendanceDelta } from '@/utils/attendance';
 
 const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
 
@@ -43,8 +43,8 @@ export default function CoursesScreen() {
         return nameB.localeCompare(nameA);
       }
     } else if (sortBy === 'attendance') {
-      const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
-      const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
+      const deltaA = getCourseAttendanceDelta(a, holidays, skipDays);
+      const deltaB = getCourseAttendanceDelta(b, holidays, skipDays);
 
       if (deltaA !== deltaB) {
         return sortOrder === 'asc' ? deltaB - deltaA : deltaA - deltaB;
@@ -67,8 +67,8 @@ export default function CoursesScreen() {
       // Descending: courses doing well first (more bunk days, later target dates)
       const targetA = calculateTargetDate(a, holidays, skipDays);
       const targetB = calculateTargetDate(b, holidays, skipDays);
-      const deltaA = getAttendanceDelta(a.presents || 0, a.absents || 0, a.requiredAttendance || 75);
-      const deltaB = getAttendanceDelta(b.presents || 0, b.absents || 0, b.requiredAttendance || 75);
+      const deltaA = getCourseAttendanceDelta(a, holidays, skipDays);
+      const deltaB = getCourseAttendanceDelta(b, holidays, skipDays);
 
       // Check if courses are meeting target (delta <= 0 means can bunk)
       const aMeetsTarget = deltaA <= 0;
@@ -108,7 +108,7 @@ export default function CoursesScreen() {
 
     const presentCount = item.presents || 0;
     const absentCount = item.absents || 0;
-    const delta = getAttendanceDelta(presentCount, absentCount, requiredAttendance);
+    const delta = getCourseAttendanceDelta(item, holidays, skipDays);
     const deltaColor = getDeltaColor(delta, colorScheme);
 
     // Calculate progress for the ring

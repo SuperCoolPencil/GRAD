@@ -1,6 +1,12 @@
-import { Course, AttendanceRecord, Holiday, SkipDay } from '@/types';
+import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, Holiday, SkipDay } from '@/types';
 import { db, getSetting, bulkAddAttendanceRecords, getCourses } from './database';
-import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
+import { formatDateToISO } from './dateHelpers';
+import {
+  addAttendanceStatusToCounts,
+  decideAutomaticAttendance,
+  emptyAttendanceCounts,
+  getDefaultAttendanceStatus,
+} from './attendanceStatus';
 
 /**
  * Returns classes to attend (positive), classes that can be missed (negative),
@@ -10,8 +16,9 @@ export const getAttendanceDelta = (
   presents: number,
   absents: number,
   requiredAttendance: number,
+  plannedAbsences = 0,
 ): number => {
-  const total = presents + absents;
+  const total = presents + absents + plannedAbsences;
   const requiredFraction = requiredAttendance / 100;
 
   if (total === 0 || requiredFraction <= 0 || requiredFraction >= 1) return 0;
@@ -21,9 +28,99 @@ export const getAttendanceDelta = (
     : Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
 };
 
+/**
+ * Counts future classes that have already been planned as absences via skip days.
+ * Holidays always win: a class that will not happen cannot be an absence.
+ */
+export const getPlannedSkipDayAbsences = (
+  course: Course,
+  holidays: Holiday[],
+  skipDays: SkipDay[],
+  now = new Date(),
+): number => {
+  const firstFutureDate = new Date(now);
+  firstFutureDate.setDate(firstFutureDate.getDate() + 1);
+  const firstFutureISO = formatDateToISO(firstFutureDate);
+
+  const holidayDates = new Set<string>();
+  for (const holiday of holidays) {
+    const date = new Date(`${holiday.startDate}T00:00:00`);
+    const endDate = new Date(`${holiday.endDate}T00:00:00`);
+    while (date <= endDate) {
+      holidayDates.add(formatDateToISO(date));
+      date.setDate(date.getDate() + 1);
+    }
+  }
+
+  const applicableSkipDates = new Set(
+    skipDays
+      .filter(skipDay => (!skipDay.courseId || skipDay.courseId === course.id) && skipDay.date >= firstFutureISO)
+      .map(skipDay => skipDay.date),
+  );
+
+  return [...applicableSkipDates].reduce((total, dateString) => {
+    if (holidayDates.has(dateString)) return total;
+
+    const date = new Date(`${dateString}T00:00:00`);
+    const dayOfWeek = getDayOfWeek(date);
+    const weeklyClasses = course.weeklySchedule?.filter(schedule =>
+      schedule.day.toLowerCase() === dayOfWeek,
+    ).length ?? 0;
+    const extraClasses = course.extraClasses?.filter(extraClass => extraClass.date === dateString).length ?? 0;
+
+    return total + weeklyClasses + extraClasses;
+  }, 0);
+};
+
+/** The calendar-aware attendance delta used anywhere the app shows “bunk” or “attend”. */
+export const getCourseAttendanceDelta = (
+  course: Course,
+  holidays: Holiday[],
+  skipDays: SkipDay[],
+  now?: Date,
+): number => getAttendanceDelta(
+  course.presents || 0,
+  course.absents || 0,
+  course.requiredAttendance || 75,
+  getPlannedSkipDayAbsences(course, holidays, skipDays, now),
+);
+
 const getDayOfWeek = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   return days[date.getDay()];
+};
+
+const addAutomaticAttendanceRecord = ({
+  course,
+  record,
+  isHoliday,
+  isSkipDay,
+  defaultStatus,
+  newRecords,
+  courseCounts,
+}: {
+  course: Pick<Course, 'id' | 'name'>;
+  record: AttendanceRecord;
+  isHoliday: boolean;
+  isSkipDay: boolean;
+  defaultStatus: AttendanceStatus;
+  newRecords: AttendanceRecord[];
+  courseCounts: Record<string, AttendanceCounts>;
+}): void => {
+  const decision = decideAutomaticAttendance({ isHoliday, isSkipDay, defaultStatus });
+
+  if (decision.action === 'skip') {
+    console.log(`[ATTEND] Skipping ${record.isExtraClass ? 'extra ' : ''}class for ${course.name} on ${record.date} (holiday)`);
+    return;
+  }
+
+  newRecords.push({ ...record, status: decision.status });
+  const counts = courseCounts[course.id] ?? (courseCounts[course.id] = emptyAttendanceCounts());
+  addAttendanceStatusToCounts(counts, decision.status);
+
+  const kind = record.isExtraClass ? ' extra-class' : '';
+  const source = decision.reason === 'skip-day' ? ' (skip day)' : '';
+  console.log(`[ATTEND] Created ${decision.status.toUpperCase()}${kind} record for ${course.name} on ${record.date} at ${record.timeStart}${source}`);
 };
 
 const processWeeklySchedule = (
@@ -33,8 +130,8 @@ const processWeeklySchedule = (
   now: Date,
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
-  courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
-  defaultStatus: string,
+  courseCounts: Record<string, AttendanceCounts>,
+  defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
   isSkipDay?: (dateString: string, courseId: string) => boolean
 ) => {
@@ -74,53 +171,27 @@ const processWeeklySchedule = (
 
           if (exists) continue;
 
-          // holiday detection: skip holidays (no attendance records)
           const isHoliday = holidaySet
             ? holidaySet.has(dateString)
             : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', dateString, dateString);
-
-          if (isHoliday) {
-            console.log(`[ATTEND] Skipping scheduled class for ${course.name} on ${dateString} (holiday)`);
-            continue;
-          }
-
-          // skip day detection: create ABSENT record (planned absence)
-          if (isSkipDay && isSkipDay(dateString, course.id)) {
-            newRecords.push({
-              id: attendanceId,
-              course_id: course.id,
-              date: dateString,
-              status: 'absent',
-              isExtraClass: false,
-              scheduleItemId: schedule.id,
-              timeStart: schedule.timeStart,
-              timeEnd: schedule.timeEnd,
-            });
-
-            if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-            courseCounts[course.id].absents++;
-            console.log(`[ATTEND] Created ABSENT record for ${course.name} on ${dateString} (skip day)`);
-            continue;
-          }
-
-          // normal (non-holiday, non-skip) record
-          newRecords.push({
+          addAutomaticAttendanceRecord({
+            course,
+            isHoliday,
+            isSkipDay: isSkipDay?.(dateString, course.id) ?? false,
+            defaultStatus,
+            newRecords,
+            courseCounts,
+            record: {
             id: attendanceId,
             course_id: course.id,
             date: dateString,
-            status: defaultStatus as 'present' | 'absent' | 'cancelled',
+            status: defaultStatus,
             isExtraClass: false,
             scheduleItemId: schedule.id,
             timeStart: schedule.timeStart,
             timeEnd: schedule.timeEnd,
+            },
           });
-
-          if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-          if (defaultStatus === 'present') courseCounts[course.id].presents++;
-          else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-          else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
-
-          console.log(`[ATTEND] Created ${defaultStatus.toUpperCase()} record for ${course.name} on ${dateString} at ${schedule.timeStart}`);
         }
       }
     }
@@ -134,8 +205,8 @@ const processExtraClasses = (
   endDate: Date,
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
-  courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } },
-  defaultStatus: string,
+  courseCounts: Record<string, AttendanceCounts>,
+  defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
   isSkipDay?: (dateString: string, courseId: string) => boolean
 ) => {
@@ -166,53 +237,27 @@ const processExtraClasses = (
 
         if (exists) continue;
 
-        // holiday detection: skip holidays (no attendance records)
         const isHoliday = holidaySet
           ? holidaySet.has(extraClass.date)
           : !!db.getFirstSync('SELECT id, name FROM holidays WHERE start_date <= ? AND end_date >= ? LIMIT 1', extraClass.date, extraClass.date);
-
-        if (isHoliday) {
-          console.log(`[ATTEND] Skipping extra class for ${course.name} on ${extraClass.date} (holiday)`);
-          continue;
-        }
-
-        // skip day detection: create ABSENT record (planned absence)
-        if (isSkipDay && isSkipDay(extraClass.date, course.id)) {
-          newRecords.push({
+        addAutomaticAttendanceRecord({
+          course,
+          isHoliday,
+          isSkipDay: isSkipDay?.(extraClass.date, course.id) ?? false,
+          defaultStatus,
+          newRecords,
+          courseCounts,
+          record: {
             id: attendanceId,
             course_id: course.id,
             date: extraClass.date,
-            status: 'absent',
+            status: defaultStatus,
             isExtraClass: true,
             scheduleItemId: extraClass.id,
             timeStart: extraClass.timeStart,
             timeEnd: extraClass.timeEnd,
-          });
-
-          if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-          courseCounts[course.id].absents++;
-          console.log(`[ATTEND] Created ABSENT extra-class record for ${course.name} on ${extraClass.date} (skip day)`);
-          continue;
-        }
-
-        // normal extra-class record
-        newRecords.push({
-          id: attendanceId,
-          course_id: course.id,
-          date: extraClass.date,
-          status: defaultStatus as 'present' | 'absent' | 'cancelled',
-          isExtraClass: true,
-          scheduleItemId: extraClass.id,
-          timeStart: extraClass.timeStart,
-          timeEnd: extraClass.timeEnd,
+          },
         });
-
-        if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
-        if (defaultStatus === 'present') courseCounts[course.id].presents++;
-        else if (defaultStatus === 'absent') courseCounts[course.id].absents++;
-        else if (defaultStatus === 'cancelled') courseCounts[course.id].cancelled++;
-
-        console.log(`[ATTEND] Created ${defaultStatus.toUpperCase()} extra-class record for ${course.name} on ${extraClass.date} at ${extraClass.timeStart}`);
       }
     }
   }
@@ -226,7 +271,7 @@ export const createMissingAttendanceRecords = (): boolean => {
   const courses = getCourses();
   console.log(`[ATTEND] Found ${courses.length} courses to process.`);
 
-  const defaultStatus = (getSetting('defaultAttendanceStatus') as string) || 'absent';
+  const defaultStatus = getDefaultAttendanceStatus(getSetting('defaultAttendanceStatus'));
 
   // --- build holidaySet (YYYY-MM-DD) by expanding holiday ranges ----------
   const holidaySet = new Set<string>();
@@ -292,7 +337,7 @@ export const createMissingAttendanceRecords = (): boolean => {
   console.log(`[ATTEND] Found ${existingRecordIds.size} existing attendance identifiers.`);
 
   const newRecords: AttendanceRecord[] = [];
-  const courseCounts: { [courseId: string]: { presents: number; absents: number; cancelled: number } } = {};
+  const courseCounts: Record<string, AttendanceCounts> = {};
 
   for (const course of courses) {
     console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
@@ -312,7 +357,7 @@ export const createMissingAttendanceRecords = (): boolean => {
     const endDate = course.isArchived && course.archivedAt ? new Date(course.archivedAt) : now;
     console.log(`[ATTEND] Processing up to ${endDate.toISOString()}`);
 
-    if (!courseCounts[course.id]) courseCounts[course.id] = { presents: 0, absents: 0, cancelled: 0 };
+    if (!courseCounts[course.id]) courseCounts[course.id] = emptyAttendanceCounts();
 
     // call processors (they will consult holidaySet & isSkipDay)
     processWeeklySchedule(
@@ -491,40 +536,8 @@ export const calculateTargetDate = (
     }
   }
 
-  // Helper function to count scheduled classes on a given date
-  const countClassesOnDate = (dateString: string): number => {
-    const date = new Date(dateString + 'T00:00:00');
-    const dayOfWeek = dayNames[date.getDay()];
-    let count = 0;
-
-    // Count weekly scheduled classes
-    if (scheduledDays.has(dayOfWeek)) {
-      count += course.weeklySchedule?.filter(
-        s => s.day.toLowerCase() === dayOfWeek
-      ).length || 0;
-    }
-
-    // Count extra classes on this date
-    if (hasExtraClasses) {
-      count += course.extraClasses!.filter(ec => ec.date === dateString).length;
-    }
-
-    return count;
-  };
-
-  // Count future absences: classes that will happen on skip days (not holidays)
-  // Use tomorrow as cutoff since today's classes may already be marked
-  const tomorrowForSkipDays = new Date();
-  tomorrowForSkipDays.setDate(tomorrowForSkipDays.getDate() + 1);
-  const tomorrowSkipISO = formatDateToISO(tomorrowForSkipDays);
-
-  let futureAbsences = 0;
-  for (const skipDate of skipDaySet) {
-    // Only count future skip days (from tomorrow), not holidays
-    if (skipDate >= tomorrowSkipISO && !holidaySet.has(skipDate)) {
-      futureAbsences += countClassesOnDate(skipDate);
-    }
-  }
+  // This is the same calendar-aware calculation used by the “bunk / attend” delta.
+  const futureAbsences = getPlannedSkipDayAbsences(course, holidays, skipDays);
 
   // Calculate total classes including future absences from skip days
   const totalClasses = presents + absents;
