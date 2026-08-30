@@ -201,7 +201,7 @@ const ManageHolidaysScreen: React.FC = () => {
 
   // Holiday Item Component
   const HolidayItem = ({ item, showDelete = true }: { item: Holiday; showDelete?: boolean }) => (
-    <View style={styles.listItem}>
+    <View style={[styles.listItem, !showDelete && styles.historyListItem]}>
       <View style={styles.listItemIcon}>
         <Ionicons name="calendar" size={20} color={Colors[colorScheme].tint} />
       </View>
@@ -231,7 +231,7 @@ const ManageHolidaysScreen: React.FC = () => {
     const courseText = course ? ` · ${course.name}` : '';
 
     return (
-      <View style={styles.listItem}>
+      <View style={[styles.listItem, !showDelete && styles.historyListItem]}>
         <View style={styles.listItemIcon}>
           <Ionicons name="close-circle" size={20} color={Colors[colorScheme].error} />
         </View>
@@ -255,12 +255,12 @@ const ManageHolidaysScreen: React.FC = () => {
   // Collapsible Section Header
   const CollapsibleHeader = ({ title, count, isOpen, onToggle }: { title: string; count: number; isOpen: boolean; onToggle: () => void }) => (
     <TouchableOpacity style={styles.collapsibleHeader} onPress={onToggle}>
-      <ThemedText style={styles.collapsibleTitle}>{title} ({count})</ThemedText>
-      <Ionicons
-        name={isOpen ? "chevron-up" : "chevron-down"}
-        size={20}
-        color={Colors[colorScheme].icon}
-      />
+      <View style={styles.collapsibleLabel}>
+        <Ionicons name="time-outline" size={18} color={Colors[colorScheme].icon} />
+        <ThemedText style={styles.collapsibleTitle}>{title}</ThemedText>
+        <View style={styles.countPill}><ThemedText style={styles.countText}>{count}</ThemedText></View>
+      </View>
+      <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={20} color={Colors[colorScheme].icon} />
     </TouchableOpacity>
   );
 
@@ -376,16 +376,14 @@ const ManageHolidaysScreen: React.FC = () => {
 
               {/* Past Holidays (Collapsible) */}
               {pastHolidays.length > 0 && (
-                <View style={styles.section}>
+                <View style={styles.historyGroup}>
                   <CollapsibleHeader
                     title="Past Holidays"
                     count={pastHolidays.length}
                     isOpen={showPastHolidays}
                     onToggle={() => setShowPastHolidays(!showPastHolidays)}
                   />
-                  {showPastHolidays && pastHolidays.map(item => (
-                    <HolidayItem key={item.id} item={item} showDelete={false} />
-                  ))}
+                  {showPastHolidays && <View style={styles.historyList}>{pastHolidays.map(item => <HolidayItem key={item.id} item={item} showDelete={false} />)}</View>}
                 </View>
               )}
             </>
@@ -396,7 +394,7 @@ const ManageHolidaysScreen: React.FC = () => {
             <>
               {/* Target Date Card */}
               {maxTargetDateInfo && (
-                <View style={[styles.statusCard, { borderLeftColor: getStatusColor(maxTargetDateInfo.status) }]}>
+                <View style={styles.statusCard}>
                   <Ionicons
                     name={maxTargetDateInfo.status === 'success' ? "checkmark-circle" : "alert-circle"}
                     size={24}
@@ -499,16 +497,14 @@ const ManageHolidaysScreen: React.FC = () => {
 
               {/* Past Skip Days (Collapsible) */}
               {pastSkipDays.length > 0 && (
-                <View style={styles.section}>
+                <View style={styles.historyGroup}>
                   <CollapsibleHeader
                     title="Past Skip Days"
                     count={pastSkipDays.length}
                     isOpen={showPastSkipDays}
                     onToggle={() => setShowPastSkipDays(!showPastSkipDays)}
                   />
-                  {showPastSkipDays && pastSkipDays.map(item => (
-                    <SkipDayItem key={item.id} item={item} showDelete={false} />
-                  ))}
+                  {showPastSkipDays && <View style={styles.historyList}>{pastSkipDays.map(item => <SkipDayItem key={item.id} item={item} showDelete={false} />)}</View>}
                 </View>
               )}
             </>
@@ -616,7 +612,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       borderRadius: 12,
       padding: 16,
       marginBottom: 16,
-      borderLeftWidth: 4,
       gap: 12,
     },
     statusContent: {
@@ -745,6 +740,24 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     deleteButton: {
       padding: 8,
     },
+    historyGroup: {
+      backgroundColor: Colors[colorScheme].card,
+      borderRadius: 16,
+      marginBottom: 20,
+      overflow: 'hidden',
+    },
+    historyList: {
+      paddingHorizontal: 14,
+      paddingBottom: 4,
+    },
+    historyListItem: {
+      marginBottom: 0,
+      paddingHorizontal: 0,
+      borderRadius: 0,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: Colors[colorScheme].separator,
+      backgroundColor: 'transparent',
+    },
 
     // Empty State
     emptyState: {
@@ -763,16 +776,23 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[colorScheme].border || 'rgba(0,0,0,0.1)',
-      marginBottom: 8,
+      paddingVertical: 15,
+      paddingHorizontal: 14,
     },
+    collapsibleLabel: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     collapsibleTitle: {
       fontSize: 15,
-      fontWeight: '500',
-      color: Colors[colorScheme].icon,
+      fontWeight: '600',
+      color: Colors[colorScheme].text,
     },
+    countPill: {
+      minWidth: 22,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 10,
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(1,150,255,0.08)',
+    },
+    countText: { textAlign: 'center', fontSize: 12, fontWeight: '700', color: Colors[colorScheme].tint },
   });
 
 export default ManageHolidaysScreen;
