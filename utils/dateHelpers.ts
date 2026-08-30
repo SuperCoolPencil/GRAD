@@ -1,4 +1,4 @@
-import { format, parse, startOfWeek, endOfWeek, startOfDay, endOfDay, addDays, subDays, getDay, isBefore, isEqual, addWeeks, subWeeks } from 'date-fns';
+import { format, parse, startOfWeek, endOfWeek, startOfDay, addDays, subDays, getDay, isBefore, isEqual, addWeeks, subWeeks } from 'date-fns';
 
 // Consistent date format for database and API interactions
 const DATE_FORMAT_ISO = 'yyyy-MM-dd';

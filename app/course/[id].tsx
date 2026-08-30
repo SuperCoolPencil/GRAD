@@ -79,7 +79,7 @@ export default function CourseDetailScreen() {
     if (course) {
       getPaginatedAttendanceRecords(page, recordsPerPage, [course.id]);
     }
-  }, [page, course]);
+  }, [page, course, getPaginatedAttendanceRecords]);
 
   const handleAttendanceClick = (record: AttendanceRecord) => {
     if (!course || !record) return;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Pressable, Modal, Platform } from 'react-native'; // Import Modal from react-native
+import { StyleSheet, View, Pressable, Modal } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { BlurView } from 'expo-blur';
 import { ThemedView } from './ThemedView';
@@ -26,7 +26,6 @@ export function CustomAlert({
   const defaultButtons: AlertButton[] = [{ text: 'OK', onPress: onClose }];
   const alertButtons = buttons && buttons.length > 0 ? buttons : defaultButtons;
 
-  const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'alertPrimary'); // For primary button

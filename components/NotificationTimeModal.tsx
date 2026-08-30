@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { Modal, View, TextInput, Pressable, StyleSheet , useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { NotificationTiming, NotificationAnchor } from '@/types';
 

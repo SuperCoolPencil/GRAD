@@ -1,9 +1,8 @@
 import React from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme , StyleProp, ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { StyleProp, ViewStyle } from 'react-native';
 
 interface ExtraClassTagProps {
   style?: StyleProp<ViewStyle>;

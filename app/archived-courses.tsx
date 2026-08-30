@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Platform, Pressable } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, View, Pressable } from 'react-native';
 import { useContext } from 'react';
 import { useRouter } from 'expo-router';
 import { useCustomAlert } from '@/context/AlertContext';
@@ -62,22 +62,6 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
     };
 
     const accentColor = getAccentColor();
-
-    let presentCount = 0;
-    let absentCount = 0;
-    let cancelledCount = 0;
-
-    if (item.attendanceRecords) {
-      item.attendanceRecords.forEach((cls: any) => {
-        if (cls.status === 'present') {
-          presentCount++;
-        } else if (cls.status === 'absent') {
-          absentCount++;
-        } else if (cls.status === 'cancelled') {
-          cancelledCount++;
-        }
-      });
-    }
 
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>

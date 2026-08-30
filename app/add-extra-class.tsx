@@ -5,34 +5,24 @@ import {
   useColorScheme,
   TouchableOpacity,
   ScrollView,
-  Modal, // Import Modal
-  FlatList // Import FlatList for options
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { AppContext } from '@/context/AppContext';
 // Removed Picker import
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { ThemedView } from '@/components/ThemedView';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useTheme } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect, useTheme } from '@react-navigation/native';
 import { useCustomAlert } from '@/context/AlertContext'; // Import the custom alert hook
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useLayoutEffect } from 'react';
 import CustomHeader from '@/components/CustomHeader';
 import { formatTime as formatTimeUtil } from '@/utils/time';
 import { formatDateToISO } from '@/utils/dateHelpers';
 import { CoursePicker } from '@/components/CoursePicker';
 
-const truncate = (str: string, n: number) => {
-  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
-};
-
 const AddExtraClassScreen = () => {
   const router = useRouter();
   const { addExtraClass, courses, is24Hour } = useContext(AppContext);
-  const navigation = useNavigation();
   const colorScheme = useColorScheme() ?? 'light';
   const { colors } = useTheme();
   const { showAlert } = useCustomAlert(); // Use the custom alert hook

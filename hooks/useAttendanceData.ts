@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
 import { AppContext } from '@/context/AppContext';
-import { getCoursesWithRecordsInRange, getWeeklySchedule, getCourses, initDatabase, getAttendanceRecords } from '@/utils/database';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
+import { getCoursesWithRecordsInRange, getCourses, getAttendanceRecords } from '@/utils/database';
+import { Course, ScheduleItem, AttendanceRecord } from '@/types';
 import {
   formatDateToISO,
   getWeekStartDate,
-  getWeekEndDate,
   addDaysToDate,
   dayIndexToName,
   isDateInPast,
@@ -78,7 +77,7 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
     } finally {
       setLoading(false);
     }
-  }, [startDate, weekStartsOn, filterCourses, appCourses]); // Add weekStartsOn to dependencies
+  }, [startDate, weekStartsOn, filterCourses]);
 
   useEffect(() => {
     fetchCoursesAndSchedule();

@@ -1,6 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, View, StyleSheet } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { TouchableOpacity, View, StyleSheet , useColorScheme } from 'react-native';
 import { Colors } from '@/constants/Colors'; // Corrected import path
 
 type CustomSwitchProps = {

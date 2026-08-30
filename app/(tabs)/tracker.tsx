@@ -4,7 +4,7 @@ import { AppContext } from '@/context/AppContext';
 import { format } from 'date-fns';
 import { Link, useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { getWeekStartDate, getWeekEndDate, addDaysToDate, subDaysFromDate, isDateInPast, parseISOToDate, getMiddleOfWeek, addWeeksToDate, subWeeksFromDate, dayIndexToName } from '@/utils/dateHelpers';
+import { getWeekStartDate, getWeekEndDate, isDateInPast, addWeeksToDate, subWeeksFromDate } from '@/utils/dateHelpers';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ export default function VisualAttendanceTracker() {
   const colorScheme = useColorScheme() ?? 'light';
   const [startDate, setStartDate] = useState(() => getWeekStartDate(new Date(), weekStartsOn));
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
 
   const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, weekStartsOn, true);
   const { handleSelectClass } = useAttendanceActions();
@@ -54,7 +54,6 @@ export default function VisualAttendanceTracker() {
   const HEADER_HEIGHT = 60;
   const TIME_AXIS_WIDTH = 35;
   const hourCount = Math.ceil(endHour) - Math.floor(startHour);
-  const scheduleHeight = hourCount * HOUR_HEIGHT;
   const dayColumnWidth = (screenWidth - TIME_AXIS_WIDTH - 32) / 7; // 32 for horizontal padding
 
   const timeSlots = useMemo(() =>
@@ -243,7 +242,7 @@ export default function VisualAttendanceTracker() {
       backgroundColor: '#FF3B30',
       zIndex: 10,
     },
-  }), [colorScheme, scheduleHeight, hourCount, dayColumnWidth]);
+  }), [colorScheme, dayColumnWidth]);
 
   const getBlockStyle = useCallback((classItem: ClassItem, date: Date) => {
     const courseColor = courseColors[classItem.course.id] || Colors[colorScheme].card;

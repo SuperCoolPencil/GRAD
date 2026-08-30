@@ -6,16 +6,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useContext } from 'react';
 import { View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 import { AppProvider, AppContext } from '../context/AppContext';
 import { AlertProvider } from '../context/AlertContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { formatDateToISO } from '@/utils/dateHelpers';
 import { Colors } from '../constants/Colors';
 import { setupNotificationChannels, requestPermissions, handleNotificationAttendanceAction } from '@/utils/notifications';
-import * as db from '../utils/database';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

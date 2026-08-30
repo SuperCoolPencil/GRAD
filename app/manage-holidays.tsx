@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState, useContext } from 'react';
-import { View, StyleSheet, useColorScheme, TouchableOpacity, ScrollView, FlatList, TextInput, SafeAreaView, Animated } from 'react-native';
+import { View, StyleSheet, useColorScheme, TouchableOpacity, ScrollView, TextInput, SafeAreaView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { AppContext } from '../context/AppContext';
 import { Holiday, SkipDay } from '../types';
@@ -12,8 +12,6 @@ import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '../context/AlertContext';
 import { calculateTargetDate } from '../utils/attendance';
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type TabType = 'holidays' | 'skipDays';
 

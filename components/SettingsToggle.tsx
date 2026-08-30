@@ -1,10 +1,8 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet , useColorScheme } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from './ThemedText';
-import { useTheme } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from 'react-native';
 import CustomSwitch from './CustomSwitch'; // Import CustomSwitch
 
 type SettingsToggleProps = {
@@ -15,7 +13,6 @@ type SettingsToggleProps = {
 };
 
 export default function SettingsToggle({ title, iconName, value, onValueChange }: SettingsToggleProps) {
-  const { colors } = useTheme();
   const colorScheme = useColorScheme();
 
   const backgroundColor = colorScheme === 'dark' ? Colors.dark.card : Colors.light.card;

@@ -3,6 +3,8 @@ import { AppContext } from '@/context/AppContext';
 import { AttendanceRecord, Course, ScheduleItem } from '@/types';
 import { useCustomAlert } from '@/context/AlertContext';
 
+import { formatDateToISO } from '@/utils/dateHelpers';
+
 interface ClassSession extends ScheduleItem {
   isExtraClass: boolean;
   date?: string;
@@ -13,8 +15,6 @@ export interface ClassItem {
   schedule: ClassSession;
   attendance?: AttendanceRecord;
 }
-
-import { formatDateToISO } from '@/utils/dateHelpers';
 
 export const useAttendanceActions = () => {
   const { upsertAttendance } = useContext(AppContext);

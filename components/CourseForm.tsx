@@ -13,7 +13,6 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { AppContext } from '@/context/AppContext';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { ScheduleItem, Course } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '@/context/AlertContext';

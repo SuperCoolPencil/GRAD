@@ -191,24 +191,6 @@ export const updateSetting = (key: string, value: string) => {
   db.runSync('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, value);
 };
 
-const getAttendanceRecordsForCourseInRange = (courseId: string, startDate: string, endDate: string): AttendanceRecord[] => {
-  return db.getAllSync(
-    'SELECT * FROM attendance_records WHERE course_id = ? AND class_date BETWEEN ? AND ? ORDER BY class_date ASC, time_start ASC',
-    courseId,
-    startDate,
-    endDate
-  ).map((r: any) => ({
-    id: r.id,
-    course_id: r.course_id,
-    date: r.class_date,
-    status: r.status,
-    isExtraClass: r.is_extra_class === 1,
-    scheduleItemId: r.schedule_item_id,
-    timeStart: r.time_start,
-    timeEnd: r.time_end,
-  }));
-};
-
 const getCourseFromDbRow = (
   c: any,
   allSchedules: any[],
@@ -580,7 +562,7 @@ export const getAttendanceRecords = (
     query += ' WHERE ' + conditions.join(' AND ');
   }
 
-  if (limit == -1) {
+  if (limit === -1) {
     query += ' ORDER BY class_date DESC, time_end DESC';
   } else {
     query += ' ORDER BY class_date DESC, time_end DESC LIMIT ? OFFSET ?';

@@ -1,8 +1,6 @@
-import { createContext, useState, useEffect, ReactNode } from "react";
-import { format } from 'date-fns-tz';
-import { CustomAlert } from "../components/CustomAlert";
+import { createContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming, SkipDay } from "../types";
-import { formatDateToISO, parseISOToDate, addDaysToDate } from "@/utils/dateHelpers";
+import { formatDateToISO } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
 import { calculateAttendancePercentage, createMissingAttendanceRecords } from "@/utils/attendance";
@@ -558,7 +556,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   };
 
-  const getPaginatedAttendanceRecords = (page: number, limit: number, courseIds?: string[], startDate?: string, endDate?: string) => {
+  const getPaginatedAttendanceRecords = useCallback((page: number, limit: number, courseIds?: string[], startDate?: string, endDate?: string) => {
     console.log(`[AppContext] Getting paginated attendance records: page=${page}, limit=${limit}, courseIds=${(courseIds && Array.isArray(courseIds)) ? courseIds.join(',') : 'all'}, startDate=${startDate || 'N/A'}, endDate=${endDate || 'N/A'}`);
     setLoading(true);
     try {
@@ -574,7 +572,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return (
     <AppContext.Provider

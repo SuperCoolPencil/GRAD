@@ -1,6 +1,5 @@
 import React, { useContext, useState, useMemo, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, Modal, useColorScheme, FlatList } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { ScrollView, StyleSheet, View, TouchableOpacity, useColorScheme } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useCustomAlert } from '@/context/AlertContext';
 import { RadarChart } from '@salmonco/react-native-radar-chart';
@@ -15,11 +14,6 @@ import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { CoursePicker } from '@/components/CoursePicker';
-
-// Constants from HeatmapComponent to calculate layout
-const CELL_SIZE = 20;
-const CELL_MARGIN = 4;
-const WEEKDAY_LABEL_WIDTH = 40; // Approx width for "Sun", "Mon", etc. labels
 
 const formatDateForQuery = (date: Date): string => {
   return date.toISOString().slice(0, 10);
@@ -69,7 +63,7 @@ export default function AnalyticsScreen() {
       fromDate ? formatDateForQuery(fromDate) : undefined,
       toDate ? formatDateForQuery(toDate) : undefined
     );
-  }, [page, selectedCourses, fromDate, toDate]);
+  }, [page, selectedCourses, fromDate, toDate, getPaginatedAttendanceRecords]);
 
   const handleAttendanceClick = (record: AttendanceRecord) => {
     const course = courses.find(c => c.id === record.course_id);
@@ -230,96 +224,6 @@ export default function AnalyticsScreen() {
     }
     setPage(1);
   };
-
-  const ListHeader = React.memo(function ListHeader() {
-    return (
-    <>
-      {activeCourses.length > 2 && (
-        <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-          <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
-          <RadarChart
-            data={chartData}
-            maxValue={100}
-            gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
-            stroke={['#666', '#666', '#666', '#666', '#666']}
-            strokeWidth={[1, 1, 1, 1, 1]}
-            strokeOpacity={[1, 1, 1, 1, 1]}
-            labelColor={colors.text}
-            dataFillColor={Colors[colorScheme].tint}
-            dataFillOpacity={0.8}
-            dataStroke={Colors[colorScheme].tint}
-            dataStrokeWidth={2}
-          />
-        </ThemedView>
-      )}
-      <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-        <View style={styles.heatmapHeader}>
-          <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
-            <Ionicons name="chevron-back" size={24} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
-          </TouchableOpacity>
-          <ThemedText style={styles.sectionTitle} type="subtitle">
-            {formatMonthRange(displayMonth)}
-          </ThemedText>
-          <TouchableOpacity onPress={handleNextPage} disabled={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear()}>
-            <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <HeatmapComponent data={heatmapData} />
-        </ScrollView>
-        <CoursePicker
-          label="Course:"
-          courses={courses}
-          selectedCourseIds={selectedHeatmapCourse}
-          onSelectionChange={setSelectedHeatmapCourse}
-          multiSelect={true}
-          allCoursesOption={true}
-          showArchivedToggle={true}
-          showSaveButton={true}
-        />
-      </ThemedView>
-      <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-        <ThemedText style={styles.sectionTitle} type="subtitle">Attendance History</ThemedText>
-        <CoursePicker
-          label="Course:"
-          courses={courses}
-          selectedCourseIds={selectedCourses}
-          onSelectionChange={setSelectedCourses}
-          multiSelect={true}
-          allCoursesOption={true}
-          showArchivedToggle={true}
-          showSaveButton={true}
-        />
-        <View style={styles.inputGroup}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <ThemedText style={styles.label}>From Date:</ThemedText>
-              <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('from')}>
-                <ThemedText style={styles.datePickerText}>{fromDate ? formatDate(fromDate) : 'Select Date'}</ThemedText>
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <ThemedText style={styles.label}>To Date:</ThemedText>
-              <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('to')}>
-                <ThemedText style={styles.datePickerText}>{toDate ? formatDate(toDate) : 'Select Date'}</ThemedText>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {showDatePicker && (
-            <DateTimePicker value={showDatePicker === 'from' ? fromDate || new Date() : toDate || new Date()} mode="date" onChange={handleDateChange} />
-          )}
-          <TouchableOpacity style={styles.clearButton} onPress={() => {
-            setFromDate(null);
-            setToDate(null);
-          }}>
-            <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
-          </TouchableOpacity>
-        </View>
-        <View />
-      </ThemedView>
-    </>
-    );
-  });
 
   const HistoryFilters = React.memo(function HistoryFilters() {
     return (

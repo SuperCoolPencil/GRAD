@@ -1,8 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from './ThemedText';
-import { useTheme } from '@react-navigation/native';
 
 type SettingsButtonProps = {
   onPress: () => void;
@@ -13,8 +12,6 @@ type SettingsButtonProps = {
 };
 
 export default function SettingsButton({ onPress, title, iconName, backgroundColor, textColor = '#fff' }: SettingsButtonProps) {
-  const { colors } = useTheme();
-
   return (
     <TouchableOpacity
       style={[styles.button, { backgroundColor }]}

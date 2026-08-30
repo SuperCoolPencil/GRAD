@@ -1,5 +1,12 @@
 import * as Notifications from 'expo-notifications';
-import { Course, ScheduleItem, ExtraClass, NotificationTiming } from '../../types';
+import { Course, NotificationTiming } from '../../types';
+
+import {
+    scheduleCourseNotifications,
+    cancelCourseNotifications,
+    setupNotificationChannels,
+} from '../notifications';
+import * as db from '../database';
 
 // Mock expo-notifications
 jest.mock('expo-notifications', () => ({
@@ -36,13 +43,6 @@ jest.mock('../attendance', () => ({
     calculateAttendancePercentage: jest.fn().mockReturnValue(75),
     getAttendanceDelta: jest.fn().mockReturnValue(-1),
 }));
-
-import {
-    scheduleCourseNotifications,
-    cancelCourseNotifications,
-    setupNotificationChannels,
-} from '../notifications';
-import * as db from '../database';
 
 const mockDb = db.db as jest.Mocked<typeof db.db>;
 const mockGetAllScheduled = Notifications.getAllScheduledNotificationsAsync as jest.MockedFunction<typeof Notifications.getAllScheduledNotificationsAsync>;

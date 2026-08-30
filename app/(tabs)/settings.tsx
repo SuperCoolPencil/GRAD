@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, StyleSheet, Platform, Linking, Switch, TextInput, Button, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Linking, ScrollView, TouchableOpacity, useColorScheme } from 'react-native';
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -20,9 +20,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@react-navigation/native';
-import { useColorScheme } from 'react-native';
 import { useCustomAlert } from '@/context/AlertContext';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import SettingsButton from '@/components/SettingsButton';
 import SettingsToggle from '@/components/SettingsToggle';
 import { CustomPicker } from '@/components/CustomPicker';
@@ -106,7 +104,7 @@ export default function SettingsScreen() {
 
     try {
       await Sharing.shareAsync(dbUri);
-    } catch (error) {
+    } catch {
       showAlert("Error", "Failed to share the database file.");
     } finally {
       reopenDatabase(); // Reopen the database after sharing is complete

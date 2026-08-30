@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, View, Text, useColorScheme } from 'react-native';
+import { StyleSheet, View, Text, useColorScheme } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { Colors } from '@/constants/Colors';
 
