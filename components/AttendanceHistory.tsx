@@ -67,7 +67,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         break;
       case 'cancelled':
         statusIcon = 'remove-circle-outline';
-        statusColor = Colors[colorScheme].warning;
+        statusColor = Colors[colorScheme].icon;
         displayStatusText = courseId ? 'Cancelled' : `${courseName} - Cancelled`;
         break;
     }

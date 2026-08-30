@@ -86,11 +86,8 @@ function ArchivedCoursesContent({ courses, colorScheme, router }: { courses: Cou
                 >
                   {item.name} ({item.id})
                 </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Attendance: {attendancePercentage}%
-                </ThemedText>
-                <ThemedText style={{ color: Colors[colorScheme].text }}>
-                  Required: {item.requiredAttendance}%
+                <ThemedText style={{ color: Colors[colorScheme].textSecondary }}>
+                  Attendance {attendancePercentage}% · Target {item.requiredAttendance}%
                 </ThemedText>
               </View>
               <Pressable onPress={() => handleUnarchive(item)}>

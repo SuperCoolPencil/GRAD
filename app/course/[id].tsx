@@ -10,7 +10,7 @@ import {
   TextInput,
   Modal,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { AppContext } from '@/context/AppContext';
 import { formatTime } from '@/utils/time';
@@ -28,7 +28,7 @@ import { calculateTargetDate, getCourseAttendanceDelta } from '@/utils/attendanc
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
   if (delta > 0) return Colors[colorScheme].error;
   if (delta < 0) return Colors[colorScheme].success;
-  return Colors[colorScheme].tint;
+  return Colors[colorScheme].success;
 };
 
 export default function CourseDetailScreen() {
@@ -229,11 +229,11 @@ export default function CourseDetailScreen() {
   const delta = getCourseAttendanceDelta(course, holidays, skipDays);
   const deltaColor = getDeltaColor(delta, colorScheme);
 
-  let attendanceNote = 'Meeting required attendance';
+  let attendanceNote = 'On target';
   if (delta > 0) {
-    attendanceNote = `Need to Attend: ${delta} more class${delta === 1 ? '' : 'es'}`;
+    attendanceNote = `Attend ${delta} more class${delta === 1 ? '' : 'es'}`;
   } else if (delta < 0) {
-    attendanceNote = `Can Bunk: ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
+    attendanceNote = `Can miss ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
   }
 
   return (
@@ -242,27 +242,28 @@ export default function CourseDetailScreen() {
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32, paddingBottom: 16 }}>
         <ThemedText
           type="title"
-          style={{ maxWidth: '70%', flexShrink: 1, paddingLeft: 10 }}
+          style={{ maxWidth: '45%', flexShrink: 1, paddingLeft: 10 }}
           ellipsizeMode="tail"
         >
           {course.name}
         </ThemedText>
         <View style={{ flexDirection: 'row' }}>
-          <TouchableOpacity onPress={() => setConfigModalVisible(true)} style={{ marginRight: 10 }}>
+          <TouchableOpacity onPress={() => setConfigModalVisible(true)} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
             <Ionicons name="cog-outline" size={24} color={Colors[colorScheme].tint} />
           </TouchableOpacity>
-          <Link href={`/edit-course/${course.id}`} asChild>
-            <TouchableOpacity style={{ marginRight: 10 }}>
-              <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            onPress={() => router.push(`/edit-course/${course.id}`)}
+            style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
+          >
+            <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
+          </TouchableOpacity>
           {/* Add Archive Button */}
           {course.isArchived !== true && (
-            <TouchableOpacity onPress={handleArchive} style={{ marginRight: 10 }}>
+            <TouchableOpacity onPress={handleArchive} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
               <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={handleDelete}>
+          <TouchableOpacity onPress={handleDelete} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
             <Ionicons name="trash-outline" size={24} color={Colors[colorScheme].error} />
           </TouchableOpacity>
         </View>
@@ -291,7 +292,7 @@ export default function CourseDetailScreen() {
           <View style={styles.attendanceRow}>
             <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
             <ThemedText style={styles.attendanceText}>
-              Current: <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> (Required: {requiredAttendance}%)
+              Attendance <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> · Target {requiredAttendance}%
             </ThemedText>
           </View>
 
@@ -537,6 +538,14 @@ const styles = StyleSheet.create({
   headerIcon: {
     marginLeft: 16,
   },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
   backButton: {
     marginTop: 20,
     padding: 10,
@@ -566,7 +575,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(128, 128, 128, 0.2)',
-    borderRadius: 5,
+    borderRadius: 8,
     paddingVertical: 5,
     paddingHorizontal: 8,
     minWidth: 100,

@@ -65,6 +65,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const colorScheme = useColorScheme();
+  const activeColorScheme = colorScheme ?? 'light';
   const { showAlert } = useCustomAlert(); // Use the custom alert hook
 
   const handleClearData = async () => {
@@ -210,19 +211,19 @@ export default function SettingsScreen() {
           <ThemedText type="subtitle" style={styles.sectionTitle}>Default Attendance Status</ThemedText>
           <View style={styles.statusButtonsContainer}>
             <TouchableOpacity
-              style={[styles.statusButton, defaultAttendanceStatus === 'present' && styles.selectedButton]}
+              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].success }, defaultAttendanceStatus === 'present' && { backgroundColor: Colors[activeColorScheme].success }]}
               onPress={() => handleDefaultStatusChange('present')}
             >
               <ThemedText style={defaultAttendanceStatus === 'present' ? styles.selectedButtonText : {}}>Present</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.statusButton, defaultAttendanceStatus === 'absent' && styles.selectedButton]}
+              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].error }, defaultAttendanceStatus === 'absent' && { backgroundColor: Colors[activeColorScheme].error }]}
               onPress={() => handleDefaultStatusChange('absent')}
             >
               <ThemedText style={defaultAttendanceStatus === 'absent' ? styles.selectedButtonText : {}}>Absent</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.statusButton, defaultAttendanceStatus === 'cancelled' && styles.selectedButton]}
+              style={[styles.statusButton, { borderColor: Colors[activeColorScheme].icon }, defaultAttendanceStatus === 'cancelled' && { backgroundColor: Colors[activeColorScheme].icon }]}
               onPress={() => handleDefaultStatusChange('cancelled')}
             >
               <ThemedText style={defaultAttendanceStatus === 'cancelled' ? styles.selectedButtonText : {}}>Cancelled</ThemedText>
@@ -328,6 +329,7 @@ export default function SettingsScreen() {
             iconName="information-circle-outline"
             backgroundColor={colorScheme === 'dark' ? Colors.dark.card : Colors.light.card}
             textColor={colorScheme === 'dark' ? Colors.dark.text : Colors.light.text}
+            isInformational
           />
           {latestVersion && latestVersion !== `v${Constants.expoConfig?.version}` && (
             <SettingsButton
@@ -371,7 +373,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 8,
     width: 60,
     textAlign: 'center',
@@ -407,10 +409,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.light.tint,
-  },
-  selectedButton: {
-    backgroundColor: Colors.light.tint,
   },
   selectedButtonText: {
     color: '#fff',

@@ -52,7 +52,7 @@ const AttendanceProgressRing: React.FC<AttendanceProgressRingProps> = ({
       </Svg>
       <View style={[StyleSheet.absoluteFillObject, styles.deltaTextContainer]}>
         {delta === 0 ? (
-          <Ionicons name="checkmark-sharp" size={30} color={Colors[colorScheme].tint} />
+          <Ionicons name="checkmark-sharp" size={30} color={color} />
         ) : (
           <ThemedText style={[styles.deltaText, { color: delta > 0 ? Colors[colorScheme].error : Colors[colorScheme].success }]}>
             {delta > 0 ? `${delta}` : Math.abs(delta)}

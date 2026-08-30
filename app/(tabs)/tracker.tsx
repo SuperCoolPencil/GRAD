@@ -119,7 +119,7 @@ export default function VisualAttendanceTracker() {
     schedule: {
       flex: 1,
       flexDirection: 'row',
-      borderRadius: 20, // Softer corners
+      borderRadius: 16,
       borderWidth: 0, // Remove hard border
       overflow: 'hidden',
       backgroundColor: Colors[colorScheme].card,
@@ -163,11 +163,6 @@ export default function VisualAttendanceTracker() {
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'hidden',
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 4,
     },
     verticalTextContainer: {
       position: 'absolute',
@@ -215,9 +210,12 @@ export default function VisualAttendanceTracker() {
       flexShrink: 1,
     },
     manageHolidaysButton: {
-      padding: 8,
-      borderRadius: 8,
-      backgroundColor: Colors[colorScheme].tint,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: Colors[colorScheme].cardBackground,
     },
     emptyStateContainer: {
       flex: 1,
@@ -225,7 +223,7 @@ export default function VisualAttendanceTracker() {
       alignItems: 'center',
       padding: 32,
       backgroundColor: Colors[colorScheme].card,
-      borderRadius: 20, // Softer corners
+      borderRadius: 16,
       marginHorizontal: 16,
       marginTop: 20,
     },
@@ -279,7 +277,7 @@ export default function VisualAttendanceTracker() {
         </View>
         <Link href="/manage-holidays" asChild style={{ marginLeft: 'auto' }}>
           <TouchableOpacity style={styles.manageHolidaysButton}>
-            <Ionicons name="calendar" size={20} color={Colors[colorScheme].background} />
+            <Ionicons name="calendar-outline" size={20} color={Colors[colorScheme].tint} />
           </TouchableOpacity>
         </Link>
       </ThemedView>

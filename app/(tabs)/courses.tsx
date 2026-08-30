@@ -17,7 +17,7 @@ const truncate = (value: string, length: number) => value.length > length ? `${v
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].tint; // Exactly at required => yellow accent
+  return Colors[colorScheme].success; // On target is a success state too
 };
 
 
@@ -157,19 +157,10 @@ export default function CoursesScreen() {
                   </ThemedText> */}
                 </View>
                 <View style={styles.attendanceRow}>
-                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance:</ThemedText>
-                  <ThemedText style={{ color: Colors[colorScheme].text }}>
-                    {attendancePercentage}%
-                  </ThemedText>
+                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance {attendancePercentage}% · Target {requiredAttendance}%</ThemedText>
                 </View>
                 <View style={styles.attendanceRow}>
-                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Required:</ThemedText>
-                  <ThemedText style={{ color: Colors[colorScheme].text }}>
-                    {item.requiredAttendance}%
-                  </ThemedText>
-                </View>
-                <View style={styles.attendanceRow}>
-                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Target:</ThemedText>
+                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Plan:</ThemedText>
                   {(() => {
                     const target = calculateTargetDate(item, holidays, skipDays);
                     const isMet = target.classesNeeded === 0;
@@ -224,33 +215,27 @@ export default function CoursesScreen() {
               else if (sortBy === 'alphabetical') setSortBy('targetDate');
               else setSortBy('attendance');
             }}
-            style={[
-              styles.sortButton,
-              { backgroundColor: Colors[colorScheme].tint },
-            ]}
+            style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
           >
             <Ionicons
               name={sortBy === 'alphabetical' ? 'text' : sortBy === 'targetDate' ? 'calendar' : 'stats-chart'}
               size={20}
-              color={Colors[colorScheme].background}
+              color={Colors[colorScheme].tint}
             />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            style={[
-              styles.sortButton,
-              { backgroundColor: Colors[colorScheme].tint },
-            ]}
+            style={[styles.sortButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
           >
             <Ionicons
               name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'}
               size={20}
-              color={Colors[colorScheme].background}
+              color={Colors[colorScheme].tint}
             />
           </TouchableOpacity>
         </View>
         <Link href="/add-course" asChild>
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity style={[styles.addButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
             <Ionicons
               name="add-circle-outline"
               size={28}
@@ -295,12 +280,12 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   courseCardContainer: {
-    borderRadius: 20, // Softer corners
+    borderRadius: 16,
     marginBottom: 0,
   },
   courseCard: {
-    borderRadius: 20,
-    padding: 18, // Slightly more padding
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 0,
   },
   courseHeader: {
@@ -321,8 +306,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButton: {
-    marginLeft: 'auto', // Push the button to the right
-    padding: 4,
+    marginLeft: 'auto',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sortContainer: {
     flexDirection: 'row',
@@ -330,8 +319,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   sortButton: {
-    padding: 8,
-    borderRadius: 10, // Softer button corners
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyContainer: {
     alignItems: 'center',

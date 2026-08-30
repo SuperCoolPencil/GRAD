@@ -35,7 +35,7 @@ const DAYS_OF_WEEK = [
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
   if (delta > 0) return Colors[colorScheme].error; // Need to attend => red accent
   if (delta < 0) return Colors[colorScheme].success; // Can bunk => green accent
-  return Colors[colorScheme].tint; // Exactly at required => yellow accent
+  return Colors[colorScheme].success; // On target is a success state too
 };
 
 const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (status: "present" | "absent" | "cancelled") => void, colorScheme: 'light' | 'dark' }) => {
@@ -110,7 +110,7 @@ export default function TodaysClassesScreen() {
           </ThemedText>
         </View>
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: Colors[colorScheme || 'light'].cardBackground }]}
           onPress={() => {
             if (courses.filter(course => !course.isArchived).length === 0) {
               setShowAlert(true);
@@ -305,11 +305,12 @@ function TodaysClassesContent({
     const cardBackground =
       colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
     // We can color-code the text that indicates how many you must attend/bunk
-    let attendanceNote = 'At required attendance';
+    let attendanceNote = 'On target';
     if (item.needToAttend > 0) {
-      attendanceNote = `Need to Attend: ${item.needToAttend} classes`;
+      attendanceNote = `Attend ${item.needToAttend} more class${item.needToAttend === 1 ? '' : 'es'}`;
     } else if (item.needToAttend < 0) {
-      attendanceNote = `Can Bunk: ${Math.abs(item.needToAttend)} classes`;
+      const available = Math.abs(item.needToAttend);
+      attendanceNote = `Can miss ${available} class${available === 1 ? '' : 'es'}`;
     }
 
     return (
@@ -359,7 +360,7 @@ function TodaysClassesContent({
                   style={{ marginRight: 4 }}
                 />
                 <ThemedText>
-                  Current: {item.currentAttendance}% / Req: {item.requiredAttendance}%
+                  Attendance {item.currentAttendance}% · Target {item.requiredAttendance}%
                 </ThemedText>
               </View>
               <View style={styles.infoRow}>
@@ -388,9 +389,9 @@ function TodaysClassesContent({
                   }}
                 >
                   <Ionicons
-                    name="checkmark-done-circle-outline"
+                    name={item.status === 'present' ? 'checkmark-circle-outline' : item.status === 'absent' ? 'close-circle-outline' : 'remove-circle-outline'}
                     size={20}
-                    color={Colors[colorScheme || 'light'].icon} // Neutral gray color
+                    color={item.status === 'present' ? Colors[colorScheme || 'light'].success : item.status === 'absent' ? Colors[colorScheme || 'light'].error : Colors[colorScheme || 'light'].icon}
                   />
                   <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{item.status}</ThemedText>
                 </View>
@@ -407,7 +408,7 @@ function TodaysClassesContent({
                 }
               >
                 <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Present</ThemedText>
+                <ThemedText style={{ color: Colors[colorScheme].buttonText }}>Present</ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -417,17 +418,17 @@ function TodaysClassesContent({
                 }
               >
                 <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Absent</ThemedText>
+                <ThemedText style={{ color: Colors[colorScheme].buttonText }}>Absent</ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
+                style={[styles.actionButton, styles.cancelActionButton, { borderColor: Colors[colorScheme || 'light'].icon }]}
                 onPress={() =>
                   handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
                 }
               >
-                <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-                <ThemedText style={{ color: Colors[colorScheme].buttonText }}> Cancel</ThemedText>
+                <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme || 'light'].textSecondary} />
+                <ThemedText style={{ color: Colors[colorScheme || 'light'].textSecondary }}>Cancelled</ThemedText>
               </TouchableOpacity>
             </View>
           )}
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
   },
   dateToggleTag: {
     paddingVertical: 2,
-    paddingRight: 6, // Only right padding to keep spacing after the tag text
+    paddingRight: 6,
     borderRadius: 8,
     marginRight: 8,
   },
@@ -515,7 +516,11 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginLeft: "auto", // Push the button to the right
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   classesList: {
     gap: 8,
@@ -556,10 +561,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    borderRadius: 6,
+    borderRadius: 8,
     paddingVertical: 8,
-    marginHorizontal: 8,
+    marginHorizontal: 4,
     justifyContent: 'center',
+  },
+  cancelActionButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
   },
   actionButtonText: {
     fontWeight: 'bold',

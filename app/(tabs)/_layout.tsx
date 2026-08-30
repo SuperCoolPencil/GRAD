@@ -32,7 +32,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Classes',
-            tabBarIcon: ({ color }) => <Ionicons name="calendar" size={28} color={color} />,
+            tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={28} color={color} />,
           }}
         />
         <Tabs.Screen
