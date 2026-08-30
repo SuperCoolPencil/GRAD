@@ -419,9 +419,30 @@ export const getOldestRecordDate = (courses: Course[]): Date | null => {
   return new Date(Math.min(...allDates.map(d => d.getTime())));
 };
 
+/**
+ * Returns the recorded class duration in minutes. Older records without valid
+ * times retain a one-class weight so they continue to appear in the heatmap.
+ */
+const getAttendanceRecordDurationMinutes = (record: AttendanceRecord): number => {
+  const parseTime = (time: string): number | null => {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(time);
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    return hours < 24 && minutes < 60 ? hours * 60 + minutes : null;
+  };
+
+  const start = parseTime(record.timeStart);
+  const end = parseTime(record.timeEnd);
+  if (start === null || end === null || end <= start) return 1;
+
+  return end - start;
+};
+
 
 export const generateHeatmapData = (courses: Course[], holidays: Holiday[], startDate: Date, endDate: Date): { date: Date; value: number; isHoliday: boolean; hasExtraClass: boolean }[] => {
-  const dateMap: { [key: string]: { presents: number; absents: number; hasExtraClass: boolean } } = {};
+  const dateMap: { [key: string]: { presentMinutes: number; absentMinutes: number; hasExtraClass: boolean } } = {};
   const holidayMap: { [key: string]: boolean } = {};
 
   holidays.forEach(holiday => {
@@ -438,12 +459,13 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
       course.attendanceRecords.forEach(record => {
         const date = record.date;
         if (!dateMap[date]) {
-          dateMap[date] = { presents: 0, absents: 0, hasExtraClass: false };
+          dateMap[date] = { presentMinutes: 0, absentMinutes: 0, hasExtraClass: false };
         }
+        const durationMinutes = getAttendanceRecordDurationMinutes(record);
         if (record.status === 'present') {
-          dateMap[date].presents++;
+          dateMap[date].presentMinutes += durationMinutes;
         } else if (record.status === 'absent') {
-          dateMap[date].absents++;
+          dateMap[date].absentMinutes += durationMinutes;
         }
         if (record.isExtraClass) {
           dateMap[date].hasExtraClass = true;
@@ -462,12 +484,12 @@ export const generateHeatmapData = (courses: Course[], holidays: Holiday[], star
     const hasExtraClass = dateMap[dateString]?.hasExtraClass || false;
 
     if (dateMap[dateString]) {
-      const { presents, absents } = dateMap[dateString];
-      const total = presents + absents;
+      const { presentMinutes, absentMinutes } = dateMap[dateString];
+      const total = presentMinutes + absentMinutes;
       if (total === 0) {
         heatmapData.push({ date, value: -1, isHoliday, hasExtraClass }); // No classes with attendance marked
       } else {
-        const percentage = (presents / total) * 100;
+        const percentage = (presentMinutes / total) * 100;
         heatmapData.push({ date, value: Math.round(percentage), isHoliday, hasExtraClass });
       }
     } else {

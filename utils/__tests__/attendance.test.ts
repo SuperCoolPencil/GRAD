@@ -1,4 +1,4 @@
-import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '../attendance';
+import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
 
@@ -26,6 +26,39 @@ describe('getAttendanceDelta', () => {
         [6, 1, 75, -1],
     ])('returns the attendance gap for %i present and %i absent', (presents, absents, required, expected) => {
         expect(getAttendanceDelta(presents, absents, required)).toBe(expected);
+    });
+});
+
+describe('generateHeatmapData', () => {
+    it('weights daily attendance by class duration', () => {
+        const courses: Course[] = [{
+            id: 'CS101',
+            name: 'Computer Science',
+            presents: 0,
+            absents: 0,
+            cancelled: 0,
+            requiredAttendance: 75,
+            showInHeatmap: true,
+            attendanceRecords: [
+                {
+                    id: 'present-long', course_id: 'CS101', date: '2026-01-12', status: 'present',
+                    isExtraClass: false, timeStart: '09:00', timeEnd: '11:00',
+                },
+                {
+                    id: 'absent-short', course_id: 'CS101', date: '2026-01-12', status: 'absent',
+                    isExtraClass: false, timeStart: '11:00', timeEnd: '12:00',
+                },
+            ],
+        }];
+
+        const [day] = generateHeatmapData(
+            courses,
+            [],
+            new Date('2026-01-12T00:00:00'),
+            new Date('2026-01-12T00:00:00'),
+        );
+
+        expect(day.value).toBe(67); // 120 present minutes out of 180 total minutes
     });
 });
 
