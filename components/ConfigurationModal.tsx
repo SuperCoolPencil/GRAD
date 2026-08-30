@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Switch, Modal, useColorScheme, Pressable } from 'react-native';
+import { StyleSheet, View, Pressable, useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
-import { BlurView } from 'expo-blur';
-import { ThemedView } from './ThemedView';
+import { BaseModal } from './BaseModal';
+import CustomSwitch from './CustomSwitch';
 import { Course } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
@@ -15,7 +15,12 @@ interface ConfigurationModalProps {
   onUpdateCourse: (updatedCourse: Course) => void;
 }
 
-export default function ConfigurationModal({ isVisible, onClose, course, onUpdateCourse }: ConfigurationModalProps) {
+export default function ConfigurationModal({
+  isVisible,
+  onClose,
+  course,
+  onUpdateCourse,
+}: ConfigurationModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const [tempCourse, setTempCourse] = useState(course);
 
@@ -30,169 +35,159 @@ export default function ConfigurationModal({ isVisible, onClose, course, onUpdat
 
   const primaryColor = useThemeColor({}, 'alertPrimary');
   const tintColor = useThemeColor({}, 'tint');
-  const borderColor = useThemeColor({}, 'border');
+
+  const footerContent = (
+    <View style={styles.buttonRow}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          styles.cancelButton,
+          { borderColor: tintColor, opacity: pressed ? 0.75 : 1 },
+        ]}
+        onPress={onClose}
+      >
+        <ThemedText style={[styles.buttonText, { color: tintColor }]}>
+          Cancel
+        </ThemedText>
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          { backgroundColor: primaryColor, opacity: pressed ? 0.75 : 1 },
+        ]}
+        onPress={handleSave}
+      >
+        <ThemedText style={[styles.buttonText, { color: '#fff', fontWeight: 'bold' }]}>
+          Save
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={onClose}
+    <BaseModal
+      isVisible={isVisible}
+      onClose={onClose}
+      title="Course Configuration"
+      subtitle={course.name}
+      showCloseButton={true}
+      dismissOnBackdropPress={true}
+      footer={footerContent}
     >
-      <View style={styles.centeredView}>
-        <BlurView intensity={25} style={StyleSheet.absoluteFill} tint="dark" />
-          <ThemedView
-            style={[styles.modalView, { borderColor }]}
-            lightColor={Colors.light.alert}
-            darkColor={Colors.dark.alert}
-          >
-            <ThemedText type="subtitle" style={styles.modalTitle}>Configuration</ThemedText>
-            {tempCourse.createdAt && (
-              <View style={styles.configRow}>
-                <Ionicons name="calendar" size={18} color={Colors[colorScheme].icon} />
-                <ThemedText style={styles.detailText} type="defaultSemiBold">
-                  Created on: {new Date(tempCourse.createdAt).toLocaleDateString()}
-                </ThemedText>
-              </View>
-            )}
-            {tempCourse.archivedAt && (
-              <View style={styles.configRow}>
-                <Ionicons name="archive" size={18} color={Colors[colorScheme].icon} />
-                <ThemedText style={styles.detailText} type="defaultSemiBold">
-                  Archived on: {new Date(tempCourse.archivedAt).toLocaleDateString()}
-                </ThemedText>
-              </View>
-            )}
-            <View style={styles.configRow}>
-              <ThemedText type="defaultSemiBold">Show in Tracker</ThemedText>
-              <Switch
-                value={Boolean(tempCourse.showInTracker)}
-                onValueChange={(newValue) => {
-                  setTempCourse({ ...tempCourse, showInTracker: newValue });
-                }}
-                trackColor={{ false: '#555', true: primaryColor }}
-                thumbColor={tempCourse.showInTracker ? '#fff' : '#ddd'}
-              />
+      <View style={styles.container}>
+        {tempCourse.createdAt && (
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabelGroup}>
+              <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.infoText}>Created on</ThemedText>
             </View>
-            <View style={styles.configRow}>
-              <ThemedText type="defaultSemiBold">Show in Heatmap</ThemedText>
-              <Switch
-                value={Boolean(tempCourse.showInHeatmap)}
-                onValueChange={(newValue) => {
-                  setTempCourse({ ...tempCourse, showInHeatmap: newValue });
-                }}
-                trackColor={{ false: '#555', true: primaryColor }}
-                thumbColor={tempCourse.showInHeatmap ? '#fff' : '#ddd'}
-              />
+            <ThemedText type="defaultSemiBold" style={styles.infoValue}>
+              {new Date(tempCourse.createdAt).toLocaleDateString()}
+            </ThemedText>
+          </View>
+        )}
+
+        {tempCourse.archivedAt && (
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabelGroup}>
+              <Ionicons name="archive-outline" size={18} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.infoText}>Archived on</ThemedText>
             </View>
-            <View style={[styles.configRow, { borderBottomWidth: 0 }]}>
-              <ThemedText type="defaultSemiBold">Show in Radar</ThemedText>
-              <Switch
-                value={Boolean(tempCourse.showInRadar)}
-                onValueChange={(newValue) => {
-                  setTempCourse({ ...tempCourse, showInRadar: newValue });
-                }}
-                trackColor={{ false: '#555', true: primaryColor }}
-                thumbColor={tempCourse.showInRadar ? '#fff' : '#ddd'}
-              />
-            </View>
-            <View style={styles.buttonContainer}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.button,
-                  {
-                    backgroundColor: 'transparent',
-                    opacity: pressed ? 0.7 : 1,
-                    borderWidth: 1,
-                    borderColor: tintColor,
-                    elevation: 0,
-                  },
-                ]}
-                onPress={onClose}
-              >
-                <ThemedText style={[styles.buttonText, { color: tintColor, fontWeight: 'normal' }]}>Cancel</ThemedText>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.button,
-                  {
-                    backgroundColor: primaryColor,
-                    opacity: pressed ? 0.7 : 1,
-                    elevation: 2,
-                  },
-                ]}
-                onPress={handleSave}
-              >
-                <ThemedText style={[styles.buttonText, { color: '#fff', fontWeight: 'bold' }]}>Save</ThemedText>
-              </Pressable>
-            </View>
-          </ThemedView>
+            <ThemedText type="defaultSemiBold" style={styles.infoValue}>
+              {new Date(tempCourse.archivedAt).toLocaleDateString()}
+            </ThemedText>
+          </View>
+        )}
+
+        <View style={styles.configRow}>
+          <ThemedText type="defaultSemiBold">Show in Tracker</ThemedText>
+          <CustomSwitch
+            value={Boolean(tempCourse.showInTracker)}
+            onValueChange={(newValue) =>
+              setTempCourse({ ...tempCourse, showInTracker: newValue })
+            }
+          />
+        </View>
+
+        <View style={styles.configRow}>
+          <ThemedText type="defaultSemiBold">Show in Heatmap</ThemedText>
+          <CustomSwitch
+            value={Boolean(tempCourse.showInHeatmap)}
+            onValueChange={(newValue) =>
+              setTempCourse({ ...tempCourse, showInHeatmap: newValue })
+            }
+          />
+        </View>
+
+        <View style={[styles.configRow, styles.lastRow]}>
+          <ThemedText type="defaultSemiBold">Show in Radar</ThemedText>
+          <CustomSwitch
+            value={Boolean(tempCourse.showInRadar)}
+            onValueChange={(newValue) =>
+              setTempCourse({ ...tempCourse, showInRadar: newValue })
+            }
+          />
+        </View>
       </View>
-    </Modal>
+    </BaseModal>
   );
 }
 
 const styles = StyleSheet.create({
-  blurView: {
-    flex: 1,
+  container: {
+    gap: 4,
   },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
+  infoRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.15)',
   },
-  modalView: {
-    width: '85%',
-    maxWidth: 450,
-    margin: 20,
-    borderRadius: 12,
-    padding: 20,
+  infoLabelGroup: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    gap: 8,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+  infoText: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  infoValue: {
+    fontSize: 14,
   },
   configRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+    borderBottomColor: 'rgba(128, 128, 128, 0.15)',
   },
-  detailText: {
-    marginLeft: 4,
-    fontSize: 14,
+  lastRow: {
+    borderBottomWidth: 0,
   },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    gap: 12,
     width: '100%',
-    marginTop: 20,
   },
   button: {
+    flex: 1,
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    minWidth: 100,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    marginHorizontal: 8,
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: '600',
   },
 });

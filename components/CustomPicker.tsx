@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, FlatList, useColorScheme } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, FlatList, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
+import { BaseModal } from '@/components/BaseModal';
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,129 +13,117 @@ interface CustomPickerProps<T> {
   modalTitle: string;
 }
 
-export const CustomPicker = <T extends string | number>({ label, selectedValue, onValueChange, options, modalTitle }: CustomPickerProps<T>) => {
+export const CustomPicker = <T extends string | number>({
+  label,
+  selectedValue,
+  onValueChange,
+  options,
+  modalTitle,
+}: CustomPickerProps<T>) => {
   const colorScheme = useColorScheme() ?? 'light';
   const [modalVisible, setModalVisible] = useState(false);
 
   const selectedLabel = useMemo(() => {
-    const selectedOption = options.find(option => option.value === selectedValue);
+    const selectedOption = options.find((option) => option.value === selectedValue);
     return selectedOption ? selectedOption.label : '';
   }, [selectedValue, options]);
 
-  const styles = useMemo(() => StyleSheet.create({
-    inputGroup: {
-      //marginBottom: 20,
-    },
-    label: {
-      fontSize: 16,
-      marginBottom: 8,
-      color: Colors[colorScheme].text,
-      fontWeight: '500',
-    },
-    pickerButton: {
-      backgroundColor: Colors[colorScheme].card,
-      paddingVertical: 12,
-      paddingHorizontal: 15,
-      borderRadius: 12,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      //borderColor: Colors[colorScheme].border,
-      borderWidth: 1,
-    },
-    pickerButtonText: {
-      color: Colors[colorScheme].text,
-      fontSize: 16,
-    },
-    modalContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
-      backgroundColor: Colors[colorScheme].card,
-      borderRadius: 16,
-      padding: 20,
-      width: '80%',
-      maxHeight: '70%',
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 15,
-      color: Colors[colorScheme].text,
-    },
-    optionItem: {
-      paddingVertical: 12,
-      paddingHorizontal: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[colorScheme].border,
-    },
-    optionText: {
-      fontSize: 16,
-      color: Colors[colorScheme].text,
-    },
-    selectedOptionText: {
-      fontWeight: 'bold',
-      color: Colors[colorScheme].tint,
-    },
-    closeButton: {
-      marginTop: 20,
-      backgroundColor: Colors[colorScheme].tint,
-      paddingVertical: 12,
-      borderRadius: 12,
-      alignItems: 'center',
-    },
-    closeButtonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-  }), [colorScheme]);
-
   return (
     <View style={styles.inputGroup}>
-      {label !== '' && <ThemedText style={styles.label}>{label}</ThemedText>}
-      <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisible(true)}>
-        <ThemedText style={styles.pickerButtonText}>
+      {label !== '' && <ThemedText style={[styles.label, { color: Colors[colorScheme].text }]}>{label}</ThemedText>}
+      <TouchableOpacity
+        style={[
+          styles.pickerButton,
+          {
+            backgroundColor: Colors[colorScheme].card,
+            borderColor: Colors[colorScheme].border,
+          },
+        ]}
+        onPress={() => setModalVisible(true)}
+      >
+        <ThemedText style={{ color: Colors[colorScheme].text, fontSize: 16 }}>
           {selectedLabel}
         </ThemedText>
-        <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].text} />
+        <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].icon} />
       </TouchableOpacity>
 
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+      <BaseModal
+        isVisible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalTitle}
+        showCloseButton={true}
+        dismissOnBackdropPress={true}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>{modalTitle}</ThemedText>
-            <FlatList
-              data={options}
-              keyExtractor={(item) => item.value.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.optionItem}
-                  onPress={() => {
-                    onValueChange(item.value);
-                    setModalVisible(false);
-                  }}
+        <FlatList
+          data={options}
+          keyExtractor={(item) => item.value.toString()}
+          showsVerticalScrollIndicator={false}
+          style={styles.list}
+          renderItem={({ item }) => {
+            const isSelected = item.value === selectedValue;
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.optionItem,
+                  { borderBottomColor: Colors[colorScheme].separator },
+                ]}
+                onPress={() => {
+                  onValueChange(item.value);
+                  setModalVisible(false);
+                }}
+              >
+                <ThemedText
+                  style={[
+                    styles.optionText,
+                    { color: isSelected ? Colors[colorScheme].tint : Colors[colorScheme].text },
+                    isSelected && styles.selectedOptionText,
+                  ]}
                 >
-                  <ThemedText style={[styles.optionText, item.value === selectedValue && styles.selectedOptionText]}>
-                    {item.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <ThemedText style={styles.closeButtonText}>Close</ThemedText>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+                  {item.label}
+                </ThemedText>
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={20} color={Colors[colorScheme].tint} />
+                )}
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </BaseModal>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  inputGroup: {},
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  pickerButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  list: {
+    maxHeight: 320,
+  },
+  optionItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionText: {
+    fontSize: 16,
+  },
+  selectedOptionText: {
+    fontWeight: '600',
+  },
+});

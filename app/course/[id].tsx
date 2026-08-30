@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   useColorScheme as useNativeColorScheme,
   Pressable,
-  TextInput,
-  Modal,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import AttendanceHistory from '@/components/AttendanceHistory';
@@ -23,6 +21,7 @@ import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
+import { UpdateCountModal } from '@/components/UpdateCountModal';
 import { calculateTargetDate, getCourseAttendanceDelta } from '@/utils/attendance';
 
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
@@ -63,7 +62,6 @@ export default function CourseDetailScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [configModalVisible, setConfigModalVisible] = useState(false);
-  const [inputValue, setInputValue] = useState('');
   const [countType, setCountType] = useState<"presents" | "absents" | "cancelled">("presents");
   const [page, setPage] = useState(1);
   const recordsPerPage = 10;
@@ -193,11 +191,6 @@ export default function CourseDetailScreen() {
         },
       ]
     );
-  };
-
-  // Define the onClose function for the modal
-  const onClose = () => {
-    setModalVisible(false);
   };
 
   if (loading) {
@@ -330,7 +323,6 @@ export default function CourseDetailScreen() {
               <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
               <Pressable onPress={() => {
                 setCountType("presents");
-                setInputValue(String(presents));
                 setModalVisible(true);
               }}>
                 <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
@@ -340,7 +332,6 @@ export default function CourseDetailScreen() {
               <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
               <Pressable onPress={() => {
                 setCountType("absents");
-                setInputValue(String(absents));
                 setModalVisible(true);
               }}>
                 <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
@@ -350,7 +341,6 @@ export default function CourseDetailScreen() {
               <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
               <Pressable onPress={() => {
                 setCountType("cancelled");
-                setInputValue(String(cancelled));
                 setModalVisible(true);
               }}>
                 <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
@@ -359,75 +349,17 @@ export default function CourseDetailScreen() {
           </View>
         </ThemedView>
 
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={onClose}
-        >
-          <View style={styles.centeredView}>
-            <ThemedView style={[styles.modalView, { borderColor }]} lightColor={Colors.light.alert} darkColor={Colors.dark.alert}>
-              <ThemedText type="subtitle" style={styles.modalTitle}>
-                Update {countType.charAt(0).toLocaleUpperCase() + countType.slice(1)} Count
-              </ThemedText>
-              <TextInput
-                style={[
-                  styles.modalTextInput,
-                  {
-                    color: textColor,
-                    borderColor: borderColor,
-                    backgroundColor: Colors[colorScheme].inputBackground,
-                  },
-                ]}
-                keyboardType="number-pad"
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Enter new count"
-                placeholderTextColor={textColor}
-              />
-              <View style={styles.buttonRow}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.basicButton,
-                    {
-                      backgroundColor: 'transparent',
-                      borderWidth: 1,
-                      borderColor: tintColor,
-                      opacity: pressed ? 0.7 : 1,
-                      marginLeft: 0,
-                      elevation: 0,
-                    },
-                  ]}
-                  onPress={onClose}
-                >
-                  <ThemedText style={[styles.buttonText, { color: tintColor }]}>Cancel</ThemedText>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.basicButton,
-                    {
-                      backgroundColor: primaryColor,
-                      opacity: pressed ? 0.7 : 1,
-                      marginLeft: 10,
-                      elevation: 2,
-                    },
-                  ]}
-                  onPress={() => {
-                    setModalVisible(false);
-                    const newValue = parseInt(inputValue, 10);
-                    if (!isNaN(newValue) && newValue >= 0) {
-                      updateCourseCounts(course.id, countType, newValue);
-                    } else {
-                      showAlert('Invalid Input', 'Please enter a valid non-negative number.');
-                    }
-                  }}
-                >
-                  <ThemedText style={[styles.buttonText, { color: '#fff' }]}>Submit</ThemedText>
-                </Pressable>
-              </View>
-            </ThemedView>
-          </View>
-        </Modal>
+        <UpdateCountModal
+          isVisible={modalVisible}
+          countType={countType}
+          initialValue={countType === 'presents' ? presents : countType === 'absents' ? absents : cancelled}
+          onClose={() => setModalVisible(false)}
+          onSave={(newValue) => {
+            if (course) {
+              updateCourseCounts(course.id, countType, newValue);
+            }
+          }}
+        />
 
         {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
           <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>

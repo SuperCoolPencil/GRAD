@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, TouchableOpacity, Modal, FlatList, StyleSheet, useColorScheme } from 'react-native';
+import { View, TouchableOpacity, FlatList, StyleSheet, useColorScheme, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/ThemedText';
+import { BaseModal } from '@/components/BaseModal';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@react-navigation/native';
@@ -32,13 +32,11 @@ export const CoursePicker = ({
   const [showArchived, setShowArchived] = useState(false);
   const { colors } = useTheme();
   const colorScheme = useColorScheme() ?? 'light';
-  const styles = useMemo(() => getStyles(colors, colorScheme), [colors, colorScheme]);
 
   const handleItemPress = (courseId: string | null) => {
     if (multiSelect) {
-      if (courseId === null) { // "All Courses" selected
-        // Select all currently filtered courses
-        onSelectionChange(filteredCourses.map(c => c.id!));
+      if (courseId === null) {
+        onSelectionChange(filteredCourses.map((c) => c.id!));
       } else {
         onSelectionChange(
           selectedCourseIds.includes(courseId)
@@ -59,12 +57,12 @@ export const CoursePicker = ({
     if (multiSelect) {
       return `${selectedCourseIds.length} course(s) selected`;
     }
-    const selectedCourse = courses.find(c => c.id === selectedCourseIds[0]);
+    const selectedCourse = courses.find((c) => c.id === selectedCourseIds[0]);
     return selectedCourse?.name ?? 'Select a course...';
   }, [selectedCourseIds, courses, multiSelect, allCoursesOption]);
 
   const filteredCourses = useMemo(() => {
-    return showArchived ? courses : courses.filter(course => !course.isArchived);
+    return showArchived ? courses : courses.filter((course) => !course.isArchived);
   }, [courses, showArchived]);
 
   const data = useMemo(() => {
@@ -75,93 +73,118 @@ export const CoursePicker = ({
     return courseList;
   }, [filteredCourses, allCoursesOption]);
 
+  const footerContent = (multiSelect || showSaveButton) ? (
+    <Pressable
+      style={({ pressed }) => [
+        styles.saveButton,
+        { backgroundColor: Colors[colorScheme].tint, opacity: pressed ? 0.75 : 1 },
+      ]}
+      onPress={() => setIsPickerVisible(false)}
+    >
+      <ThemedText style={styles.saveButtonText}>
+        {multiSelect ? 'Save Selection' : 'Done'}
+      </ThemedText>
+    </Pressable>
+  ) : undefined;
+
   return (
     <View style={styles.inputGroup}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
-      <TouchableOpacity style={styles.pickerTrigger} onPress={() => setIsPickerVisible(true)}>
-        <ThemedText style={styles.pickerTriggerText}>{displayValue}</ThemedText>
+      {label !== '' && <ThemedText style={[styles.label, { color: colors.text }]}>{label}</ThemedText>}
+      <TouchableOpacity
+        style={[
+          styles.pickerTrigger,
+          {
+            borderColor: colors.border,
+            backgroundColor: Colors[colorScheme].inputBackground,
+          },
+        ]}
+        onPress={() => setIsPickerVisible(true)}
+      >
+        <ThemedText style={[styles.pickerTriggerText, { color: colors.text }]}>
+          {displayValue}
+        </ThemedText>
         <Ionicons name="chevron-down" size={20} color={colors.text} />
       </TouchableOpacity>
-      <Modal
-        transparent={true}
-        visible={isPickerVisible}
-        animationType="fade"
-        onRequestClose={() => setIsPickerVisible(false)}
+
+      <BaseModal
+        isVisible={isPickerVisible}
+        onClose={() => setIsPickerVisible(false)}
+        title="Select Course"
+        showCloseButton={true}
+        dismissOnBackdropPress={true}
+        footer={footerContent}
       >
-        <BlurView intensity={25} style={styles.blurView} tint="dark">
-          <TouchableOpacity
-            style={styles.modalContainer}
-            activeOpacity={1}
-            onPressOut={() => setIsPickerVisible(false)}
-          >
-            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-              {showArchivedToggle && (
+        <View style={styles.modalContent}>
+          {showArchivedToggle && (
+            <TouchableOpacity
+              style={[styles.toggleRow, { borderBottomColor: Colors[colorScheme].separator }]}
+              onPress={() => setShowArchived((prev) => !prev)}
+            >
+              <Ionicons
+                name={showArchived ? 'checkbox-outline' : 'square-outline'}
+                size={22}
+                color={Colors[colorScheme].tint}
+                style={{ marginRight: 10 }}
+              />
+              <ThemedText style={{ color: colors.text, fontSize: 15, fontWeight: '500' }}>
+                Show Archived Courses
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          <FlatList
+            data={data}
+            keyExtractor={(item) => item.id || 'all-courses'}
+            showsVerticalScrollIndicator={false}
+            style={styles.list}
+            renderItem={({ item }) => {
+              const isAllCoursesSelected =
+                item.id === null &&
+                selectedCourseIds.length === filteredCourses.length &&
+                filteredCourses.every((fc) => selectedCourseIds.includes(fc.id!));
+              const isItemSelected = item.id !== null && selectedCourseIds.includes(item.id);
+
+              return (
                 <TouchableOpacity
-                  style={styles.toggleRow}
-                  onPress={() => setShowArchived(prev => !prev)}
+                  style={[styles.modalItem, { borderBottomColor: Colors[colorScheme].separator }]}
+                  onPress={() => handleItemPress(item.id)}
                 >
                   <Ionicons
-                    name={showArchived ? 'checkbox-outline' : 'square-outline'}
-                    size={24}
-                    color={Colors[colorScheme].tint}
-                    style={{ marginRight: 10 }}
+                    name={
+                      (item.id === null && isAllCoursesSelected) ||
+                      (item.id !== null && isItemSelected)
+                        ? 'checkmark-circle'
+                        : 'ellipse-outline'
+                    }
+                    size={22}
+                    color={
+                      (item.id === null && isAllCoursesSelected) ||
+                      (item.id !== null && isItemSelected)
+                        ? Colors[colorScheme].tint
+                        : Colors[colorScheme].icon
+                    }
+                    style={{ marginRight: 12 }}
                   />
-                  <ThemedText style={styles.modalItemText}>Show Archived Courses</ThemedText>
-                </TouchableOpacity>
-              )}
-              <FlatList
-                data={data}
-                keyExtractor={(item) => item.id || 'all-courses'}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => {
-                  const isAllCoursesSelected = item.id === null && selectedCourseIds.length === filteredCourses.length && filteredCourses.every(fc => selectedCourseIds.includes(fc.id!));
-                  const isItemSelected = item.id !== null && selectedCourseIds.includes(item.id);
-
-                  return (
-                    <TouchableOpacity
-                      style={styles.modalItem}
-                      onPress={() => handleItemPress(item.id)}
-                    >
-                      <Ionicons
-                        name={
-                          (item.id === null && isAllCoursesSelected) ||
-                          (item.id !== null && isItemSelected)
-                            ? 'checkmark-circle'
-                            : 'ellipse-outline'
-                        }
-                        size={24}
-                        color={
-                          ((item.id === null && isAllCoursesSelected) ||
-                          (item.id !== null && isItemSelected))
-                            ? Colors[colorScheme].tint
-                            : colors.text
-                        }
-                        style={{ marginRight: 10 }}
-                      />
-                      <ThemedText style={styles.modalItemText}>{item.name}</ThemedText>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-              {(multiSelect || showSaveButton) && (
-                <TouchableOpacity
-                  style={styles.modalCloseButton}
-                  onPress={() => setIsPickerVisible(false)}
-                >
-                  <ThemedText style={styles.modalCloseButtonText}>
-                    {multiSelect ? 'Save' : 'Close'}
+                  <ThemedText
+                    style={[
+                      styles.modalItemText,
+                      { color: colors.text },
+                      ((item.id === null && isAllCoursesSelected) ||
+                        (item.id !== null && isItemSelected)) && styles.selectedText,
+                    ]}
+                  >
+                    {item.name}
                   </ThemedText>
                 </TouchableOpacity>
-              )}
-            </View>
-          </TouchableOpacity>
-        </BlurView>
-      </Modal>
+              );
+            }}
+          />
+        </View>
+      </BaseModal>
     </View>
   );
 };
 
-const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.create({
+const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 20,
   },
@@ -169,67 +192,53 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     fontSize: 16,
     marginBottom: 8,
     fontWeight: '500',
-    color: colors.text,
   },
   pickerTrigger: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderColor: colors.border,
-    backgroundColor: Colors[colorScheme].inputBackground,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 15,
     height: 50,
   },
   pickerTriggerText: {
     fontSize: 16,
-    color: colors.text,
   },
-  blurView: {
-    flex: 1,
+  modalContent: {},
+  list: {
+    maxHeight: 320,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  toggleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)'
-  },
-  modalContent: {
-    backgroundColor: colors.card,
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
-    maxHeight: '60%',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    marginBottom: 4,
   },
   modalItem: {
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
   },
   modalItemText: {
     fontSize: 16,
-    color: colors.text,
   },
-  toggleRow: {
-    flexDirection: 'row',
+  selectedText: {
+    fontWeight: '600',
+  },
+  saveButton: {
+    borderRadius: 12,
+    paddingVertical: 12,
     alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'center',
+    width: '100%',
   },
-  modalCloseButton: {
-    backgroundColor: Colors[colorScheme].tint,
-    paddingVertical: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  modalCloseButtonText: {
+  saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
