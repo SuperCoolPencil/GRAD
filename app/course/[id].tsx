@@ -207,23 +207,6 @@ export default function CourseDetailScreen() {
     );
   };
 
-  const handleManageCourse = () => {
-    if (!course) return;
-    showAlert(
-      'Manage Course',
-      course.isArchived ? 'This course is archived.' : 'Manage this course and its visibility.',
-      [
-        {
-          text: course.isArchived ? 'Unarchive' : 'Archive',
-          style: 'destructive',
-          onPress: course.isArchived ? handleUnarchive : handleArchive,
-        },
-        { text: 'Delete Course', style: 'destructive', onPress: handleDelete },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
-  };
-
   if (loading) {
     return (
       <ThemedView style={styles.centered}>
@@ -264,13 +247,14 @@ export default function CourseDetailScreen() {
   } else if (delta < 0) {
     attendanceNote = `Can miss ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
   }
-  const forecastMessage = targetDateInfo && targetDateInfo.classesNeeded > 0
-    ? `${plannedAbsences} planned skip${plannedAbsences === 1 ? '' : 's'} · ${projectedAttendance}% projected · attend ${targetDateInfo.classesNeeded}${targetDateInfo.targetDate ? ` by ${targetDateInfo.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
-    : `${plannedAbsences} planned skip${plannedAbsences === 1 ? '' : 's'} · ${projectedAttendance}% projected`;
+  const forecastSummary = `${plannedAbsences} planned skip${plannedAbsences === 1 ? '' : 's'} · ${projectedAttendance}% projected`;
+  const forecastGuidance = targetDateInfo && targetDateInfo.classesNeeded > 0
+    ? `Attend ${targetDateInfo.classesNeeded} by${targetDateInfo.targetDate ? ` ${targetDateInfo.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' your target date'}`
+    : null;
 
   return (
     <>
-      <CustomHeader title={course.id} />
+      <CustomHeader title="Course details" />
       <ScrollView
         style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
         contentContainerStyle={styles.contentContainer}
@@ -288,24 +272,6 @@ export default function CourseDetailScreen() {
           />
         )}
         <ThemedView style={[styles.heroCard, { backgroundColor: Colors[colorScheme].card }]}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.courseMark}>
-              <ThemedText style={[styles.courseMarkText, { color: Colors[colorScheme].tint }]}>
-                {course.id.slice(0, 2).toUpperCase()}
-              </ThemedText>
-            </View>
-            <View style={styles.heroActions}>
-              <TouchableOpacity accessibilityLabel="Course settings" onPress={() => setConfigModalVisible(true)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-                <Ionicons name="options-outline" size={19} color={Colors[colorScheme].tint} />
-              </TouchableOpacity>
-              <TouchableOpacity accessibilityLabel="Edit course" onPress={() => router.push(`/edit-course/${course.id}`)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-                <Ionicons name="pencil-outline" size={19} color={Colors[colorScheme].tint} />
-              </TouchableOpacity>
-              <TouchableOpacity accessibilityLabel="Manage course" onPress={handleManageCourse} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-                <Ionicons name="ellipsis-horizontal" size={20} color={Colors[colorScheme].icon} />
-              </TouchableOpacity>
-            </View>
-          </View>
           <ThemedText type="title" style={styles.courseName}>{course.name}</ThemedText>
           <View style={styles.heroMetaRow}>
             <ThemedText style={styles.heroMeta}>{course.id}</ThemedText>
@@ -315,6 +281,28 @@ export default function CourseDetailScreen() {
                 <ThemedText style={[styles.archivedText, { color: Colors[colorScheme].warning }]}>Archived</ThemedText>
               </View>
             )}
+          </View>
+          <View style={styles.heroActions}>
+            <TouchableOpacity accessibilityLabel="Course settings" onPress={() => setConfigModalVisible(true)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+              <Ionicons name="options-outline" size={19} color={Colors[colorScheme].tint} />
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityLabel="Edit course" onPress={() => router.push(`/edit-course/${course.id}`)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+              <Ionicons name="pencil-outline" size={19} color={Colors[colorScheme].tint} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityLabel={course.isArchived ? 'Unarchive course' : 'Archive course'}
+              onPress={course.isArchived ? handleUnarchive : handleArchive}
+              style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}
+            >
+              <Ionicons
+                name={course.isArchived ? 'arrow-up-circle-outline' : 'archive-outline'}
+                size={19}
+                color={course.isArchived ? Colors[colorScheme].tint : Colors[colorScheme].warning}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityLabel="Delete course" onPress={handleDelete} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+              <Ionicons name="trash-outline" size={19} color={Colors[colorScheme].error} />
+            </TouchableOpacity>
           </View>
         </ThemedView>
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
@@ -351,7 +339,10 @@ export default function CourseDetailScreen() {
 
           <View style={styles.forecastLine}>
             <Ionicons name="sparkles-outline" size={15} color={deltaColor} />
-            <ThemedText style={styles.forecastText}>{forecastMessage}</ThemedText>
+            <View style={styles.forecastCopy}>
+              <ThemedText style={styles.forecastText}>{forecastSummary}</ThemedText>
+              {forecastGuidance && <ThemedText style={[styles.forecastText, styles.forecastGuidance]}>{forecastGuidance}</ThemedText>}
+            </View>
           </View>
         </ThemedView>
 
@@ -475,27 +466,10 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  courseMark: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(112, 112, 112, 0.12)',
-  },
-  courseMarkText: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
   heroActions: {
     flexDirection: 'row',
     gap: 6,
+    marginTop: 18,
   },
   heroAction: {
     width: 36,
@@ -630,13 +604,20 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(127, 127, 127, 0.25)',
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 7,
   },
-  forecastText: {
+  forecastCopy: {
     flex: 1,
+    gap: 2,
+  },
+  forecastText: {
     fontSize: 13,
     opacity: 0.6,
+  },
+  forecastGuidance: {
+    fontWeight: '600',
+    opacity: 0.82,
   },
   attendanceDetailItem: {
     flex: 1,
