@@ -59,6 +59,7 @@ export interface Course {
 
 export interface ClassItem {
   id: string;
+  sourceId: string;
   courseId: string;
   courseName: string;
   timeStart: string;

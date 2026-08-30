@@ -1,6 +1,25 @@
-import { Course, AttendanceRecord, ScheduleItem, Holiday, SkipDay } from '@/types';
-import { db, getSetting, updateSetting, bulkAddAttendanceRecords, getCourses } from './database';
+import { Course, AttendanceRecord, Holiday, SkipDay } from '@/types';
+import { db, getSetting, bulkAddAttendanceRecords, getCourses } from './database';
 import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
+
+/**
+ * Returns classes to attend (positive), classes that can be missed (negative),
+ * or zero when the target is already met exactly.
+ */
+export const getAttendanceDelta = (
+  presents: number,
+  absents: number,
+  requiredAttendance: number,
+): number => {
+  const total = presents + absents;
+  const requiredFraction = requiredAttendance / 100;
+
+  if (total === 0 || requiredFraction <= 0 || requiredFraction >= 1) return 0;
+
+  return presents / total >= requiredFraction
+    ? -Math.floor(presents / requiredFraction - total) || 0
+    : Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
+};
 
 const getDayOfWeek = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

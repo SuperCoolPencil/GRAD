@@ -1,7 +1,6 @@
-import { StyleSheet, FlatList, TouchableOpacity, View, Platform, ScrollView } from 'react-native'; // Import Platform, ScrollView
+import { StyleSheet, FlatList, TouchableOpacity, View } from 'react-native';
 import { useContext, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
-import Constants from 'expo-constants'; // Import Constants
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,38 +9,9 @@ import { AppContext } from '@/context/AppContext';
 import { Course } from '@/types';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { calculateTargetDate } from '@/utils/attendance';
+import { calculateTargetDate, getAttendanceDelta } from '@/utils/attendance';
 
-const truncate = (str: string, n: number) => {
-  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
-};
-
-// Helper to calculate attendance delta.
-// Returns a positive number when you need to attend extra classes to reach the required attendance,
-// a negative number when you can bunk extra classes and still maintain the requirement,
-// and zero when you’re exactly meeting the requirement.
-const getAttendanceDelta = (
-  presents: number,
-  absents: number,
-  requiredAttendance: number
-): number => {
-  const total = presents + absents;
-  const requiredFraction = requiredAttendance / 100;
-  if (total === 0) {
-    // With no classes held, assume you must attend no class.
-    return 0;
-  }
-  const currentFraction = presents / total;
-  if (currentFraction >= requiredFraction) {
-    // Calculate how many classes can be bunked.
-    return -Math.floor(presents / requiredFraction - total);
-  } else {
-    // Calculate extra classes needed.
-    return Math.ceil(
-      (requiredFraction * total - presents) / (1 - requiredFraction)
-    );
-  }
-};
+const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
 
 // Assign a border color or accent color based on delta.
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {

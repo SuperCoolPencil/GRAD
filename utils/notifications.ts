@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming } from '@/types';
 import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
-import { calculateAttendancePercentage } from './attendance'
+import { getAttendanceDelta } from './attendance'
 
 // Function to schedule notifications for a single course
 export const scheduleCourseNotifications = async (course: Course, timing: NotificationTiming) => {
@@ -147,7 +147,9 @@ const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass)
   const absents = course.absents || 0;
   const requiredAttendance = course.requiredAttendance || 75;
 
-  const { type, count } = getAttendanceDelta(presents, absents, requiredAttendance);
+  const attendanceDelta = getAttendanceDelta(presents, absents, requiredAttendance);
+  const type = attendanceDelta > 0 ? 'attend' : 'bunk';
+  const count = Math.abs(attendanceDelta);
   let deltaMessage: string;
 
   if (type === 'attend' && count > 0) {
@@ -166,29 +168,6 @@ const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass)
     data: { courseId: course.id, scheduleId: item.id },
     categoryIdentifier: 'class-actions',
   };
-};
-
-const getAttendanceDelta = (
-  presents: number,
-  absents: number,
-  requiredAttendance: number
-): { type: 'bunk' | 'attend'; count: number } => {
-  const total = presents + absents;
-  const requiredFraction = requiredAttendance / 100;
-
-  if (total === 0) {
-    return { type: 'attend', count: 0 };
-  }
-
-  const currentFraction = presents / total;
-
-  if (currentFraction >= requiredFraction) {
-    const bunksAvailable = Math.floor(presents / requiredFraction - total);
-    return { type: 'bunk', count: bunksAvailable };
-  } else {
-    const mustAttend = Math.ceil((requiredFraction * total - presents) / (1 - requiredFraction));
-    return { type: 'attend', count: mustAttend };
-  }
 };
 
 const getNextClassDate = (item: ScheduleItem, now: Date): Date => {

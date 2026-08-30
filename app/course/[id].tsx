@@ -6,12 +6,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme as useNativeColorScheme,
-  Alert,
   Pressable,
   TextInput,
-  Switch,
+  Modal,
 } from 'react-native';
-import { Modal } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter, Link } from 'expo-router';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { AppContext } from '@/context/AppContext';
@@ -25,27 +23,7 @@ import { useCustomAlert } from '@/context/AlertContext';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
-import { calculateTargetDate } from '@/utils/attendance';
-
-const getAttendanceDelta = (
-  presents: number,
-  absents: number,
-  requiredAttendance: number
-): number => {
-  const total = presents + absents;
-  const requiredFraction = requiredAttendance / 100;
-  if (total === 0) {
-    return 0;
-  }
-  const currentFraction = presents / total;
-  if (currentFraction >= requiredFraction) {
-    return -Math.floor(presents / requiredFraction - total);
-  } else {
-    return Math.ceil(
-      (requiredFraction * total - presents) / (1 - requiredFraction)
-    );
-  }
-};
+import { calculateTargetDate, getAttendanceDelta } from '@/utils/attendance';
 
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
   if (delta > 0) return Colors[colorScheme].error;

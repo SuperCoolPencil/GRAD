@@ -34,6 +34,7 @@ jest.mock('../database', () => ({
 // Mock attendance
 jest.mock('../attendance', () => ({
     calculateAttendancePercentage: jest.fn().mockReturnValue(75),
+    getAttendanceDelta: jest.fn().mockReturnValue(-1),
 }));
 
 import {

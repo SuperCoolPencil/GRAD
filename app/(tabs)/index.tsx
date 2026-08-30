@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -10,17 +10,16 @@ import { Colors } from "@/constants/Colors"; // Ensure this path matches your pr
 import { AppContext } from "@/context/AppContext";
 import { formatTime } from "@/utils/time";
 import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
-import { ClassItem, Course, ScheduleItem, ExtraClass, Holiday } from "@/types";
+import { AttendanceRecord, ClassItem, Course, ScheduleItem, ExtraClass, Holiday } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { CustomAlert } from "@/components/CustomAlert";
 import ExtraClassTag from "@/components/ui/ExtraClassTag";
+import { getAttendanceDelta } from '@/utils/attendance';
 
-const truncate = (str: string, n: number) => {
-  return (str.length > n) ? str.substring(0, n - 1) + '...' : str;
-};
+const truncate = (value: string, length: number) => value.length > length ? `${value.slice(0, length - 1)}...` : value;
 
 const DAYS_OF_WEEK = [
   "Sunday",
@@ -31,33 +30,6 @@ const DAYS_OF_WEEK = [
   "Friday",
   "Saturday",
 ];
-
-// Helper to calculate attendance delta.
-// Returns a positive number when you need to attend extra classes to reach the required attendance,
-// a negative number when you can bunk extra classes and still maintain the requirement,
-// and zero when you’re exactly meeting the requirement.
-const getAttendanceDelta = (
-  presents: number,
-  absents: number,
-  requiredAttendance: number
-): number => {
-  const total = presents + absents;
-  const requiredFraction = requiredAttendance / 100;
-  if (total === 0) {
-    // With no classes held, assume you must attend no class.
-    return 0;
-  }
-  const currentFraction = presents / total;
-  if (currentFraction >= requiredFraction) {
-    // Calculate how many classes can be bunked.
-    return -Math.floor(presents / requiredFraction - total);
-  } else {
-    // Calculate extra classes needed.
-    return Math.ceil(
-      (requiredFraction * total - presents) / (1 - requiredFraction)
-    );
-  }
-};
 
 // Assign a border color or accent color based on delta.
 const getDeltaColor = (delta: number, colorScheme: "light" | "dark") => {
@@ -92,7 +64,7 @@ const BulkAttendanceActions = ({ onBulkMark, colorScheme }: { onBulkMark: (statu
 };
 
 export default function TodaysClassesScreen() {
-  const { courses, upsertAttendance, deleteAttendanceRecord, loading, is24Hour, refreshKey, holidays } = useContext(AppContext);
+  const { courses, upsertAttendance, loading, is24Hour, holidays } = useContext(AppContext);
   const [todaysClasses, setTodaysClasses] = useState<ClassItem[]>([]);
   const [showAlert, setShowAlert] = useState(false);
   const [showTomorrow, setShowTomorrow] = useState(false); // New state for toggling today/tomorrow
@@ -111,9 +83,7 @@ export default function TodaysClassesScreen() {
   const handleBulkMarkAttendance = (status: "present" | "absent" | "cancelled") => {
     const dateString = formatDateToISO(currentDate);
     todaysClasses.forEach(item => {
-      const scheduleItemId = item.isExtraClass ? undefined : item.id.split('-').slice(1).join('-');
-      const extraClassId = item.isExtraClass ? item.id.split('-').slice(2).join('-') : undefined;
-      upsertAttendance(item.courseId, scheduleItemId || extraClassId || '', status, item.isExtraClass, item.timeStart, item.timeEnd, dateString);
+      upsertAttendance(item.courseId, item.sourceId, status, item.isExtraClass, item.timeStart, item.timeEnd, dateString);
     });
   };
 
@@ -160,7 +130,6 @@ export default function TodaysClassesScreen() {
       <TodaysClassesContent
         courses={courses}
         upsertAttendance={upsertAttendance}
-        deleteAttendanceRecord={deleteAttendanceRecord}
         loading={loading}
         todaysClasses={todaysClasses}
         setTodaysClasses={setTodaysClasses}
@@ -191,7 +160,6 @@ export default function TodaysClassesScreen() {
 function TodaysClassesContent({
   courses,
   upsertAttendance,
-  deleteAttendanceRecord,
   loading,
   todaysClasses,
   setTodaysClasses,
@@ -200,24 +168,24 @@ function TodaysClassesContent({
   showTomorrow,
   holidays,
 }: {
-  courses: any;
-  upsertAttendance: any;
-  deleteAttendanceRecord: any;
-  loading: any;
-  todaysClasses: any;
-  setTodaysClasses: any;
+  courses: Course[];
+  upsertAttendance: (courseId: string, scheduleId: string, status: AttendanceRecord['status'], isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
+  loading: boolean;
+  todaysClasses: ClassItem[];
+  setTodaysClasses: Dispatch<SetStateAction<ClassItem[]>>;
   colorScheme: 'light' | 'dark';
   is24Hour: boolean;
-  showTomorrow: boolean; // Define type for new state
+  showTomorrow: boolean;
   holidays: Holiday[];
 }) {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [holiday, setHoliday] = useState<Holiday | undefined>(undefined);
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
 
-    const now = new Date(); // Corrected: removed extra 'new'
+    const now = new Date();
     if (showTomorrow) {
       now.setDate(now.getDate() + 1); // Increment date by 1 for tomorrow
     }
@@ -256,7 +224,7 @@ function TodaysClassesContent({
         course.weeklySchedule?.forEach((schedule: ScheduleItem) => {
           if (schedule.day === currentDayName) {
             const record = course.attendanceRecords?.find(
-              (r: any) =>
+              (r) =>
                 r.date === currentDateString &&
                 r.timeStart === schedule.timeStart &&
                 r.timeEnd === schedule.timeEnd &&
@@ -264,6 +232,7 @@ function TodaysClassesContent({
             );
             classesForToday.push({
               id: `${course.id}-${schedule.id}`,
+              sourceId: schedule.id,
               courseId: course.id,
               courseName: course.name,
               timeStart: schedule.timeStart,
@@ -282,7 +251,7 @@ function TodaysClassesContent({
       course.extraClasses?.forEach((extra: ExtraClass) => {
         if (extra.date === currentDateString) {
           const record = course.attendanceRecords?.find(
-            (r: any) =>
+            (r) =>
               r.date === currentDateString &&
               r.timeStart === extra.timeStart &&
               r.timeEnd === extra.timeEnd &&
@@ -290,6 +259,7 @@ function TodaysClassesContent({
           );
           classesForToday.push({
             id: `${course.id}-extra-${extra.id}`,
+            sourceId: extra.id,
             courseId: course.id,
             courseName: course.name,
             timeStart: extra.timeStart,
@@ -315,31 +285,18 @@ function TodaysClassesContent({
     });
 
     setTodaysClasses(validClasses);
-  }, [courses, loading, showTomorrow, holidays]);
+  }, [courses, loading, showTomorrow, holidays, setTodaysClasses]);
 
   const handleMarkAttendance = (
     courseId: string,
     status: "present" | "absent" | "cancelled",
     isExtraClass: boolean,
-    itemId: string,
+    sourceId: string,
     timeStart: string,
     timeEnd: string
   ) => {
     const dateString = formatDateToISO(currentDate); // YYYY-MM-DD
-    const scheduleItemId = isExtraClass ? undefined : itemId.split('-').slice(1).join('-');
-    const extraClassId = isExtraClass ? itemId.split('-').slice(2).join('-') : undefined;
-
-    upsertAttendance(courseId, scheduleItemId || extraClassId || '', status, isExtraClass, timeStart, timeEnd, dateString);
-  };
-
-  const handleDeleteAttendance = (
-    courseId: string,
-    isExtraClass: boolean,
-    timeStart: string,
-    timeEnd: string
-  ) => {
-    const dateString = formatDateToISO(currentDate); // YYYY-MM-DD
-    deleteAttendanceRecord(courseId, dateString, timeStart, timeEnd, isExtraClass);
+    upsertAttendance(courseId, sourceId, status, isExtraClass, timeStart, timeEnd, dateString);
   };
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
@@ -445,7 +402,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
                 onPress={() =>
-                  handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                  handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
                 }
               >
                 <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
@@ -455,7 +412,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
                 onPress={() =>
-                  handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                  handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
                 }
               >
                 <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
@@ -465,7 +422,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].warning }]}
                 onPress={() =>
-                  handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.id, item.timeStart, item.timeEnd)
+                  handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
                 }
               >
                 <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme].buttonText} />

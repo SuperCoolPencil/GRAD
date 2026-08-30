@@ -1,4 +1,4 @@
-import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage } from '../attendance';
+import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, getAttendanceDelta } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
 
@@ -17,6 +17,17 @@ const mockDb = db.db as jest.Mocked<typeof db.db>;
 const mockGetSetting = db.getSetting as jest.MockedFunction<typeof db.getSetting>;
 const mockGetCourses = db.getCourses as jest.MockedFunction<typeof db.getCourses>;
 const mockBulkAddAttendanceRecords = db.bulkAddAttendanceRecords as jest.MockedFunction<typeof db.bulkAddAttendanceRecords>;
+
+describe('getAttendanceDelta', () => {
+    it.each([
+        [0, 0, 75, 0],
+        [3, 1, 75, 0],
+        [2, 2, 75, 4],
+        [6, 1, 75, -1],
+    ])('returns the attendance gap for %i present and %i absent', (presents, absents, required, expected) => {
+        expect(getAttendanceDelta(presents, absents, required)).toBe(expected);
+    });
+});
 
 describe('createMissingAttendanceRecords', () => {
     beforeEach(() => {
