@@ -278,6 +278,9 @@ function TodaysClassesContent({
       attendanceNote = `Can miss ${available} class${available === 1 ? '' : 'es'}`;
     }
 
+    const clearAttendanceStatus = () =>
+      deleteAttendanceRecord(item.courseId, formatDateToISO(currentDate), item.timeStart, item.timeEnd, item.isExtraClass);
+
     return (
       <TouchableOpacity
         style={[
@@ -323,9 +326,7 @@ function TodaysClassesContent({
                   color={Colors[colorScheme || 'light'].icon}
                   style={{ marginRight: 4 }}
                 />
-                <ThemedText>
-                  Attendance {item.currentAttendance}% · Target {item.requiredAttendance}%
-                </ThemedText>
+                <ThemedText>Attendance {item.currentAttendance}%</ThemedText>
               </View>
               <View style={styles.infoRow}>
                 <Ionicons
@@ -363,65 +364,39 @@ function TodaysClassesContent({
                   </ThemedText>
                 </Pressable>
               )}
-              {item.status && (
-                <Pressable
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                    backgroundColor: Colors[colorScheme || 'light'].cardBackground, // A slightly different background to make it stand out
-                  }}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    deleteAttendanceRecord(item.courseId, formatDateToISO(currentDate), item.timeStart, item.timeEnd, item.isExtraClass);
-                  }}
-                >
-                  <Ionicons
-                    name={item.status === 'present' ? 'checkmark-circle-outline' : item.status === 'absent' ? 'close-circle-outline' : 'remove-circle-outline'}
-                    size={20}
-                    color={item.status === 'present' ? Colors[colorScheme || 'light'].success : item.status === 'absent' ? Colors[colorScheme || 'light'].error : Colors[colorScheme || 'light'].icon}
-                  />
-                  <ThemedText style={{ marginLeft: 4, fontSize: 12, textTransform: 'capitalize' }}>{item.status}</ThemedText>
-                </Pressable>
-              )}
             </View>
           </View>
 
           {!showTomorrow && ( // Conditionally render attendance actions
             <View style={styles.attendanceActions}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }]}
-                onPress={() =>
-                  handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
-                }
+                accessibilityLabel={item.status === 'present' ? 'Present, marked. Long press to clear.' : 'Mark present'}
+                style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }, item.status === 'present' && styles.selectedActionButton]}
+                onPress={() => handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onLongPress={item.status === 'present' ? clearAttendanceStatus : undefined}
               >
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-                <ThemedText style={{ color: Colors[colorScheme].buttonText }}>Present</ThemedText>
+                <Ionicons name={item.status === 'present' ? 'checkmark-circle' : 'checkmark-circle-outline'} size={18} color={Colors[colorScheme].buttonText} />
+                <ThemedText style={[styles.actionButtonLabel, { color: Colors[colorScheme].buttonText }]}>Present</ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }]}
-                onPress={() =>
-                  handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
-                }
+                accessibilityLabel={item.status === 'absent' ? 'Absent, marked. Long press to clear.' : 'Mark absent'}
+                style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }, item.status === 'absent' && styles.selectedActionButton]}
+                onPress={() => handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onLongPress={item.status === 'absent' ? clearAttendanceStatus : undefined}
               >
-                <Ionicons name="close-circle-outline" size={20} color={Colors[colorScheme].buttonText} />
-                <ThemedText style={{ color: Colors[colorScheme].buttonText }}>Absent</ThemedText>
+                <Ionicons name={item.status === 'absent' ? 'close-circle' : 'close-circle-outline'} size={18} color={Colors[colorScheme].buttonText} />
+                <ThemedText style={[styles.actionButtonLabel, { color: Colors[colorScheme].buttonText }]}>Absent</ThemedText>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionButton, styles.cancelActionButton, { borderColor: Colors[colorScheme || 'light'].icon }]}
-                onPress={() =>
-                  handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)
-                }
+                accessibilityLabel={item.status === 'cancelled' ? 'Cancelled, marked. Long press to clear.' : 'Mark cancelled'}
+                style={[styles.actionButton, styles.cancelActionButton, { borderColor: Colors[colorScheme || 'light'].icon }, item.status === 'cancelled' && styles.selectedActionButton]}
+                onPress={() => handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onLongPress={item.status === 'cancelled' ? clearAttendanceStatus : undefined}
               >
-                <Ionicons name="remove-circle-outline" size={20} color={Colors[colorScheme || 'light'].textSecondary} />
-                <ThemedText style={{ color: Colors[colorScheme || 'light'].textSecondary }}>Cancelled</ThemedText>
+                <Ionicons name={item.status === 'cancelled' ? 'remove-circle' : 'remove-circle-outline'} size={18} color={Colors[colorScheme || 'light'].textSecondary} />
+                <ThemedText style={[styles.actionButtonLabel, { color: Colors[colorScheme || 'light'].textSecondary }]}>Cancelled</ThemedText>
               </TouchableOpacity>
             </View>
           )}
@@ -526,10 +501,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     marginBottom: 0,
-    gap: 16, // Add gap for vertical spacing between classInfo and attendanceActions
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   classInfo: {
-    // Removed marginBottom, now handled by gap in classCardContent
+    flex: 1,
   },
   courseName: {
     fontSize: 15,
@@ -542,18 +519,24 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   attendanceActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    width: 96,
+    gap: 6,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    marginHorizontal: 4,
+    height: 34,
+    borderRadius: 8,
     justifyContent: 'center',
     gap: 4,
+  },
+  selectedActionButton: {
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  actionButtonLabel: {
+    fontSize: 13,
+    lineHeight: 16,
   },
   cancelActionButton: {
     backgroundColor: 'transparent',
