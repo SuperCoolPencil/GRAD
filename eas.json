@@ -1,0 +1,18 @@
+{
+  "cli": {
+    "version": ">= 16.3.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "distribution": "internal",
+      "credentialsSource": "remote",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "PRODUCTION": "1"
+      }
+    }
+  }
+}

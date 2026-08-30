@@ -213,7 +213,7 @@ describe('createMissingAttendanceRecords', () => {
             // Setup: Course with Monday schedule, last record was 2 weeks ago
             const twoWeeksAgo = new Date();
             twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-            const twoWeeksAgoStr = twoWeeksAgo.toISOString().split('T')[0];
+            const twoWeeksAgoStr = formatDateToISO(twoWeeksAgo);
 
             const mockCourse = {
                 id: 'CS101',
@@ -263,7 +263,7 @@ describe('createMissingAttendanceRecords', () => {
                 weeklySchedule: [],
                 extraClasses: [],
                 isArchived: false,
-                createdAt: new Date().toISOString().split('T')[0],
+                createdAt: formatDateToISO(new Date()),
             };
 
             mockGetCourses.mockReturnValue([mockCourse as any]);
@@ -279,12 +279,12 @@ describe('createMissingAttendanceRecords', () => {
         it('should skip creating records for holidays (no attendance records)', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = formatDateToISO(yesterday);
             const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][yesterday.getDay()];
 
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+            const twoDaysAgoStr = formatDateToISO(twoDaysAgo);
 
             const mockCourse = {
                 id: 'CS101',
@@ -328,12 +328,12 @@ describe('createMissingAttendanceRecords', () => {
         it('should create absent records for skip days', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = formatDateToISO(yesterday);
             const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][yesterday.getDay()];
 
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+            const twoDaysAgoStr = formatDateToISO(twoDaysAgo);
 
             const mockCourse = {
                 id: 'CS101',
@@ -373,12 +373,12 @@ describe('createMissingAttendanceRecords', () => {
         it('should respect course-specific skip days', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = formatDateToISO(yesterday);
             const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][yesterday.getDay()];
 
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+            const twoDaysAgoStr = formatDateToISO(twoDaysAgo);
 
             const mockCourse1 = {
                 id: 'CS101',
@@ -483,7 +483,7 @@ describe('createMissingAttendanceRecords', () => {
 
             const fiveDaysAgo = new Date();
             fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-            const fiveDaysAgoStr = fiveDaysAgo.toISOString().split('T')[0];
+            const fiveDaysAgoStr = formatDateToISO(fiveDaysAgo);
 
             // Find a day that is between course creation (5 days ago) and today
             const threeDaysAgo = new Date();
@@ -524,11 +524,11 @@ describe('createMissingAttendanceRecords', () => {
         it('should create records for extra classes that have passed', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = formatDateToISO(yesterday);
 
             const twoDaysAgo = new Date();
             twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-            const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+            const twoDaysAgoStr = formatDateToISO(twoDaysAgo);
 
             const mockCourse = {
                 id: 'CS101',
@@ -585,7 +585,7 @@ describe('calculateAttendancePercentage', () => {
 describe('calculateTargetDate', () => {
     // Helper to create a date string
     const formatDate = (date: Date): string => {
-        return date.toISOString().split('T')[0];
+        return formatDateToISO(date);
     };
 
     // Helper to get day name
