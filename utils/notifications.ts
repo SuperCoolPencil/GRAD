@@ -260,14 +260,15 @@ const scheduleNotification = async (
   if ('day' in item) { // It's a weekly schedule item
     const nextClassStart = getNextClassDate(item, now);
     const nextClassDateStr = formatDateToISO(nextClassStart);
-    const existingRecord = db.getFirstSync(
-      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
+    const existingRecord = db.getFirstSync<Pick<AttendanceRecord, 'status'>>(
+      'SELECT status FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
       [course.id, item.id, nextClassDateStr]
     );
 
-    if (existingRecord) {
-      // ponytail: a repeating weekly trigger cannot omit one occurrence; notifications resume when the app next reschedules them.
-      console.log(`[NOTIF] Attendance record for ${course.name} on ${nextClassDateStr} already exists. Skipping notification.`);
+    if (existingRecord?.status === 'cancelled') {
+      // A cancelled class should not notify, but an already-marked present/absent
+      // class should still receive its reminder.
+      console.log(`[NOTIF] Attendance record for ${course.name} on ${nextClassDateStr} is cancelled. Skipping notification.`);
       return;
     }
 
@@ -315,13 +316,13 @@ const scheduleNotification = async (
       });
     }
   } else { // It's an extra class
-    const existingRecord = db.getFirstSync(
-      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
+    const existingRecord = db.getFirstSync<Pick<AttendanceRecord, 'status'>>(
+      'SELECT status FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
       [course.id, item.id, item.date]
     );
 
-    if (existingRecord) {
-      console.log(`[NOTIF] Attendance record for extra class ${course.name} on ${item.date} already exists. Skipping notification.`);
+    if (existingRecord?.status === 'cancelled') {
+      console.log(`[NOTIF] Attendance record for extra class ${course.name} on ${item.date} is cancelled. Skipping notification.`);
       return;
     }
 

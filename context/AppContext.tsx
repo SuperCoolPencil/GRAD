@@ -1,9 +1,10 @@
-import { createContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming, SkipDay } from "../types";
 import { formatDateToISO } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
 import { calculateAttendancePercentage, createMissingAttendanceRecords } from "@/utils/attendance";
+import { getAttendanceCountField } from "@/utils/attendanceStatus";
 
 const DEFAULT_NOTIFICATION_TIMING: NotificationTiming = { value: 10, anchor: 'before_start' };
 
@@ -131,6 +132,18 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [refreshKey, setRefreshKey] = useState(0); // New state for refresh
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [skipDays, setSkipDays] = useState<SkipDay[]>([]);
+  const coursesRef = useRef(courses);
+  coursesRef.current = courses;
+
+  // Attendance updates do not affect when a notification needs to fire. Keeping
+  // this key separate prevents a status tap from rebuilding every notification.
+  const notificationScheduleKey = JSON.stringify(courses.map(course => ({
+    id: course.id,
+    name: course.name,
+    isArchived: course.isArchived,
+    weeklySchedule: course.weeklySchedule,
+    extraClasses: course.extraClasses,
+  })));
 
   const updateSetting = (key: string, value: any) => {
     console.log(`[AppContext] updateSetting: key=${key}, value=${value}`);
@@ -443,6 +456,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         record.timeEnd === timeEnd
     );
 
+    let newRecord: AttendanceRecord | undefined;
     if (existingRecord) {
       console.log(`[AppContext] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${status}.`);
       if (existingRecord.status === status) {
@@ -452,7 +466,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       db.updateAttendanceRecord(existingRecord.id, status);
     } else {
       console.log(`[AppContext] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${status}.`);
-      const newRecord: AttendanceRecord = {
+      newRecord = {
         id: `${courseId}-${scheduleId}-${date}`,
         course_id: courseId,
         date,
@@ -464,8 +478,32 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       };
       db.addAttendanceRecord(newRecord);
     }
-    triggerRefresh();
-    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete. Triggered refresh.`);
+    const previousStatus = existingRecord?.status;
+    setCourses(prev => prev.map(currentCourse => {
+      if (currentCourse.id !== course.id) return currentCourse;
+
+      const records = existingRecord
+        ? (currentCourse.attendanceRecords || []).map(record =>
+            record.id === existingRecord.id ? { ...record, status } : record,
+          )
+        : [...(currentCourse.attendanceRecords || []), newRecord!];
+      const counts = {
+        presents: currentCourse.presents,
+        absents: currentCourse.absents,
+        cancelled: currentCourse.cancelled,
+      };
+      if (previousStatus) counts[getAttendanceCountField(previousStatus)] = Math.max(0, counts[getAttendanceCountField(previousStatus)] - 1);
+      counts[getAttendanceCountField(status)] += 1;
+
+      return {
+        ...currentCourse,
+        ...counts,
+        attendanceRecords: records,
+        attendancePercentage: calculateAttendancePercentage(counts.presents, counts.absents),
+      };
+    }));
+    setRefreshKey(prev => prev + 1);
+    console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete.`);
   };
 
   const deleteAttendanceRecord = (courseId: string, date: string, timeStart: string, timeEnd: string, isExtraClass: boolean) => {
@@ -487,11 +525,25 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     if (existingRecord) {
       console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
       db.deleteAttendanceRecord(existingRecord.id);
-      if (existingRecord.isExtraClass) {
-        deleteExtraClass(course.id, existingRecord.id);
-      }
-      triggerRefresh(); // Add this line to trigger a refresh
-      console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}. Triggered refresh.`);
+      setCourses(prev => prev.map(currentCourse => {
+        if (currentCourse.id !== course.id) return currentCourse;
+
+        const countField = getAttendanceCountField(existingRecord.status);
+        const counts = {
+          presents: currentCourse.presents,
+          absents: currentCourse.absents,
+          cancelled: currentCourse.cancelled,
+          [countField]: Math.max(0, currentCourse[countField] - 1),
+        };
+        return {
+          ...currentCourse,
+          ...counts,
+          attendanceRecords: (currentCourse.attendanceRecords || []).filter(record => record.id !== existingRecord.id),
+          attendancePercentage: calculateAttendancePercentage(counts.presents, counts.absents),
+        };
+      }));
+      setRefreshKey(prev => prev + 1);
+      console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}.`);
     } else {
       console.log(`[AppContext] No attendance record found to delete for ${courseId} on ${date}`);
     }
@@ -530,7 +582,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       const rescheduleAllNotifications = async () => {
         console.log('[AppContext] Rescheduling all notifications...');
         await cancelAllNotifications();
-        for (const course of courses) {
+        for (const course of coursesRef.current) {
           if (!course.isArchived) {
             await scheduleCourseNotifications(course, notificationTiming, skipDays);
           }
@@ -539,7 +591,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       };
       rescheduleAllNotifications();
     }
-  }, [courses, loading, notificationTiming, skipDays]);
+  }, [notificationScheduleKey, loading, notificationTiming, skipDays]);
 
   const getCoursesWithRecordsInRange = async (startDate: string, endDate: string): Promise<Course[]> => {
     console.log(`[AppContext] Getting courses with records in range: ${startDate} to ${endDate}`);

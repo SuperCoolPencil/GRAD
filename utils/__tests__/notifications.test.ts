@@ -140,13 +140,24 @@ describe('notifications', () => {
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 
-        it('should skip a weekly class already marked for its next occurrence', async () => {
+        it('should schedule a weekly class already marked present for its next occurrence', async () => {
             const nextClass = new Date(Date.now() + 2 * 60 * 60 * 1000);
             const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][nextClass.getDay()];
             const timeStart = `${String(nextClass.getHours()).padStart(2, '0')}:${String(nextClass.getMinutes()).padStart(2, '0')}`;
-            const date = `${nextClass.getFullYear()}-${String(nextClass.getMonth() + 1).padStart(2, '0')}-${String(nextClass.getDate()).padStart(2, '0')}`;
             const course = { ...baseCourse, weeklySchedule: [{ id: 'sched1', day, timeStart, timeEnd: '23:59' }] };
-            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => query.includes('attendance_records') ? { id: 'record1' } : null);
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => query.includes('attendance_records') ? { status: 'present' } : null);
+
+            await scheduleCourseNotifications(course, { value: 15, anchor: 'before_start' });
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+        });
+
+        it('should skip a cancelled weekly class for its next occurrence', async () => {
+            const nextClass = new Date(Date.now() + 2 * 60 * 60 * 1000);
+            const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][nextClass.getDay()];
+            const timeStart = `${String(nextClass.getHours()).padStart(2, '0')}:${String(nextClass.getMinutes()).padStart(2, '0')}`;
+            const course = { ...baseCourse, weeklySchedule: [{ id: 'sched1', day, timeStart, timeEnd: '23:59' }] };
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => query.includes('attendance_records') ? { status: 'cancelled' } : null);
 
             await scheduleCourseNotifications(course, { value: 15, anchor: 'before_start' });
 
@@ -193,14 +204,14 @@ describe('notifications', () => {
             expect(call.identifier).toBe('CS101-extra1');
         });
 
-        it('should skip extra class notification if attendance already recorded', async () => {
+        it('should schedule an extra class notification when attendance is already recorded', async () => {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
             (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => {
                 if (query.includes('attendance_records')) {
-                    return { id: 'record1' }; // Attendance exists
+                    return { status: 'absent' };
                 }
                 return null;
             });
@@ -220,6 +231,25 @@ describe('notifications', () => {
 
             const timing: NotificationTiming = { value: 15, anchor: 'before_start' };
             await scheduleCourseNotifications(course, timing);
+
+            expect(mockScheduleNotification).toHaveBeenCalled();
+        });
+
+        it('should skip an extra class notification when it is cancelled', async () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) =>
+                query.includes('attendance_records') ? { status: 'cancelled' } : null,
+            );
+
+            const course: Course = {
+                id: 'CS101', name: 'Computer Science', requiredAttendance: 75,
+                presents: 10, absents: 2, cancelled: 0, weeklySchedule: [],
+                extraClasses: [{ id: 'extra1', date: tomorrowStr, timeStart: '14:00', timeEnd: '15:00' }],
+            };
+
+            await scheduleCourseNotifications(course, { value: 15, anchor: 'before_start' });
 
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
