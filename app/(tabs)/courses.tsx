@@ -121,7 +121,6 @@ export default function CoursesScreen() {
     return (
       <TouchableOpacity onPress={() => router.push(`/course/${item.id}`)}>
         <View style={[styles.courseCardContainer, {
-          borderLeftColor: deltaColor,
           shadowColor: Colors[colorScheme].shadow,
           backgroundColor: Colors[colorScheme].card,
         }]}>
@@ -135,7 +134,7 @@ export default function CoursesScreen() {
           >
             <ThemedView style={styles.courseHeader}>
               <View style={styles.courseInfo}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
                   <ThemedText
                     type="itemTitle"
                     style={{ color: Colors[colorScheme].text }}
@@ -143,22 +142,38 @@ export default function CoursesScreen() {
                     {truncate(item.name, 20)}
                   </ThemedText>
                 </View>
-                <View style={styles.attendanceRow}>
-                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance {attendancePercentage}% · Target {requiredAttendance}%</ThemedText>
+                <View style={styles.infoRow}>
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={16}
+                    color={Colors[colorScheme].icon}
+                    style={{ marginRight: 4 }}
+                  />
+                  <ThemedText style={{ fontSize: 13, color: Colors[colorScheme].textSecondary }}>
+                    Attendance {attendancePercentage}% · Target {requiredAttendance}%
+                  </ThemedText>
                 </View>
-                <View style={styles.attendanceRow}>
-                  <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Plan:</ThemedText>
+                <View style={styles.infoRow}>
                   {(() => {
                     const target = calculateTargetDate(item, holidays, skipDays);
                     const isMet = target.classesNeeded === 0;
+                    const statusColor = isMet ? Colors[colorScheme].success : deltaColor;
                     return (
-                      <ThemedText style={{ fontSize: 12, color: isMet ? Colors[colorScheme].success : deltaColor }}>
-                        {isMet ? '✓ Met' : (
-                          target.targetDate
-                            ? target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            : `${target.classesNeeded} classes`
-                        )}
-                      </ThemedText>
+                      <>
+                        <Ionicons
+                          name={isMet ? "checkmark-circle-outline" : "alert-circle-outline"}
+                          size={16}
+                          color={statusColor}
+                          style={{ marginRight: 4 }}
+                        />
+                        <ThemedText style={{ fontSize: 13, color: statusColor }}>
+                          {isMet ? 'Target Met' : (
+                            target.targetDate
+                              ? `Target by ${target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                              : `${target.classesNeeded} classes needed`
+                          )}
+                        </ThemedText>
+                      </>
                     );
                   })()}
                 </View>
@@ -167,15 +182,14 @@ export default function CoursesScreen() {
                 <AttendanceProgressRing
                   progress={progress}
                   color={deltaColor}
-                  size={50}
-                  strokeWidth={5}
+                  size={48}
+                  strokeWidth={4}
                   delta={delta}
                 />
               </View>
-              {/* Right Arrow Icon indicating navigation */}
               <Ionicons
                 name="chevron-forward"
-                size={24}
+                size={20}
                 color={Colors[colorScheme].icon}
               />
             </ThemedView>
@@ -328,5 +342,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
   },
 });

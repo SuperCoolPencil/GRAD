@@ -318,7 +318,6 @@ function TodaysClassesContent({
         style={[
           styles.classCardContainer,
           {
-            borderLeftColor: accentColor,
             backgroundColor: cardBackground,
           },
         ]}
@@ -454,13 +453,14 @@ function TodaysClassesContent({
         ListEmptyComponent={() => {
           const dayText = showTomorrow ? "tomorrow" : "today";
           return (
-            <ThemedView style={[styles.emptyContainer, { backgroundColor: Colors[colorScheme || "light"].background }]}>
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={48} color={Colors[colorScheme || "light"].icon} style={{ marginBottom: 12 }} />
               <ThemedText style={[styles.emptyText, { color: Colors[colorScheme || "light"].text }]}>
                 {holiday && todaysClasses.length === 0
                   ? `No extra classes scheduled for ${dayText}!`
                   : `No classes scheduled for ${dayText}!`}
               </ThemedText>
-            </ThemedView>
+            </View>
           );
         }}
         removeClippedSubviews={false}
@@ -528,11 +528,10 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingTop: 16,
   },
-  // Outer container for the card, with color-coded accent on the left.
+  // Outer container for the card.
   classCardContainer: {
-    //borderLeftWidth: 4, // Accent thickness
     borderRadius: 16,
-    marginBottom: 0, // Reduced margin
+    marginBottom: 0,
   },
   // Inner content container so the left accent doesn't overlap text.
   classCardContent: {
