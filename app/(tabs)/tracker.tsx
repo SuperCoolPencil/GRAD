@@ -343,7 +343,7 @@ export default function VisualAttendanceTracker() {
       <View style={styles.dateNavigator}>
 
         <TouchableOpacity onPress={handlePrevWeek} disabled={loading}>
-          <Ionicons name="chevron-back" size={24} color={Colors[colorScheme].text} />
+          <Ionicons name="chevron-back" size={22} color={Colors[colorScheme].text} />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowDatePicker(true)}>
@@ -353,7 +353,7 @@ export default function VisualAttendanceTracker() {
 
         </TouchableOpacity>
         <TouchableOpacity onPress={handleNextWeek} disabled={loading}>
-          <Ionicons name="chevron-forward" size={24} color={Colors[colorScheme].text} />
+          <Ionicons name="chevron-forward" size={22} color={Colors[colorScheme].text} />
         </TouchableOpacity>
 
       </View>

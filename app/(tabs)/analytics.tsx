@@ -299,13 +299,13 @@ export default function AnalyticsScreen() {
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.heatmapHeader}>
             <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
-              <Ionicons name="chevron-back" size={24} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
+              <Ionicons name="chevron-back" size={22} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
             </TouchableOpacity>
             <ThemedText style={styles.sectionTitle} type="itemTitle">
               {formatMonthRange(displayMonth)}
             </ThemedText>
             <TouchableOpacity onPress={handleNextPage} disabled={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear()}>
-              <Ionicons name="chevron-forward" size={24} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
+              <Ionicons name="chevron-forward" size={22} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -409,10 +409,11 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   },
   datePickerButton: {
     backgroundColor: Colors[colorScheme].inputBackground,
-    paddingVertical: 12,
+    height: 48,
     paddingHorizontal: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderColor: colors.border,
   },
   datePickerText: {

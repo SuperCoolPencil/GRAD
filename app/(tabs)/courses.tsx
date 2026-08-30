@@ -225,7 +225,7 @@ export default function CoursesScreen() {
           <TouchableOpacity style={[styles.addButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
             <Ionicons
               name="add-circle-outline"
-              size={28}
+              size={22}
               color={Colors[colorScheme].tint}
             />
           </TouchableOpacity>

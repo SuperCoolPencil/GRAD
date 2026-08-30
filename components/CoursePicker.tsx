@@ -122,11 +122,11 @@ export const CoursePicker = ({
             >
               <Ionicons
                 name={showArchived ? 'checkbox-outline' : 'square-outline'}
-                size={22}
+                size={20}
                 color={Colors[colorScheme].tint}
                 style={{ marginRight: 10 }}
               />
-              <ThemedText style={{ color: colors.text, fontSize: 15, fontWeight: '500' }}>
+              <ThemedText style={{ color: colors.text, fontSize: 14, fontWeight: '500' }}>
                 Show Archived Courses
               </ThemedText>
             </TouchableOpacity>
@@ -155,7 +155,7 @@ export const CoursePicker = ({
                         ? 'checkmark-circle'
                         : 'ellipse-outline'
                     }
-                    size={22}
+                    size={20}
                     color={
                       (item.id === null && isAllCoursesSelected) ||
                       (item.id !== null && isItemSelected)
@@ -199,9 +199,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 12,
     paddingHorizontal: 15,
-    height: 50,
+    height: 48,
   },
   pickerTriggerText: {
     fontSize: 14,
@@ -231,7 +230,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     borderRadius: 12,
-    paddingVertical: 12,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',

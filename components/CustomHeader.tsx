@@ -23,7 +23,7 @@ const CustomHeader = ({ title, rightElement }: CustomHeaderProps) => {
     }}>
       <View style={styles.container}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors[colorScheme].text} />
+          <Ionicons name="arrow-back" size={22} color={Colors[colorScheme].text} />
         </TouchableOpacity>
         <ThemedText type="subtitle" style={styles.title}>{title}</ThemedText>
         {rightElement && (
@@ -44,7 +44,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   backButton: {
-    marginRight: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   title: {
     fontWeight: 'bold',

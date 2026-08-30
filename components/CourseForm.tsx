@@ -317,8 +317,8 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   input: {
     backgroundColor: Colors[colorScheme].inputBackground,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    height: 48,
     paddingHorizontal: 15,
     marginBottom: 20,
     fontSize: 14,
@@ -333,13 +333,14 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     marginBottom: 20,
   },
   dayButton: {
-    paddingVertical: 8,
+    height: 40,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     backgroundColor: Colors[colorScheme].card,
     marginBottom: 8,
     minWidth: 45,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   dayButtonSelected: {
     backgroundColor: Colors[colorScheme].tint,
@@ -349,7 +350,6 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',
-    lineHeight: Platform.OS === 'ios' ? 40 : undefined,
     includeFontPadding: false,
   },
   dayButtonTextSelected: {
@@ -366,10 +366,11 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   timePickerButton: {
     backgroundColor: Colors[colorScheme].card,
-    paddingVertical: 12,
+    height: 48,
     paddingHorizontal: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   timePickerText: {
     color: Colors[colorScheme].text,
@@ -377,9 +378,10 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   primaryButton: {
     backgroundColor: Colors[colorScheme].tint,
-    paddingVertical: 14,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 20,
   },
   primaryButtonText: {
@@ -389,9 +391,10 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   secondaryButton: {
     backgroundColor: Colors[colorScheme].card,
-    paddingVertical: 12,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors[colorScheme].tint,
   },

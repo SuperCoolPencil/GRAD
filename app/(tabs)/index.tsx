@@ -562,10 +562,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    borderRadius: 8,
-    paddingVertical: 8,
+    height: 40,
+    borderRadius: 10,
     marginHorizontal: 4,
     justifyContent: 'center',
+    gap: 4,
   },
   cancelActionButton: {
     backgroundColor: 'transparent',

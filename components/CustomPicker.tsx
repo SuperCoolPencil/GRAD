@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   pickerButton: {
-    paddingVertical: 12,
+    height: 48,
     paddingHorizontal: 15,
     borderRadius: 12,
     flexDirection: 'row',

@@ -171,8 +171,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   closeIconButton: {
-    padding: 4,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(128, 128, 128, 0.15)',
   },
   closeIconButtonPressed: {
