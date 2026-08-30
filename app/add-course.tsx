@@ -36,7 +36,7 @@ const AddCourseScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CustomHeader title="Add Course" />
+      <CustomHeader title="New course" />
       <CourseForm
         key={formKey}
         onSubmit={handleSubmit}

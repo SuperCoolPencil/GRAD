@@ -269,6 +269,16 @@ const ManageHolidaysScreen: React.FC = () => {
       <SafeAreaView style={{ flex: 1 }}>
         <CustomHeader title="Manage Time Off" />
 
+        <View style={styles.pageIntro}>
+          <View style={styles.pageIntroIcon}>
+            <Ionicons name="calendar-clear-outline" size={21} color={Colors[colorScheme].tint} />
+          </View>
+          <View style={styles.pageIntroCopy}>
+            <ThemedText style={styles.pageIntroTitle}>Plan around your schedule</ThemedText>
+            <ThemedText style={styles.pageIntroText}>Holidays pause classes. Skip days show how planned absences affect your target.</ThemedText>
+          </View>
+        </View>
+
         {/* Tab Bar */}
         <View style={styles.tabBar}>
           <TabButton tab="holidays" label="Holidays" icon="calendar-outline" />
@@ -519,24 +529,47 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     contentContainer: {
       flex: 1,
       padding: 16,
+      paddingTop: 4,
     },
+    pageIntro: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 16,
+      marginTop: 8,
+      padding: 16,
+      borderRadius: 16,
+      backgroundColor: Colors[colorScheme].card,
+      gap: 12,
+    },
+    pageIntroIcon: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 13,
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(1,150,255,0.08)',
+    },
+    pageIntroCopy: { flex: 1 },
+    pageIntroTitle: { fontSize: 16, fontWeight: '700', color: Colors[colorScheme].text },
+    pageIntroText: { fontSize: 13, lineHeight: 18, marginTop: 3, color: Colors[colorScheme].textSecondary },
 
     // Tab Bar
     tabBar: {
       flexDirection: 'row',
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      gap: 12,
+      paddingTop: 12,
+      paddingBottom: 8,
+      gap: 8,
     },
     tabButton: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 12,
+      paddingVertical: 11,
       paddingHorizontal: 16,
-      borderRadius: 12,
-      backgroundColor: Colors[colorScheme].card,
+      borderRadius: 13,
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(1,150,255,0.07)',
     },
     tabButtonActive: {
       backgroundColor: Colors[colorScheme].tint,
@@ -554,24 +587,24 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     card: {
       backgroundColor: Colors[colorScheme].card,
       borderRadius: 16,
-      padding: 18,
+      padding: 16,
       marginBottom: 12,
     },
     cardHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 10,
       gap: 8,
     },
     cardTitle: {
-      fontSize: 15,
-      fontWeight: '600',
+      fontSize: 16,
+      fontWeight: '700',
       color: Colors[colorScheme].text,
     },
     cardDescription: {
       fontSize: 14,
       color: Colors[colorScheme].icon,
-      marginBottom: 16,
+      marginBottom: 18,
       lineHeight: 20,
     },
 
@@ -602,7 +635,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
 
     // Form Elements
     input: {
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(1,150,255,0.07)',
       borderRadius: 12,
       paddingVertical: 14,
       paddingHorizontal: 16,
@@ -628,7 +661,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     dateButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(1,150,255,0.07)',
       borderRadius: 10,
       paddingVertical: 12,
       paddingHorizontal: 14,
@@ -683,7 +716,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: Colors[colorScheme].card,
-      borderRadius: 12,
+      borderRadius: 14,
       padding: 14,
       marginBottom: 8,
     },
@@ -691,7 +724,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       width: 36,
       height: 36,
       borderRadius: 10,
-      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+      backgroundColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(1,150,255,0.07)',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,

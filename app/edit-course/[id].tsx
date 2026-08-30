@@ -112,7 +112,7 @@ const EditCourseScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CustomHeader title={`Edit Course (ID: ${id})`} />
+      <CustomHeader title="Edit course" />
       <CourseForm
         onSubmit={handleSubmit}
         isEditing={true}
