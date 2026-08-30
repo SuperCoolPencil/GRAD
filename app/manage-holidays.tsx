@@ -521,8 +521,8 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       gap: 8,
     },
     cardTitle: {
-      fontSize: 18,
-      fontWeight: '700',
+      fontSize: 15,
+      fontWeight: '600',
       color: Colors[colorScheme].text,
     },
     cardDescription: {
@@ -547,7 +547,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       flex: 1,
     },
     statusTitle: {
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '600',
       color: Colors[colorScheme].text,
     },
@@ -563,7 +563,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       borderRadius: 12,
       paddingVertical: 14,
       paddingHorizontal: 16,
-      fontSize: 16,
+      fontSize: 14,
       color: Colors[colorScheme].text,
       marginBottom: 12,
     },
@@ -592,7 +592,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       gap: 8,
     },
     dateButtonText: {
-      fontSize: 15,
+      fontSize: 14,
       color: Colors[colorScheme].text,
     },
     dateArrow: {
@@ -613,7 +613,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
     },
     primaryButtonText: {
       color: '#fff',
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: '600',
     },
 
@@ -628,9 +628,11 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
       gap: 8,
     },
     sectionTitle: {
-      fontSize: 17,
+      fontSize: 12,
       fontWeight: '600',
-      color: Colors[colorScheme].text,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      color: Colors[colorScheme].textSecondary,
     },
 
     // List Items

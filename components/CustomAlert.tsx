@@ -104,8 +104,8 @@ export function CustomAlert({
 
 const styles = StyleSheet.create({
   messageText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     flex: 0,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
   },
 });

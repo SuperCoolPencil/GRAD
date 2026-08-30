@@ -96,7 +96,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
 
   return (
     <ThemedView style={styles.card}>
-      <ThemedText type="subtitle" style={styles.cardTitle}>
+      <ThemedText type="itemTitle" style={styles.cardTitle}>
         {title}
       </ThemedText>
       {ListHeaderComponent}
@@ -144,11 +144,11 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
   },
   historyText: {
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
   },
   historyDateText: {
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.8,
   },
   historyDateContainer: {
@@ -161,6 +161,7 @@ const getStyles = (colorScheme: 'light' | 'dark') => StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     opacity: 0.7,
+    fontSize: 14,
   },
 });
 

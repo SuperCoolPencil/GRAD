@@ -302,13 +302,15 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: Colors[colorScheme].text,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 12,
+    color: Colors[colorScheme].textSecondary,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 8,
     color: Colors[colorScheme].text,
     fontWeight: '500',
@@ -319,7 +321,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     paddingVertical: 12,
     paddingHorizontal: 15,
     marginBottom: 20,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors[colorScheme].text,
     borderWidth: 1,
     borderColor: Colors[colorScheme].placeholder,
@@ -344,6 +346,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   dayButtonText: {
     color: Colors[colorScheme].text,
+    fontSize: 13,
     fontWeight: '500',
     textAlign: 'center',
     lineHeight: Platform.OS === 'ios' ? 40 : undefined,
@@ -370,19 +373,19 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   timePickerText: {
     color: Colors[colorScheme].text,
-    fontSize: 15,
+    fontSize: 14,
   },
   primaryButton: {
     backgroundColor: Colors[colorScheme].tint,
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
   },
   primaryButtonText: {
     color: colors.buttonText,
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '600',
   },
   secondaryButton: {
     backgroundColor: Colors[colorScheme].card,
@@ -394,7 +397,7 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
   },
   secondaryButtonText: {
     color: Colors[colorScheme].tint,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   scheduleContainer: {
@@ -412,13 +415,14 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     borderColor: Colors[colorScheme].border,
   },
   scheduleDay: {
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: '600',
+    fontSize: 15,
     color: Colors[colorScheme].text,
   },
   scheduleTime: {
-    color: Colors[colorScheme].text,
-    marginTop: 4,
+    fontSize: 12,
+    color: Colors[colorScheme].textSecondary,
+    marginTop: 2,
   },
 });
 

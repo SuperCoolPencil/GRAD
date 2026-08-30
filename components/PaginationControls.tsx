@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   pageInfo: {
     marginHorizontal: 15,
-    fontSize: 16,
+    fontSize: 14,
   },
 });
 

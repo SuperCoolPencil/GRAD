@@ -279,7 +279,7 @@ export default function AnalyticsScreen() {
       >
         {chartData.length > 2 && (
           <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-            <ThemedText style={styles.sectionTitle} type="subtitle">Overall Attendance</ThemedText>
+            <ThemedText style={styles.sectionTitle} type="itemTitle">Overall Attendance</ThemedText>
             <RadarChart
               data={chartData}
               maxValue={100}
@@ -301,7 +301,7 @@ export default function AnalyticsScreen() {
             <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
               <Ionicons name="chevron-back" size={24} color={oldestRecordDate && displayMonth <= oldestRecordDate ? colors.border : colors.text} />
             </TouchableOpacity>
-            <ThemedText style={styles.sectionTitle} type="subtitle">
+            <ThemedText style={styles.sectionTitle} type="itemTitle">
               {formatMonthRange(displayMonth)}
             </ThemedText>
             <TouchableOpacity onPress={handleNextPage} disabled={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear()}>
@@ -392,7 +392,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 8,
     fontWeight: '500',
     color: colors.text,
@@ -403,7 +403,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text,
     textAlignVertical: 'top',
   },
@@ -417,7 +417,7 @@ const getStyles = (colors: any, colorScheme: 'light' | 'dark') => StyleSheet.cre
   },
   datePickerText: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
   },
   pickerTrigger: {
     flexDirection: 'row',

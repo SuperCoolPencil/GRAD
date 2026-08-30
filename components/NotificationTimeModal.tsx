@@ -150,11 +150,11 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   anchorContainer: {
     flexDirection: 'row',
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
     width: 100,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
   minutesLabel: {
     marginLeft: 12,
-    fontSize: 16,
+    fontSize: 14,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
 });

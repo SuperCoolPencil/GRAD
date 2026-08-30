@@ -336,7 +336,7 @@ function TodaysClassesContent({
           <View style={styles.classInfo}>
             <View style={{ position: 'relative' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <ThemedText type="subtitle" style={styles.courseName}>
+                <ThemedText type="itemTitle" style={styles.courseName}>
                   {truncate(item.courseName, 20)}
                 </ThemedText>
               </View>
@@ -545,7 +545,8 @@ const styles = StyleSheet.create({
     // Removed marginBottom, now handled by gap in classCardContent
   },
   courseName: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '600',
     marginBottom: 8,
   },
   infoRow: {
@@ -571,7 +572,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionButtonText: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 14,
     marginLeft: 4,
   },
@@ -585,7 +586,7 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     opacity: 0.6,
-    fontSize: 16,
+    fontSize: 14,
   },
   holidayBanner: {
     flexDirection: 'row',
@@ -602,7 +603,7 @@ const styles = StyleSheet.create({
     elevation: 3, // For Android shadow
   },
   holidayText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

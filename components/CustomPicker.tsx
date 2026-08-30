@@ -41,7 +41,7 @@ export const CustomPicker = <T extends string | number>({
         ]}
         onPress={() => setModalVisible(true)}
       >
-        <ThemedText style={{ color: Colors[colorScheme].text, fontSize: 16 }}>
+        <ThemedText style={{ color: Colors[colorScheme].text, fontSize: 14 }}>
           {selectedLabel}
         </ThemedText>
         <Ionicons name="chevron-down" size={20} color={Colors[colorScheme].icon} />
@@ -96,7 +96,7 @@ export const CustomPicker = <T extends string | number>({
 const styles = StyleSheet.create({
   inputGroup: {},
   label: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   selectedOptionText: {
     fontWeight: '600',

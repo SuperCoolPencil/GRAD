@@ -141,8 +141,8 @@ export default function VisualAttendanceTracker() {
       paddingBottom: 10,
     },
     dateText: {
-      fontSize: 18,
-      fontWeight: 'bold',
+      fontSize: 15,
+      fontWeight: '600',
       color: Colors[colorScheme].text,
     },
     scheduleContainer: {
@@ -189,7 +189,8 @@ export default function VisualAttendanceTracker() {
     },
     dayInitialText: {
       fontSize: 12,
-      fontWeight: 'bold',
+      fontWeight: '600',
+      textTransform: 'uppercase',
     },
     dateNumberText: {
       fontSize: 12,
@@ -243,7 +244,7 @@ export default function VisualAttendanceTracker() {
     },
     courseCode: {
       fontSize: 12,
-      fontWeight: 'bold',
+      fontWeight: '600',
       color: 'white',
       textAlign: 'center',
       flexShrink: 1,
@@ -259,8 +260,8 @@ export default function VisualAttendanceTracker() {
       borderRadius: 8,
     },
     holidayText: {
-      fontSize: 14,
-      fontWeight: 'bold',
+      fontSize: 13,
+      fontWeight: '600',
       color: 'white',
       textAlign: 'center',
       transform: [{ rotate: '90deg' }],
@@ -287,7 +288,7 @@ export default function VisualAttendanceTracker() {
     emptyStateText: {
       textAlign: 'center',
       opacity: 0.6,
-      fontSize: 16,
+      fontSize: 14,
     },
     currentTimeIndicator: {
       position: 'absolute',

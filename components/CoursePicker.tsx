@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   pickerTriggerText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   modalContent: {},
   list: {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalItemText: {
-    fontSize: 16,
+    fontSize: 14,
   },
   selectedText: {
     fontWeight: '600',
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

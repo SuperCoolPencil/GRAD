@@ -137,24 +137,11 @@ export default function CoursesScreen() {
               <View style={styles.courseInfo}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <ThemedText
-                    type="subtitle"
+                    type="itemTitle"
                     style={{ color: Colors[colorScheme].text }}
                   >
                     {truncate(item.name, 20)}
                   </ThemedText>
-                  {/* <ThemedText style={{
-                    fontSize: 12,
-                    color: Colors[colorScheme].background,
-                    fontWeight: 'bold',
-                    backgroundColor: Colors[colorScheme].textSecondary,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 8,
-                    marginLeft: 8, // Add some space between name and tag
-                    overflow: 'hidden', // Ensure content is clipped to the border radius
-                  }}>
-                    {truncate(item.id, 10)}
-                  </ThemedText> */}
                 </View>
                 <View style={styles.attendanceRow}>
                   <ThemedText style={{ fontSize: 12, color: Colors[colorScheme].textSecondary }}>Attendance {attendancePercentage}% · Target {requiredAttendance}%</ThemedText>
@@ -165,7 +152,7 @@ export default function CoursesScreen() {
                     const target = calculateTargetDate(item, holidays, skipDays);
                     const isMet = target.classesNeeded === 0;
                     return (
-                      <ThemedText style={{ color: isMet ? Colors[colorScheme].success : deltaColor }}>
+                      <ThemedText style={{ fontSize: 12, color: isMet ? Colors[colorScheme].success : deltaColor }}>
                         {isMet ? '✓ Met' : (
                           target.targetDate
                             ? target.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -335,7 +322,7 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     opacity: 0.6,
-    fontSize: 16,
+    fontSize: 14,
   },
   attendanceRow: {
     flexDirection: 'row',
