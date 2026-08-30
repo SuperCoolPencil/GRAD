@@ -136,7 +136,7 @@ export default function TodaysClassesScreen() {
             type="title"
             style={[styles.classesText, { color: Colors[colorScheme || "light"].text }]}
           >
-            's Classes
+            &apos;s Classes
           </ThemedText>
         </View>
         <TouchableOpacity

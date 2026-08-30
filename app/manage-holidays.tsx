@@ -273,7 +273,7 @@ const ManageHolidaysScreen: React.FC = () => {
                   <ThemedText style={styles.cardTitle}>Add Holiday</ThemedText>
                 </View>
                 <ThemedText style={styles.cardDescription}>
-                  No classes happen on holidays. They don't affect your attendance percentage.
+                  No classes happen on holidays. They don&apos;t affect your attendance percentage.
                 </ThemedText>
 
                 <TextInput
@@ -394,7 +394,7 @@ const ManageHolidaysScreen: React.FC = () => {
                   <ThemedText style={styles.cardTitle}>Add Skip Day</ThemedText>
                 </View>
                 <ThemedText style={styles.cardDescription}>
-                  Planned absences that will count against your attendance. Use this to see when you'll reach your target if you skip class.
+                  Planned absences that will count against your attendance. Use this to see when you&apos;ll reach your target if you skip class.
                 </ThemedText>
 
                 <View style={styles.dateRow}>

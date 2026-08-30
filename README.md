@@ -5,6 +5,32 @@ This project is built with [Expo](https://expo.dev) and was bootstrapped using [
 
 [![Get it on GitHub](https://img.shields.io/badge/Get%20it%20on-GitHub-blue?style=for-the-badge&logo=github)](https://github.com/SuperCoolPencil/GRAD/releases/latest)
 
+## Development and releases
+
+Install dependencies with `npm ci`. The project checks linting, TypeScript, and unit tests with:
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+```
+
+Pull requests and pushes to `main` run these checks automatically. Releases are created only when a version tag is pushed. Before tagging, set `expo.version` in `app.json` to the release version, commit it, then push a matching tag:
+
+```sh
+git tag v2.5.4
+git push origin v2.5.4
+```
+
+The release workflow runs the quality checks, builds a signed Android APK on GitHub Actions, and publishes it as the GitHub release asset. Before the first release, configure these repository Actions secrets:
+
+- `ANDROID_KEYSTORE_BASE64`: Base64-encoded Android release keystore.
+- `ANDROID_KEYSTORE_PASSWORD`: Keystore password.
+- `ANDROID_KEY_ALIAS`: Alias of the signing key.
+- `ANDROID_KEY_PASSWORD`: Signing key password.
+
+Create a release keystore once with Android's `keytool`, keep the original file private, and save its Base64 encoding as `ANDROID_KEYSTORE_BASE64` (for example, `base64 < release.keystore | tr -d '\n'` on Linux). The workflow writes it only to the ephemeral GitHub runner.
+
 ## Features
 
 - **Course Management**

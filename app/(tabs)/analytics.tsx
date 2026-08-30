@@ -231,7 +231,8 @@ export default function AnalyticsScreen() {
     setPage(1);
   };
 
-  const ListHeader = React.memo(() => (
+  const ListHeader = React.memo(function ListHeader() {
+    return (
     <>
       {activeCourses.length > 2 && (
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
@@ -317,9 +318,11 @@ export default function AnalyticsScreen() {
         <View />
       </ThemedView>
     </>
-  ));
+    );
+  });
 
-  const HistoryFilters = React.memo(() => (
+  const HistoryFilters = React.memo(function HistoryFilters() {
+    return (
     <View>
       <CoursePicker
         label="Course:"
@@ -357,7 +360,8 @@ export default function AnalyticsScreen() {
         </TouchableOpacity>
       </View>
     </View>
-  ));
+    );
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
