@@ -199,6 +199,32 @@ const ManageHolidaysScreen: React.FC = () => {
     </View>
   );
 
+  const confirmDeleteHoliday = (holiday: Holiday) => {
+    showAlert(
+      'Delete Holiday',
+      `Remove "${holiday.name}"? Classes will be scheduled normally for these dates again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteHoliday(holiday.id) },
+      ],
+    );
+  };
+
+  const confirmDeleteSkipDay = (skipDay: SkipDay) => {
+    const start = parseISOToDate(skipDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = skipDay.endDate && skipDay.endDate !== skipDay.date
+      ? ` to ${parseISOToDate(skipDay.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+      : '';
+    showAlert(
+      'Delete Skip Day',
+      `Remove the planned skip day for ${start}${end}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteSkipDay(skipDay.id) },
+      ],
+    );
+  };
+
   // Holiday Item Component
   const HolidayItem = ({ item, showDelete = true }: { item: Holiday; showDelete?: boolean }) => (
     <View style={[styles.listItem, !showDelete && styles.historyListItem]}>
@@ -212,7 +238,7 @@ const ManageHolidaysScreen: React.FC = () => {
         </ThemedText>
       </View>
       {showDelete && (
-        <TouchableOpacity onPress={() => deleteHoliday(item.id)} style={styles.deleteButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`} onPress={() => confirmDeleteHoliday(item)} style={styles.deleteButton}>
           <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
         </TouchableOpacity>
       )}
@@ -226,7 +252,7 @@ const ManageHolidaysScreen: React.FC = () => {
     const endDateStr = item.endDate && item.endDate !== item.date
       ? parseISOToDate(item.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : null;
-    const dateText = endDateStr ? `${startDateStr} - ${endDateStr}` : startDateStr;
+    const dateText = endDateStr ? `${startDateStr} – ${endDateStr}` : startDateStr;
     const timeText = item.timeStart && item.timeEnd ? ` · ${item.timeStart}-${item.timeEnd}` : '';
     const courseText = course ? ` · ${course.name}` : '';
 
@@ -244,7 +270,7 @@ const ManageHolidaysScreen: React.FC = () => {
           )}
         </View>
         {showDelete && (
-          <TouchableOpacity onPress={() => deleteSkipDay(item.id)} style={styles.deleteButton}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete skip day on ${dateText}`} onPress={() => confirmDeleteSkipDay(item)} style={styles.deleteButton}>
             <Ionicons name="close-circle" size={22} color={Colors[colorScheme].error} />
           </TouchableOpacity>
         )}
@@ -285,7 +311,7 @@ const ManageHolidaysScreen: React.FC = () => {
           <TabButton tab="skipDays" label="Skip Days" icon="today-outline" />
         </View>
 
-        <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.contentContainer} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* Holidays Tab */}
           {activeTab === 'holidays' && (
