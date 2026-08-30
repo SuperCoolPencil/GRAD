@@ -1,4 +1,4 @@
-import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '../attendance';
+import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences, simulateBunkClass } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
 import { formatDateToISO } from '../dateHelpers';
@@ -111,6 +111,27 @@ describe('calendar-aware attendance delta', () => {
         };
 
         expect(getPlannedSkipDayAbsences(rangedCourse, [], [rangedSkip], now)).toBe(2);
+    });
+});
+
+describe('simulateBunkClass', () => {
+    it('compares a future class bunk against the current projection', () => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowISO = formatDateToISO(tomorrow);
+        const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][tomorrow.getDay()];
+        const course: Course = {
+            id: 'CS101', name: 'Computer Science', presents: 3, absents: 1, cancelled: 0,
+            requiredAttendance: 75,
+            weeklySchedule: [{ id: 'tomorrow-class', day, timeStart: '09:00', timeEnd: '10:00' }],
+        };
+
+        const simulation = simulateBunkClass(course, [], [], 1, {
+            date: tomorrowISO, courseId: course.id, timeStart: '09:00', timeEnd: '10:00',
+        });
+
+        expect(simulation.currentPercentage).toBe(75);
+        expect(simulation.simulatedPercentage).toBe(60);
     });
 });
 

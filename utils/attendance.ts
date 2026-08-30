@@ -190,7 +190,8 @@ export const simulateBunkClass = (
       timeEnd: bunkedClass.timeEnd,
     }]
     : skipDays;
-  const plannedSkip = getPlannedSkipDayAbsences(course, holidays, simulatedSkipDays);
+  const plannedSkip = getPlannedSkipDayAbsences(course, holidays, skipDays);
+  const simulatedPlannedSkip = getPlannedSkipDayAbsences(course, holidays, simulatedSkipDays);
   const immediateAbsences = isFutureBunk ? 0 : additionalAbsences;
 
   // Effective % = actual + planned future absences already committed to.
@@ -200,10 +201,10 @@ export const simulateBunkClass = (
   const currentPercentage = effectiveTotal > 0 ? Math.round((presents / effectiveTotal) * 100) : 100;
   const currentDelta = getAttendanceDelta(presents, absents, required, plannedSkip);
 
-  // Simulated % = one additional bunk on top of the effective baseline
-  const totalSimulated = effectiveTotal + immediateAbsences;
+  // Future bunks add a planned absence; past/today bunks add an immediate absence.
+  const totalSimulated = presents + absents + immediateAbsences + simulatedPlannedSkip;
   const simulatedPercentage = totalSimulated > 0 ? Math.round((presents / totalSimulated) * 100) : 100;
-  const simulatedDelta = getAttendanceDelta(presents, absents + immediateAbsences, required, plannedSkip);
+  const simulatedDelta = getAttendanceDelta(presents, absents + immediateAbsences, required, simulatedPlannedSkip);
   const target = calculateTargetDate(
     { ...course, absents: absents + immediateAbsences },
     holidays,

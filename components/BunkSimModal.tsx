@@ -11,9 +11,12 @@ interface BunkSimModalProps {
   onClose: () => void;
   courseName: string;
   simulation: BunkSimulationResult;
+  onPlanBunk?: () => void;
+  isAlreadyPlanned?: boolean;
+  sessionLabel?: string;
 }
 
-export function BunkSimModal({ isVisible, onClose, courseName, simulation }: BunkSimModalProps) {
+export function BunkSimModal({ isVisible, onClose, courseName, simulation, onPlanBunk, isAlreadyPlanned = false, sessionLabel }: BunkSimModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const safeColor = Colors[colorScheme].success;
   const riskyColor = Colors[colorScheme].error;
@@ -25,9 +28,9 @@ export function BunkSimModal({ isVisible, onClose, courseName, simulation }: Bun
         bunkStyles.button,
         { backgroundColor: accentColor, opacity: pressed ? 0.8 : 1 },
       ]}
-      onPress={onClose}
+      onPress={onPlanBunk || onClose}
     >
-      <ThemedText style={bunkStyles.buttonText}>Got it</ThemedText>
+      <ThemedText style={bunkStyles.buttonText}>{onPlanBunk ? (isAlreadyPlanned ? 'Already planned' : 'Plan to bunk this class') : 'Got it'}</ThemedText>
     </Pressable>
   );
 
@@ -50,7 +53,7 @@ export function BunkSimModal({ isVisible, onClose, courseName, simulation }: Bun
         <View style={bunkStyles.headerText}>
           <ThemedText style={bunkStyles.title}>Bunk Simulator</ThemedText>
           <ThemedText style={[bunkStyles.subtitle, { color: Colors[colorScheme].icon }]}>
-            {courseName}
+            {sessionLabel ? `${courseName} · ${sessionLabel}` : courseName}
           </ThemedText>
         </View>
       </View>
@@ -101,7 +104,9 @@ export function BunkSimModal({ isVisible, onClose, courseName, simulation }: Bun
 
       {/* Note about planned skip days */}
       <ThemedText style={[bunkStyles.note, { color: Colors[colorScheme].icon }]}>
-        "Now" reflects your effective attendance including planned skip days.
+        {onPlanBunk
+          ? 'This only skips this class. To skip every class on a date, use the day header.'
+          : '“Now” reflects your effective attendance including planned skip days.'}
       </ThemedText>
     </BaseModal>
   );

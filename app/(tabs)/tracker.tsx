@@ -15,6 +15,8 @@ import TimeAxis from '@/components/AttendanceTracker/TimeAxis';
 import DayColumn from '@/components/AttendanceTracker/DayColumn';
 import { useCustomAlert } from '@/context/AlertContext';
 import { NameDayEventModal } from '@/components/NameDayEventModal';
+import { BunkSimModal } from '@/components/BunkSimModal';
+import { isClassSkippedBySkipDay, simulateBunkClass, type BunkSimulationResult } from '@/utils/attendance';
 
 export default function VisualAttendanceTracker() {
   const { is24Hour, weekStartsOn, holidays, skipDays, addHoliday, deleteHoliday, addSkipDay, deleteSkipDay } = useContext(AppContext);
@@ -23,10 +25,11 @@ export default function VisualAttendanceTracker() {
   const [startDate, setStartDate] = useState(() => getWeekStartDate(new Date(), weekStartsOn));
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dayEventToName, setDayEventToName] = useState<{ date: string; type: 'holiday' | 'skip' } | null>(null);
+  const [activeBunkPlan, setActiveBunkPlan] = useState<{ classItem: ClassItem; date: Date; simulation: BunkSimulationResult; isAlreadyPlanned: boolean } | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
   const { classes, courseColors, startHour, endHour, loading, error } = useAttendanceData(startDate, weekStartsOn, true);
-  const { handleSelectClass } = useAttendanceActions();
+  const { handleSelectClass: handlePastClassSelection } = useAttendanceActions();
   const router = useRouter();
 
   // Check if there are any classes this week
@@ -99,6 +102,51 @@ export default function VisualAttendanceTracker() {
         { text: 'Cancel', style: 'cancel' },
       ],
     );
+  };
+
+  const handleSelectClass = (classItem: ClassItem, date: Date) => {
+    const dateString = formatDateToISO(date);
+    if (dateString <= formatDateToISO(new Date())) {
+      handlePastClassSelection(classItem, date);
+      return;
+    }
+
+    const isAlreadyPlanned = isClassSkippedBySkipDay(
+      dateString,
+      classItem.course.id,
+      classItem.schedule.timeStart,
+      classItem.schedule.timeEnd,
+      skipDays,
+    );
+    setActiveBunkPlan({
+      classItem,
+      date,
+      isAlreadyPlanned,
+      simulation: simulateBunkClass(classItem.course, holidays, skipDays, 1, {
+        date: dateString,
+        courseId: classItem.course.id,
+        timeStart: classItem.schedule.timeStart,
+        timeEnd: classItem.schedule.timeEnd,
+      }),
+    });
+  };
+
+  const planBunkedClass = () => {
+    if (!activeBunkPlan || activeBunkPlan.isAlreadyPlanned) {
+      setActiveBunkPlan(null);
+      return;
+    }
+    const { classItem, date } = activeBunkPlan;
+    addSkipDay({
+      id: `skip-${Date.now()}`,
+      date: formatDateToISO(date),
+      endDate: formatDateToISO(date),
+      courseId: classItem.course.id,
+      reason: `Bunking ${classItem.course.name}`,
+      timeStart: classItem.schedule.timeStart,
+      timeEnd: classItem.schedule.timeEnd,
+    });
+    setActiveBunkPlan(null);
   };
 
   const HOUR_HEIGHT = 60;
@@ -434,6 +482,17 @@ export default function VisualAttendanceTracker() {
             </View>
           </ScrollView>
         </ScrollView>
+      )}
+      {activeBunkPlan && (
+        <BunkSimModal
+          isVisible
+          courseName={activeBunkPlan.classItem.course.name}
+          sessionLabel={`${activeBunkPlan.classItem.schedule.timeStart} – ${activeBunkPlan.classItem.schedule.timeEnd}`}
+          simulation={activeBunkPlan.simulation}
+          isAlreadyPlanned={activeBunkPlan.isAlreadyPlanned}
+          onPlanBunk={planBunkedClass}
+          onClose={() => setActiveBunkPlan(null)}
+        />
       )}
     </ThemedView>
   );
