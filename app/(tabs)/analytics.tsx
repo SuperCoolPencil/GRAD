@@ -7,17 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
 import { AppContext } from '@/context/AppContext';
 import { Course, AttendanceRecord } from '@/types';
-import { calculateAttendancePercentage, generateHeatmapData, getOldestRecordDate } from '@/utils/attendance';
+import { generateHeatmapData, getOldestRecordDate } from '@/utils/attendance';
 import { useTheme } from '@react-navigation/native';
 import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { CoursePicker } from '@/components/CoursePicker';
 import { AttendanceTrendGraph } from '@/components/AttendanceTrendGraph';
-
-const formatDateForQuery = (date: Date): string => {
-  return date.toISOString().slice(0, 10);
-}
+import { formatDateToISO } from '@/utils/dateHelpers';
 
 const formatMonthRange = (date: Date): string => {
   const startMonth = date.toLocaleString('default', { month: 'short' });
@@ -61,8 +58,8 @@ export default function AnalyticsScreen() {
       page,
       recordsPerPage,
       selectedCourses,
-      fromDate ? formatDateForQuery(fromDate) : undefined,
-      toDate ? formatDateForQuery(toDate) : undefined
+      fromDate ? formatDateToISO(fromDate) : undefined,
+      toDate ? formatDateToISO(toDate) : undefined
     );
   }, [page, selectedCourses, fromDate, toDate, getPaginatedAttendanceRecords]);
 
@@ -90,8 +87,8 @@ export default function AnalyticsScreen() {
               page,
               recordsPerPage,
               selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
+              fromDate ? formatDateToISO(fromDate) : undefined,
+              toDate ? formatDateToISO(toDate) : undefined
             );
           },
         },
@@ -104,8 +101,8 @@ export default function AnalyticsScreen() {
               page,
               recordsPerPage,
               selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
+              fromDate ? formatDateToISO(fromDate) : undefined,
+              toDate ? formatDateToISO(toDate) : undefined
             );
           },
         },
@@ -118,8 +115,8 @@ export default function AnalyticsScreen() {
               page,
               recordsPerPage,
               selectedCourses,
-              fromDate ? formatDateForQuery(fromDate) : undefined,
-              toDate ? formatDateForQuery(toDate) : undefined
+              fromDate ? formatDateToISO(fromDate) : undefined,
+              toDate ? formatDateToISO(toDate) : undefined
             );
           },
         },
@@ -144,8 +141,8 @@ export default function AnalyticsScreen() {
                       page,
                       recordsPerPage,
                       selectedCourses,
-                      fromDate ? formatDateForQuery(fromDate) : undefined,
-                      toDate ? formatDateForQuery(toDate) : undefined
+                      fromDate ? formatDateToISO(fromDate) : undefined,
+                      toDate ? formatDateToISO(toDate) : undefined
                     );
                     hideAlert();
                   },
@@ -159,20 +156,13 @@ export default function AnalyticsScreen() {
     );
   };
 
-  const chartData = activeCourses
-    .filter(course => course.showInRadar !== false)
-    .map(course => ({
-      label: `${course.name}`,
-      value: calculateAttendancePercentage(course.presents, course.absents),
-    }));
-
   const oldestRecordDate = useMemo(() => getOldestRecordDate(courses), [courses]);
 
   useEffect(() => {
     const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1 - 14);
     const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 2, 0);
 
-    getCoursesWithRecordsInRange(formatDateForQuery(startDate), formatDateForQuery(endDate))
+    getCoursesWithRecordsInRange(formatDateToISO(startDate), formatDateToISO(endDate))
       .then(setHeatmapCourses);
   }, [displayMonth, getCoursesWithRecordsInRange]);
 
@@ -211,29 +201,33 @@ export default function AnalyticsScreen() {
   };
 
   const handleDateChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
-    const currentDate = selectedDate || (showDatePicker === 'from' ? fromDate : toDate);
     setShowDatePicker(null);
-    if (currentDate) {
-      if (showDatePicker === 'from') {
-        setFromDate(currentDate);
-        if (toDate && currentDate > toDate) {
-          setToDate(null);
-        }
-      } else {
-        setToDate(currentDate);
+    if (event.type === 'dismissed' || !selectedDate) return;
+
+    if (showDatePicker === 'from') {
+      setFromDate(selectedDate);
+      if (toDate && selectedDate > toDate) {
+        setToDate(null);
+      }
+    } else {
+      setToDate(selectedDate);
+      if (fromDate && selectedDate < fromDate) {
+        setFromDate(selectedDate);
       }
     }
     setPage(1);
   };
 
-  const HistoryFilters = React.memo(function HistoryFilters() {
-    return (
+  const historyFilters = (
     <View style={{ marginBottom: 8 }}>
       <CoursePicker
         label="Filter History:"
         courses={courses}
         selectedCourseIds={selectedCourses}
-        onSelectionChange={setSelectedCourses}
+        onSelectionChange={(courseIds) => {
+          setSelectedCourses(courseIds);
+          setPage(1);
+        }}
         multiSelect={true}
         allCoursesOption={true}
         showArchivedToggle={true}
@@ -261,14 +255,14 @@ export default function AnalyticsScreen() {
           <TouchableOpacity style={styles.clearButton} onPress={() => {
             setFromDate(null);
             setToDate(null);
+            setPage(1);
           }}>
             <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
           </TouchableOpacity>
         )}
       </View>
     </View>
-    );
-  });
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -322,7 +316,7 @@ export default function AnalyticsScreen() {
           records={attendanceRecords}
           courses={courses}
           onRecordClick={handleAttendanceClick}
-          ListHeaderComponent={<HistoryFilters />}
+          ListHeaderComponent={historyFilters}
           currentPage={page}
           totalRecords={totalRecords}
           recordsPerPage={recordsPerPage}

@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import NotificationTimeModal from '@/components/NotificationTimeModal';
+import { NotificationTimeModal } from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
 import { db, reopenDatabase, initDatabase, clearCourseColors } from '@/utils/database';

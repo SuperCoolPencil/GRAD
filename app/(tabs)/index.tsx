@@ -134,7 +134,6 @@ function TodaysClassesContent({
   skipDays: SkipDay[];
 }) {
   const router = useRouter();
-  const { showAlert } = useCustomAlert();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [holiday, setHoliday] = useState<Holiday | undefined>(undefined);
   const [activeSim, setActiveSim] = useState<{ courseName: string; simulation: BunkSimulationResult } | null>(null);

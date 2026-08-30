@@ -36,7 +36,9 @@ export const CoursePicker = ({
   const handleItemPress = (courseId: string | null) => {
     if (multiSelect) {
       if (courseId === null) {
-        onSelectionChange(filteredCourses.map((c) => c.id!));
+        // An empty selection is the query's canonical "all courses" value. Keeping
+        // it that way also means the archived toggle only affects the picker UI.
+        onSelectionChange([]);
       } else {
         onSelectionChange(
           selectedCourseIds.includes(courseId)
@@ -139,8 +141,9 @@ export const CoursePicker = ({
             renderItem={({ item }) => {
               const isAllCoursesSelected =
                 item.id === null &&
-                selectedCourseIds.length === filteredCourses.length &&
-                filteredCourses.every((fc) => selectedCourseIds.includes(fc.id!));
+                (selectedCourseIds.length === 0 ||
+                  (selectedCourseIds.length === filteredCourses.length &&
+                    filteredCourses.every((fc) => selectedCourseIds.includes(fc.id!))));
               const isItemSelected = item.id !== null && selectedCourseIds.includes(item.id);
 
               return (

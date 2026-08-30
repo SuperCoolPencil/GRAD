@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { FlatList, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Ionicons } from '@expo/vector-icons';
@@ -93,6 +93,7 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
     }
     return records;
   }, [records, courseId]);
+  const Separator = ItemSeparatorComponent;
 
   return (
     <ThemedView style={styles.card}>
@@ -100,23 +101,26 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         {title}
       </ThemedText>
       {ListHeaderComponent}
-      <FlatList
-        data={displayedRecords}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        ListFooterComponent={
-          ListFooterComponent || (
-            <PaginationControls
-              currentPage={currentPage}
-              totalRecords={totalRecords}
-              recordsPerPage={recordsPerPage}
-              onPageChange={onPageChange}
-            />
-          )
-        }
-        ItemSeparatorComponent={ItemSeparatorComponent}
-        ListEmptyComponent={<ThemedText style={styles.emptyText}>No records found.</ThemedText>}
-      />
+      {displayedRecords.length > 0 ? (
+        <View>
+          {displayedRecords.map((record, index) => (
+            <React.Fragment key={record.id}>
+              {renderItem({ item: record })}
+              {Separator && index < displayedRecords.length - 1 ? <Separator /> : null}
+            </React.Fragment>
+          ))}
+        </View>
+      ) : (
+        <ThemedText style={styles.emptyText}>No records found.</ThemedText>
+      )}
+      {ListFooterComponent || (
+        <PaginationControls
+          currentPage={currentPage}
+          totalRecords={totalRecords}
+          recordsPerPage={recordsPerPage}
+          onPageChange={onPageChange}
+        />
+      )}
     </ThemedView>
   );
 };

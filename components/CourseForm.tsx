@@ -5,7 +5,6 @@ import {
   StyleSheet,
   useColorScheme,
   TouchableOpacity,
-  Platform,
   FlatList,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
