@@ -118,21 +118,21 @@ export default function VisualAttendanceTracker() {
     schedule: {
       flex: 1,
       flexDirection: 'row',
+      position: 'relative',
       borderRadius: 16,
-      borderWidth: 0, // Remove hard border
+      borderWidth: 1,
+      borderColor: Colors[colorScheme].separator,
       overflow: 'hidden',
       backgroundColor: Colors[colorScheme].card,
     },
     dayColumn: {
       width: dayColumnWidth,
-      borderLeftWidth: 1,
-      borderLeftColor: 'rgba(255, 255, 255, 0.1)', // Subtle column separator
     },
     dayColumnHeader: {
       alignItems: 'center',
       height: HEADER_HEIGHT,
       borderBottomWidth: 0, // Remove hard border
-      backgroundColor: Colors[colorScheme].card,
+      backgroundColor: 'transparent',
       paddingTop: 12,
       justifyContent: 'flex-start',
     },
@@ -153,6 +153,13 @@ export default function VisualAttendanceTracker() {
       right: 0,
       height: 1,
       backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle grid lines
+    },
+    gridVertical: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      width: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     classBlock: {
       position: 'absolute',
@@ -327,12 +334,27 @@ export default function VisualAttendanceTracker() {
             <View style={styles.scheduleContainer}>
               <TimeAxis timeSlots={timeSlots} styles={{ ...styles, startHour, gridHeight }} is24Hour={is24Hour} />
               <View style={styles.schedule}>
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <View
+                      key={`day-divider-${index}`}
+                      style={[styles.gridVertical, { left: `${((index + 1) / 7) * 100}%` }]}
+                    />
+                  ))}
+                  <View style={[styles.gridLine, { top: HEADER_HEIGHT }]} />
+                  {timeSlots.map(hour => (
+                    <View
+                      key={hour}
+                      style={[styles.gridLine, { top: HEADER_HEIGHT + (hour - startHour) * HOUR_HEIGHT }]}
+                    />
+                  ))}
+                  <View style={[styles.gridLine, { top: HEADER_HEIGHT + gridHeight - 1 }]} />
+                </View>
                 {Object.keys(classes).map(dateString => (
                   <DayColumn
                     key={dateString}
                     dateString={dateString}
                     classes={classes[dateString]}
-                    timeSlots={timeSlots}
                     startHour={startHour}
                     styles={{ ...styles, startHour, endHour, gridHeight }}
                     getBlockStyle={getBlockStyle}

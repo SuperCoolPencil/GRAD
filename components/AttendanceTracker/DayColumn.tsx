@@ -10,7 +10,6 @@ import { AppContext } from '@/context/AppContext';
 interface DayColumnProps {
   dateString: string;
   classes: ClassItem[];
-  timeSlots: number[];
   startHour: number;
   styles: any;
   getBlockStyle: (classItem: ClassItem, date: Date) => object;
@@ -23,7 +22,6 @@ interface DayColumnProps {
 const DayColumn: React.FC<DayColumnProps> = ({
   dateString,
   classes,
-  timeSlots,
   startHour,
   styles,
   getBlockStyle,
@@ -65,13 +63,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
 
         {/* Grid content with holiday block */}
         <View style={[styles.dayColumnContent, { height: gridHeight }]}>
-          {/* Grid lines */}
-          <View style={[styles.gridLine, { top: 0 }]} />
-          {timeSlots.map(hour => (
-            <View key={hour} style={[styles.gridLine, { top: (hour - startHour) * 60 }]} />
-          ))}
-          <View style={[styles.gridLine, { top: gridHeight - 1 }]} />
-
           {/* Holiday - full column, no margins */}
           <View
             style={{
@@ -118,13 +109,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
 
       {/* Grid content */}
       <View style={[styles.dayColumnContent, { height: gridHeight }]}>
-        {/* Grid lines */}
-        <View style={[styles.gridLine, { top: 0 }]} />
-        {timeSlots.map(hour => (
-          <View key={hour} style={[styles.gridLine, { top: (hour - startHour) * 60 }]} />
-        ))}
-        <View style={[styles.gridLine, { top: gridHeight - 1 }]} />
-
         {/* Current time indicator */}
         {isCurrentTimeVisible && styles.currentTimeIndicator && (
           <View style={[styles.currentTimeIndicator, { top: currentTimeTop }]} />
