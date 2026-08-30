@@ -165,14 +165,14 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
       .forEach(classItem => {
         const start = parse24HToDate(classItem.schedule.timeStart);
         const end = parse24HToDate(classItem.schedule.timeEnd);
-        minHour = Math.min(minHour, start.getHours());
+        minHour = Math.min(minHour, start.getHours() + start.getMinutes() / 60);
         maxHour = Math.max(maxHour, end.getHours() + end.getMinutes() / 60);
       });
 
     if (minHour !== Infinity) {
-      // Use 0.5 for half-row padding at start only
+      // Keep a compact half-hour breathing band above and below the schedule.
       setStartHour(minHour > 0.5 ? minHour - 0.5 : 0);
-      setEndHour(Math.ceil(maxHour));
+      setEndHour(Math.min(maxHour + 0.5, 24));
     } else {
       // Default view when there are no classes
       setStartHour(8);

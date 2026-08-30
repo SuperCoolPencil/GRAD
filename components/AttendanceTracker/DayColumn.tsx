@@ -43,16 +43,15 @@ const DayColumn: React.FC<DayColumnProps> = ({
     return date >= startDate && date <= endDate;
   });
 
-  // Calculate grid height
-  const gridHeight = timeSlots.length * styles.timeLabel.height;
+  const gridHeight = styles.gridHeight;
 
   // Check if this column is today and calculate current time position
   const now = new Date();
   const isToday = format(date, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
   const currentHour = now.getHours() + now.getMinutes() / 60;
-  const isCurrentTimeVisible = isToday && currentHour >= Math.floor(startHour) && currentHour <= styles.endHour;
+  const isCurrentTimeVisible = isToday && currentHour >= startHour && currentHour <= styles.endHour;
   const currentTimeTop = isCurrentTimeVisible
-    ? (currentHour - Math.floor(startHour)) * styles.timeLabel.height
+    ? (currentHour - startHour) * 60
     : 0;
 
   if (holiday) {
@@ -67,9 +66,11 @@ const DayColumn: React.FC<DayColumnProps> = ({
         {/* Grid content with holiday block */}
         <View style={[styles.dayColumnContent, { height: gridHeight }]}>
           {/* Grid lines */}
+          <View style={[styles.gridLine, { top: 0 }]} />
           {timeSlots.map(hour => (
-            <View key={hour} style={[styles.gridLine, { top: (hour - Math.floor(startHour)) * styles.timeLabel.height }]} />
+            <View key={hour} style={[styles.gridLine, { top: (hour - startHour) * 60 }]} />
           ))}
+          <View style={[styles.gridLine, { top: gridHeight - 1 }]} />
 
           {/* Holiday - full column, no margins */}
           <View
@@ -118,9 +119,11 @@ const DayColumn: React.FC<DayColumnProps> = ({
       {/* Grid content */}
       <View style={[styles.dayColumnContent, { height: gridHeight }]}>
         {/* Grid lines */}
+        <View style={[styles.gridLine, { top: 0 }]} />
         {timeSlots.map(hour => (
-          <View key={hour} style={[styles.gridLine, { top: (hour - Math.floor(startHour)) * styles.timeLabel.height }]} />
+          <View key={hour} style={[styles.gridLine, { top: (hour - startHour) * 60 }]} />
         ))}
+        <View style={[styles.gridLine, { top: gridHeight - 1 }]} />
 
         {/* Current time indicator */}
         {isCurrentTimeVisible && styles.currentTimeIndicator && (
@@ -131,11 +134,13 @@ const DayColumn: React.FC<DayColumnProps> = ({
         {classes.map((classItem, index) => {
           const start = parse24HToDate(classItem.schedule.timeStart);
           const end = parse24HToDate(classItem.schedule.timeEnd);
-          if (start.getHours() < Math.floor(startHour) || end.getHours() > styles.endHour) return null;
+          const startTime = start.getHours() + start.getMinutes() / 60;
+          const endTime = end.getHours() + end.getMinutes() / 60;
+          if (startTime < startHour || endTime > styles.endHour) return null;
 
           const duration = (end.getTime() - start.getTime()) / (1000 * 60);
-          const top = (start.getHours() - Math.floor(startHour) + start.getMinutes() / 60) * styles.timeLabel.height;
-          const height = (duration / 60) * styles.timeLabel.height;
+          const top = (startTime - startHour) * 60;
+          const height = duration;
 
           return (
             <TouchableOpacity
@@ -197,4 +202,3 @@ const DayColumn: React.FC<DayColumnProps> = ({
 };
 
 export default DayColumn;
-

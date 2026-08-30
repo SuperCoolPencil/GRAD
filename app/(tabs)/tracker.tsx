@@ -53,12 +53,15 @@ export default function VisualAttendanceTracker() {
   const HOUR_HEIGHT = 60;
   const HEADER_HEIGHT = 60;
   const TIME_AXIS_WIDTH = 35;
-  const hourCount = Math.ceil(endHour) - Math.floor(startHour);
   const dayColumnWidth = (screenWidth - TIME_AXIS_WIDTH - 32) / 7; // 32 for horizontal padding
+  const gridHeight = (endHour - startHour) * HOUR_HEIGHT;
 
   const timeSlots = useMemo(() =>
-    Array.from({ length: Math.ceil(hourCount) + 1 }, (_, i) => Math.floor(startHour) + i),
-    [hourCount, startHour]
+    Array.from(
+      { length: Math.max(0, Math.floor(endHour) - Math.ceil(startHour) + 1) },
+      (_, i) => Math.ceil(startHour) + i,
+    ),
+    [endHour, startHour]
   );
 
   const styles = useMemo(() => StyleSheet.create({
@@ -100,21 +103,17 @@ export default function VisualAttendanceTracker() {
     timeAxis: {
       width: TIME_AXIS_WIDTH,
       alignItems: 'center',
-      paddingBottom: 12,
-      paddingTop: HEADER_HEIGHT,
     },
     timeText: {
       fontSize: 10,
       textAlign: 'center',
     },
     timeLabel: {
-      height: HOUR_HEIGHT,
-      justifyContent: 'flex-start',
-    },
-    timeLabelContainer: {
       height: 20,
       justifyContent: 'center',
-      marginTop: -10,
+      position: 'absolute',
+      left: 0,
+      right: 0,
     },
     schedule: {
       flex: 1,
@@ -326,7 +325,7 @@ export default function VisualAttendanceTracker() {
             contentContainerStyle={{ paddingBottom: 16 }}
           >
             <View style={styles.scheduleContainer}>
-              <TimeAxis timeSlots={timeSlots} styles={styles} is24Hour={is24Hour} />
+              <TimeAxis timeSlots={timeSlots} styles={{ ...styles, startHour, gridHeight }} is24Hour={is24Hour} />
               <View style={styles.schedule}>
                 {Object.keys(classes).map(dateString => (
                   <DayColumn
@@ -335,7 +334,7 @@ export default function VisualAttendanceTracker() {
                     classes={classes[dateString]}
                     timeSlots={timeSlots}
                     startHour={startHour}
-                    styles={{ ...styles, endHour }}
+                    styles={{ ...styles, startHour, endHour, gridHeight }}
                     getBlockStyle={getBlockStyle}
                     handleSelectClass={handleSelectClass}
                     handleLongPressClass={(classItem) => router.push(`/course/${classItem.course.id}`)}

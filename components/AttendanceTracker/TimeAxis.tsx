@@ -6,9 +6,10 @@ interface TimeAxisProps {
   timeSlots: number[];
   styles: {
     timeAxis: object;
-    timeLabel: object;
     timeText: object;
-    timeLabelContainer: object;
+    startHour: number;
+    gridHeight: number;
+    timeLabel: object;
   };
   is24Hour: boolean;
 }
@@ -24,12 +25,16 @@ const TimeAxis: React.FC<TimeAxisProps> = ({ timeSlots, styles, is24Hour }) => {
   };
 
   return (
-    <View style={styles.timeAxis}>
+    <View style={[styles.timeAxis, { height: styles.gridHeight + 60 }]}>
       {timeSlots.map(hour => (
-        <View key={hour} style={styles.timeLabel}>
-          <View style={styles.timeLabelContainer}>
-            <ThemedText style={styles.timeText}>{formatHour(hour)}</ThemedText>
-          </View>
+        <View
+          key={hour}
+          style={[
+            styles.timeLabel,
+            { top: 60 + (hour - styles.startHour) * 60 - 10 },
+          ]}
+        >
+          <ThemedText style={styles.timeText}>{formatHour(hour)}</ThemedText>
         </View>
       ))}
     </View>
