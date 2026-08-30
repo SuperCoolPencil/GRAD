@@ -11,14 +11,12 @@ jest.mock('../database', () => ({
     getSetting: jest.fn(),
     getCourses: jest.fn(),
     bulkAddAttendanceRecords: jest.fn(),
-    bulkUpdateCourseCounts: jest.fn(),
 }));
 
 const mockDb = db.db as jest.Mocked<typeof db.db>;
 const mockGetSetting = db.getSetting as jest.MockedFunction<typeof db.getSetting>;
 const mockGetCourses = db.getCourses as jest.MockedFunction<typeof db.getCourses>;
 const mockBulkAddAttendanceRecords = db.bulkAddAttendanceRecords as jest.MockedFunction<typeof db.bulkAddAttendanceRecords>;
-const mockBulkUpdateCourseCounts = db.bulkUpdateCourseCounts as jest.MockedFunction<typeof db.bulkUpdateCourseCounts>;
 
 describe('createMissingAttendanceRecords', () => {
     beforeEach(() => {
@@ -75,11 +73,13 @@ describe('createMissingAttendanceRecords', () => {
             expect(mockBulkAddAttendanceRecords).toHaveBeenCalled();
 
             const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
+            const courseCounts = mockBulkAddAttendanceRecords.mock.calls[0][1];
             // All new records should have 'absent' status
             addedRecords.forEach((record: any) => {
                 expect(record.status).toBe('absent');
                 expect(record.course_id).toBe('CS101');
             });
+            expect(courseCounts.CS101.absents).toBe(addedRecords.length);
         });
 
         it('should return false when no new records are needed', () => {

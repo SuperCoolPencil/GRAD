@@ -368,6 +368,18 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     setNotificationTiming(DEFAULT_NOTIFICATION_TIMING);
     setNotificationsEnabled(false);
     setIs24Hour(false);
+    setUpdateNotificationsEnabled(false);
+    setWeekStartsOn(0);
+    setSettings({
+      theme: 'light',
+      notificationTime: '10',
+      notificationsEnabled: 'false',
+      is24Hour: 'false',
+      defaultAttendanceStatus: 'absent',
+      holidayBehavior: 'skip',
+    });
+    setHolidays([]);
+    setSkipDays([]);
     console.log('[AppContext] All data cleared.');
   };
 

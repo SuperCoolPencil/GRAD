@@ -7,7 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import NotificationTimeModal from '@/components/NotificationTimeModal';
 import { useRouter } from 'expo-router';
 import { AppContext } from '@/context/AppContext';
-import { db, reopenDatabase, clearCourseColors } from '@/utils/database';
+import { db, reopenDatabase, initDatabase, clearCourseColors } from '@/utils/database';
 import {
   requestPermissions,
   scheduleCourseNotifications,
@@ -138,6 +138,7 @@ export default function SettingsScreen() {
 
         // Reopen the database and load data
         reopenDatabase();
+        initDatabase();
         if (loadData) {
           loadData();
         }

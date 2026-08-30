@@ -1,5 +1,5 @@
 import { Course, AttendanceRecord, ScheduleItem, Holiday, SkipDay } from '@/types';
-import { db, getSetting, updateSetting, bulkAddAttendanceRecords, bulkUpdateCourseCounts, getCourses } from './database';
+import { db, getSetting, updateSetting, bulkAddAttendanceRecords, getCourses } from './database';
 import { formatDateToISO } from './dateHelpers'; // Import formatDateToISO
 
 const getDayOfWeek = (date: Date): string => {
@@ -324,8 +324,7 @@ export const createMissingAttendanceRecords = (): boolean => {
 
   if (newRecords.length > 0) {
     console.log(`[ATTEND] Found ${newRecords.length} new attendance records to create.`);
-    bulkAddAttendanceRecords(newRecords);
-    bulkUpdateCourseCounts(courseCounts);
+    bulkAddAttendanceRecords(newRecords, courseCounts);
     console.log('[ATTEND] Finished creating missing attendance records.');
     return true;
   }

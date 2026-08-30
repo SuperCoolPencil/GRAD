@@ -2,15 +2,35 @@ import * as SQLite from 'expo-sqlite';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord, Holiday, SkipDay } from '../types';
 import { formatDateToISO } from './dateHelpers';
 
-export let db = SQLite.openDatabaseSync('grad.db');
+const DATABASE_NAME = 'grad.db';
+const SCHEMA_VERSION = 1;
+const DEFAULT_SETTINGS = [
+  ['theme', 'light'],
+  ['notificationTime', '10'],
+  ['notificationsEnabled', 'false'],
+  ['is24Hour', 'false'],
+  ['defaultAttendanceStatus', 'absent'],
+  ['holidayBehavior', 'skip'],
+] as const;
+
+const openDatabase = () => {
+  const database = SQLite.openDatabaseSync(DATABASE_NAME);
+  database.execSync('PRAGMA foreign_keys = ON');
+  return database;
+};
+
+export let db = openDatabase();
 
 export const reopenDatabase = () => {
-  db = SQLite.openDatabaseSync('grad.db');
-}
+  db = openDatabase();
+};
 
 export const initDatabase = () => {
   console.log('Initializing database...');
-  db.execSync(`
+  db.withTransactionSync(() => {
+    const schemaVersion = db.getFirstSync<{ user_version: number }>('PRAGMA user_version')?.user_version ?? 0;
+
+    db.execSync(`
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -70,71 +90,82 @@ export const initDatabase = () => {
       reason TEXT,
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
     );
-  `);
+    `);
 
-  // Migration for older schemas
-  const attendanceColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(attendance_records)');
-  const attendanceColumnNames = attendanceColumns.map(c => c.name);
+    if (schemaVersion < SCHEMA_VERSION) {
+      const attendanceColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(attendance_records)');
+      const attendanceColumnNames = attendanceColumns.map(c => c.name);
 
-  if (!attendanceColumnNames.includes('time_start')) {
-    console.log('Migrating database: adding time_start column to attendance_records');
-    db.execSync('ALTER TABLE attendance_records ADD COLUMN time_start TEXT NOT NULL DEFAULT "00:00"');
-  }
+      if (!attendanceColumnNames.includes('time_start')) {
+        console.log('Migrating database: adding time_start column to attendance_records');
+        db.execSync('ALTER TABLE attendance_records ADD COLUMN time_start TEXT NOT NULL DEFAULT "00:00"');
+      }
 
-  if (!attendanceColumnNames.includes('time_end')) {
-    console.log('Migrating database: adding time_end column to attendance_records');
-    db.execSync('ALTER TABLE attendance_records ADD COLUMN time_end TEXT NOT NULL DEFAULT "00:00"');
-  }
+      if (!attendanceColumnNames.includes('time_end')) {
+        console.log('Migrating database: adding time_end column to attendance_records');
+        db.execSync('ALTER TABLE attendance_records ADD COLUMN time_end TEXT NOT NULL DEFAULT "00:00"');
+      }
 
-  const columns = db.getAllSync<{ name: string }>('PRAGMA table_info(courses)');
-  const columnNames = columns.map(c => c.name);
+      const columns = db.getAllSync<{ name: string }>('PRAGMA table_info(courses)');
+      const columnNames = columns.map(c => c.name);
 
-  if (!columnNames.includes('is_archived')) {
-    console.log('Migrating database: adding is_archived column');
-    db.execSync('ALTER TABLE courses ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0');
-  }
-  if (!columnNames.includes('presents')) {
-    console.log('Migrating database: adding presents column');
-    db.execSync('ALTER TABLE courses ADD COLUMN presents INTEGER NOT NULL DEFAULT 0');
-  }
-  if (!columnNames.includes('absents')) {
-    console.log('Migrating database: adding absents column');
-    db.execSync('ALTER TABLE courses ADD COLUMN absents INTEGER NOT NULL DEFAULT 0');
-  }
-  if (!columnNames.includes('cancelled')) {
-    console.log('Migrating database: adding cancelled column');
-    db.execSync('ALTER TABLE courses ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0');
-  }
+      if (!columnNames.includes('is_archived')) {
+        console.log('Migrating database: adding is_archived column');
+        db.execSync('ALTER TABLE courses ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0');
+      }
+      if (!columnNames.includes('presents')) {
+        console.log('Migrating database: adding presents column');
+        db.execSync('ALTER TABLE courses ADD COLUMN presents INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!columnNames.includes('absents')) {
+        console.log('Migrating database: adding absents column');
+        db.execSync('ALTER TABLE courses ADD COLUMN absents INTEGER NOT NULL DEFAULT 0');
+      }
+      if (!columnNames.includes('cancelled')) {
+        console.log('Migrating database: adding cancelled column');
+        db.execSync('ALTER TABLE courses ADD COLUMN cancelled INTEGER NOT NULL DEFAULT 0');
+      }
 
-  if (!columnNames.includes('color')) {
-    console.log('Migrating database: adding color column');
-    db.execSync('ALTER TABLE courses ADD COLUMN color TEXT');
-  }
+      if (!columnNames.includes('color')) {
+        console.log('Migrating database: adding color column');
+        db.execSync('ALTER TABLE courses ADD COLUMN color TEXT');
+      }
 
-  if (!columnNames.includes('created_at')) {
-    console.log('Migrating database: adding created_at column');
-    db.execSync('ALTER TABLE courses ADD COLUMN created_at TEXT');
-  }
+      if (!columnNames.includes('created_at')) {
+        console.log('Migrating database: adding created_at column');
+        db.execSync('ALTER TABLE courses ADD COLUMN created_at TEXT');
+      }
 
-  if (!columnNames.includes('archived_at')) {
-    console.log('Migrating database: adding archived_at column');
-    db.execSync('ALTER TABLE courses ADD COLUMN archived_at TEXT');
-  }
+      if (!columnNames.includes('archived_at')) {
+        console.log('Migrating database: adding archived_at column');
+        db.execSync('ALTER TABLE courses ADD COLUMN archived_at TEXT');
+      }
 
-  if (!columnNames.includes('show_in_tracker')) {
-    console.log('Migrating database: adding show_in_tracker column');
-    db.execSync('ALTER TABLE courses ADD COLUMN show_in_tracker BOOLEAN NOT NULL DEFAULT 1');
-  }
+      if (!columnNames.includes('show_in_tracker')) {
+        console.log('Migrating database: adding show_in_tracker column');
+        db.execSync('ALTER TABLE courses ADD COLUMN show_in_tracker BOOLEAN NOT NULL DEFAULT 1');
+      }
 
-  if (!columnNames.includes('show_in_heatmap')) {
-    console.log('Migrating database: adding show_in_heatmap column');
-    db.execSync('ALTER TABLE courses ADD COLUMN show_in_heatmap BOOLEAN NOT NULL DEFAULT 1');
-  }
+      if (!columnNames.includes('show_in_heatmap')) {
+        console.log('Migrating database: adding show_in_heatmap column');
+        db.execSync('ALTER TABLE courses ADD COLUMN show_in_heatmap BOOLEAN NOT NULL DEFAULT 1');
+      }
 
-  if (!columnNames.includes('show_in_radar')) {
-    console.log('Migrating database: adding show_in_radar column');
-    db.execSync('ALTER TABLE courses ADD COLUMN show_in_radar BOOLEAN NOT NULL DEFAULT 1');
-  }
+      if (!columnNames.includes('show_in_radar')) {
+        console.log('Migrating database: adding show_in_radar column');
+        db.execSync('ALTER TABLE courses ADD COLUMN show_in_radar BOOLEAN NOT NULL DEFAULT 1');
+      }
+    }
+
+    db.execSync(`
+      CREATE INDEX IF NOT EXISTS weekly_schedules_course_id ON weekly_schedules(course_id);
+      CREATE INDEX IF NOT EXISTS extra_classes_course_id_date ON extra_classes(course_id, date);
+      CREATE INDEX IF NOT EXISTS attendance_records_course_id_date_time ON attendance_records(course_id, class_date, time_start);
+      CREATE INDEX IF NOT EXISTS attendance_records_date_time_end ON attendance_records(class_date DESC, time_end DESC);
+      CREATE INDEX IF NOT EXISTS skip_days_course_id ON skip_days(course_id);
+    `);
+    db.execSync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  });
 
   console.log('Database initialized successfully');
 };
@@ -335,62 +366,63 @@ export const updateCourse = (course: Course) => {
   console.log(`[DB] Updating course: ${course.name}`);
   db.withTransactionSync(() => {
     db.runSync(
-      'UPDATE courses SET name = ?, required_attendance = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ?, show_in_radar = ? WHERE id = ?',
-      course.name, course.requiredAttendance, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.showInRadar ? 1 : 0, course.id
+      'UPDATE courses SET name = ?, required_attendance = ?, presents = ?, absents = ?, cancelled = ?, color = ?, show_in_tracker = ?, show_in_heatmap = ?, show_in_radar = ?, created_at = COALESCE(?, created_at) WHERE id = ?',
+      course.name, course.requiredAttendance, course.presents, course.absents, course.cancelled, course.color || null, course.showInTracker ? 1 : 0, course.showInHeatmap ? 1 : 0, course.showInRadar ? 1 : 0, course.createdAt || null, course.id
     );
 
-    // Update weekly schedules
-    const existingScheduleIds = db.getAllSync<{ id: string }>('SELECT id FROM weekly_schedules WHERE course_id = ?', course.id).map(s => s.id);
-    const newScheduleIds = course.weeklySchedule?.map(s => s.id) || [];
-    const schedulesToDelete = existingScheduleIds.filter(id => !newScheduleIds.includes(id));
-    if (schedulesToDelete.length > 0) {
-      db.runSync(`DELETE FROM weekly_schedules WHERE id IN (${schedulesToDelete.map(() => '?').join(',')})`, ...schedulesToDelete);
-    }
-    course.weeklySchedule?.forEach(item => {
-      db.runSync(
-        'INSERT OR REPLACE INTO weekly_schedules (id, course_id, day, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
-        item.id, course.id, item.day, item.timeStart, item.timeEnd
-      );
-    });
-
-    // Update extra classes
-    const existingExtraClassIds = db.getAllSync<{ id: string }>('SELECT id FROM extra_classes WHERE course_id = ?', course.id).map(e => e.id);
-    const newExtraClassIds = course.extraClasses?.map(e => e.id) || [];
-    const extraClassesToDelete = existingExtraClassIds.filter(id => !newExtraClassIds.includes(id));
-    if (extraClassesToDelete.length > 0) {
-      db.runSync(`DELETE FROM extra_classes WHERE id IN (${extraClassesToDelete.map(() => '?').join(',')})`, ...extraClassesToDelete);
-    }
-    course.extraClasses?.forEach(item => {
-      db.runSync(
-        'INSERT OR REPLACE INTO extra_classes (id, course_id, date, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
-        item.id, course.id, item.date, item.timeStart, item.timeEnd
-      );
-    });
-
-    // Update attendance records
-    const newAttendanceRecordIds = new Set(course.attendanceRecords?.map(r => r.id) || []);
-    const existingAttendanceRecordIds = new Set(db.getAllSync<{ id: string }>('SELECT id FROM attendance_records WHERE course_id = ?', course.id).map(r => r.id));
-
-    const recordsToDelete = [...existingAttendanceRecordIds].filter(id => !newAttendanceRecordIds.has(id));
-    if (recordsToDelete.length > 0) {
-      db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
-    }
-
-    course.attendanceRecords?.forEach(record => {
-      if (existingAttendanceRecordIds.has(record.id)) {
-        // Update existing record
-        db.runSync(
-          'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
-          record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
-        );
-      } else {
-        // Insert new record
-        db.runSync(
-          'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
-        );
+    if (course.weeklySchedule) {
+      const existingScheduleIds = db.getAllSync<{ id: string }>('SELECT id FROM weekly_schedules WHERE course_id = ?', course.id).map(s => s.id);
+      const newScheduleIds = course.weeklySchedule.map(s => s.id);
+      const schedulesToDelete = existingScheduleIds.filter(id => !newScheduleIds.includes(id));
+      if (schedulesToDelete.length > 0) {
+        db.runSync(`DELETE FROM weekly_schedules WHERE id IN (${schedulesToDelete.map(() => '?').join(',')})`, ...schedulesToDelete);
       }
-    });
+      course.weeklySchedule.forEach(item => {
+        db.runSync(
+          'INSERT OR REPLACE INTO weekly_schedules (id, course_id, day, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
+          item.id, course.id, item.day, item.timeStart, item.timeEnd
+        );
+      });
+    }
+
+    if (course.extraClasses) {
+      const existingExtraClassIds = db.getAllSync<{ id: string }>('SELECT id FROM extra_classes WHERE course_id = ?', course.id).map(e => e.id);
+      const newExtraClassIds = course.extraClasses.map(e => e.id);
+      const extraClassesToDelete = existingExtraClassIds.filter(id => !newExtraClassIds.includes(id));
+      if (extraClassesToDelete.length > 0) {
+        db.runSync(`DELETE FROM extra_classes WHERE id IN (${extraClassesToDelete.map(() => '?').join(',')})`, ...extraClassesToDelete);
+      }
+      course.extraClasses.forEach(item => {
+        db.runSync(
+          'INSERT OR REPLACE INTO extra_classes (id, course_id, date, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
+          item.id, course.id, item.date, item.timeStart, item.timeEnd
+        );
+      });
+    }
+
+    if (course.attendanceRecords) {
+      const newAttendanceRecordIds = new Set(course.attendanceRecords.map(r => r.id));
+      const existingAttendanceRecordIds = new Set(db.getAllSync<{ id: string }>('SELECT id FROM attendance_records WHERE course_id = ?', course.id).map(r => r.id));
+
+      const recordsToDelete = [...existingAttendanceRecordIds].filter(id => !newAttendanceRecordIds.has(id));
+      if (recordsToDelete.length > 0) {
+        db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
+      }
+
+      course.attendanceRecords.forEach(record => {
+        if (existingAttendanceRecordIds.has(record.id)) {
+          db.runSync(
+            'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
+            record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
+          );
+        } else {
+          db.runSync(
+            'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
+          );
+        }
+      });
+    }
   });
 };
 
@@ -493,15 +525,30 @@ export const addAttendanceRecord = (record: AttendanceRecord) => {
   });
 };
 
-export const bulkAddAttendanceRecords = (records: AttendanceRecord[]) => {
+export const bulkAddAttendanceRecords = (
+  records: AttendanceRecord[],
+  courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } }
+) => {
   if (records.length === 0) return;
   console.log(`Bulk adding ${records.length} attendance records`);
   db.withTransactionSync(() => {
     const statement = db.prepareSync('INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const record of records) {
-      statement.executeSync(record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd);
+    try {
+      for (const record of records) {
+        statement.executeSync(record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd);
+      }
+    } finally {
+      statement.finalizeSync();
     }
-    statement.finalizeSync();
+    const countStatement = db.prepareSync('UPDATE courses SET presents = presents + ?, absents = absents + ?, cancelled = cancelled + ? WHERE id = ?');
+    try {
+      for (const courseId in courseCounts) {
+        const counts = courseCounts[courseId];
+        countStatement.executeSync(counts.presents, counts.absents, counts.cancelled, courseId);
+      }
+    } finally {
+      countStatement.finalizeSync();
+    }
   });
 };
 
@@ -582,19 +629,6 @@ export const getAttendanceRecordsCount = (
   return result ? result.count : 0;
 };
 
-export const bulkUpdateCourseCounts = (courseCounts: { [courseId: string]: { presents: number, absents: number, cancelled: number } }) => {
-  if (Object.keys(courseCounts).length === 0) return;
-  console.log(`Bulk updating counts for ${Object.keys(courseCounts).length} courses`);
-  db.withTransactionSync(() => {
-    const statement = db.prepareSync('UPDATE courses SET presents = presents + ?, absents = absents + ?, cancelled = cancelled + ? WHERE id = ?');
-    for (const courseId in courseCounts) {
-      const counts = courseCounts[courseId];
-      statement.executeSync(counts.presents, counts.absents, counts.cancelled, courseId);
-    }
-    statement.finalizeSync();
-  });
-};
-
 export const addScheduleItem = (courseId: string, item: ScheduleItem) => {
   console.log(`Adding schedule item for course: ${courseId}`);
   db.runSync(
@@ -640,21 +674,24 @@ export const clearCourseColors = () => {
 export const clearAllData = () => {
   console.log('Clearing all data');
   db.withTransactionSync(() => {
-    db.execSync('DROP TABLE IF EXISTS courses');
-    db.execSync('DROP TABLE IF EXISTS weekly_schedules');
-    db.execSync('DROP TABLE IF EXISTS extra_classes');
-    db.execSync('DROP TABLE IF EXISTS attendance_records');
-    db.execSync('DROP TABLE IF EXISTS app_settings');
-    db.execSync('DROP TABLE IF EXISTS holidays');
+    db.execSync(`
+      DELETE FROM attendance_records;
+      DELETE FROM extra_classes;
+      DELETE FROM weekly_schedules;
+      DELETE FROM skip_days;
+      DELETE FROM courses;
+      DELETE FROM holidays;
+      DELETE FROM app_settings;
+    `);
+    const statement = db.prepareSync('INSERT INTO app_settings (key, value) VALUES (?, ?)');
+    try {
+      for (const [key, value] of DEFAULT_SETTINGS) {
+        statement.executeSync(key, value);
+      }
+    } finally {
+      statement.finalizeSync();
+    }
   });
-  initDatabase(); // Re-initialize the database with the correct schema
-  // Re-insert default settings
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('theme', 'light')");
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationTime', '10')");
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('notificationsEnabled', 'false')");
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('is24Hour', 'false')");
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('defaultAttendanceStatus', 'absent')");
-  db.runSync("INSERT INTO app_settings (key, value) VALUES ('holidayBehavior', 'skip')");
 };
 
 export const getHolidays = (): Holiday[] => {
