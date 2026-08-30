@@ -185,6 +185,7 @@ export const simulateBunkClass = (
   skipDays: SkipDay[],
   additionalAbsences: number = 1,
   bunkedClass?: BunkedClass,
+  includeTargetDate = true,
 ): BunkSimulationResult => {
   const presents = Math.max(0, Number.isFinite(course.presents) ? course.presents : 0);
   const absents = Math.max(0, Number.isFinite(course.absents) ? course.absents : 0);
@@ -216,11 +217,13 @@ export const simulateBunkClass = (
   const totalSimulated = presents + absents + immediateAbsences + simulatedPlannedSkip;
   const simulatedPercentage = totalSimulated > 0 ? Math.round((presents / totalSimulated) * 100) : 100;
   const simulatedDelta = getAttendanceDelta(presents, absents + immediateAbsences, required, simulatedPlannedSkip);
-  const target = calculateTargetDate(
-    { ...course, absents: absents + immediateAbsences },
-    holidays,
-    simulatedSkipDays,
-  );
+  const target = includeTargetDate
+    ? calculateTargetDate(
+        { ...course, absents: absents + immediateAbsences },
+        holidays,
+        simulatedSkipDays,
+      )
+    : null;
 
   const isSafe = simulatedDelta <= 0;
 
@@ -245,8 +248,8 @@ export const simulateBunkClass = (
     simulatedDelta,
     isSafe,
     message,
-    targetDate: target.targetDate,
-    targetMessage: target.message,
+    targetDate: target?.targetDate ?? null,
+    targetMessage: target?.message ?? '',
   };
 };
 
@@ -726,14 +729,10 @@ export const calculateTargetDate = (
   // Calculate projected percentage after skip days
   const projectedPercentage = projectedTotal > 0 ? (presents / projectedTotal) * 100 : 100;
   const currentPercentage = totalClasses > 0 ? (presents / totalClasses) * 100 : 100;
-  console.log(`[TARGET] Current: ${presents}P/${absents}A = ${currentPercentage.toFixed(1)}%`);
-  console.log(`[TARGET] Projected: ${presents}P/${projectedAbsents}A (total ${projectedTotal}) = ${projectedPercentage.toFixed(1)}%`);
-
   const attendanceDelta = getAttendanceDelta(presents, absents, requiredAttendance, futureAbsences);
 
   // If already meeting target (even after accounting for future skip day absences)
   if (attendanceDelta <= 0) {
-    console.log(`[TARGET] Still meeting target after skip days`);
     return {
       targetDate: null,
       classesNeeded: 0,
@@ -815,17 +814,11 @@ export const calculateTargetDate = (
         ).length || 0;
       }
 
-      if (classesOnThisDay > 0) {
-        console.log(`[TARGET] ${dateString} (${dayOfWeek}): +${classesOnThisDay} classes, total=${classesFound + classesOnThisDay}`);
-      }
       classesFound += classesOnThisDay;
-    } else {
-      console.log(`[TARGET] ${dateString} (${dayOfWeek}): SKIPPED (holiday)`);
     }
 
     // If we've found enough classes, this is our target date
     if (classesFound >= classesNeeded) {
-      console.log(`[TARGET] Found ${classesFound} classes, target date = ${dateString}`);
       return {
         targetDate: new Date(currentDate),
         classesNeeded,

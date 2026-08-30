@@ -502,7 +502,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         attendancePercentage: calculateAttendancePercentage(counts.presents, counts.absents),
       };
     }));
-    setRefreshKey(prev => prev + 1);
     console.log(`[AppContext] Attendance update for ${courseId} on ${date} complete.`);
   };
 
@@ -542,7 +541,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           attendancePercentage: calculateAttendancePercentage(counts.presents, counts.absents),
         };
       }));
-      setRefreshKey(prev => prev + 1);
       console.log(`[AppContext] Attendance record deleted for ${courseId} on ${date}.`);
     } else {
       console.log(`[AppContext] No attendance record found to delete for ${courseId} on ${date}`);

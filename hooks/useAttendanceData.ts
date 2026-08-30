@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
 import { AppContext } from '@/context/AppContext';
-import { getCoursesWithRecordsInRange, getCourses, getAttendanceRecords } from '@/utils/database';
 import { Course, ScheduleItem, AttendanceRecord } from '@/types';
 import {
   formatDateToISO,
@@ -24,7 +23,7 @@ export interface ClassItem {
 }
 
 export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6, filterCourses = false) => {
-  const { refreshKey, courses: appCourses } = useContext(AppContext);
+  const { courses: appCourses } = useContext(AppContext);
   const [courses, setCourses] = useState<Course[]>([]);
   const [classes, setClasses] = useState<Record<string, ClassItem[]>>({});
   const [courseColors, setCourseColors] = useState<Record<string, string>>({});
@@ -47,13 +46,7 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
     setLoading(true);
     setError(null);
     try {
-      const weekStartDate = getWeekStartDate(startDate, weekStartsOn);
-      const weekEndDate = addDaysToDate(weekStartDate, 6);
-
-      let allCourses = getCoursesWithRecordsInRange(
-        formatDateToISO(weekStartDate),
-        formatDateToISO(weekEndDate)
-      );
+      let allCourses = appCourses;
 
       if (filterCourses) {
         allCourses = allCourses.filter(course => course.showInTracker);
@@ -63,10 +56,9 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
 
       setCourses(allCourses);
 
-      const allCoursesList = getCourses();
-      const allCourseIds = allCoursesList.map(c => c.id);
+      const allCourseIds = appCourses.map(c => c.id);
       const newColors: Record<string, string> = {};
-      allCoursesList.forEach(course => { newColors[course.id] = course.color || getCourseColor(course, allCourseIds); });
+      appCourses.forEach(course => { newColors[course.id] = course.color || getCourseColor(course, allCourseIds); });
       setCourseColors(newColors);
 
     } catch (e) {
@@ -77,11 +69,11 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
     } finally {
       setLoading(false);
     }
-  }, [startDate, weekStartsOn, filterCourses]);
+  }, [appCourses, filterCourses]);
 
   useEffect(() => {
     fetchCoursesAndSchedule();
-  }, [fetchCoursesAndSchedule, refreshKey]); // Add refreshKey to dependencies
+  }, [fetchCoursesAndSchedule]);
 
   useEffect(() => {
     const newClasses: Record<string, ClassItem[]> = {};
@@ -96,8 +88,9 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
 
       if (isDateInPast(date)) {
         // Process past classes using attendance records
-        const courseIds = courses.map(c => c.id);
-        let attendanceRecords = getAttendanceRecords(-1, 0, courseIds, dateString, dateString);
+        const attendanceRecords = courses.flatMap(course =>
+          (course.attendanceRecords || []).filter(record => record.date === dateString),
+        );
         console.log(`[ATTEND] Found ${attendanceRecords.length} attendance records for ${dateString}.`);
 
         attendanceRecords.forEach(record => {
@@ -181,7 +174,7 @@ export const useAttendanceData = (startDate: Date, weekStartsOn: 0 | 1 | 2 | 3 |
 
     console.log(`[ATTEND] Classes loaded for ${Object.keys(newClasses).length} days starting from ${formatDateToISO(weekStartDate)}.`);
 
-  }, [courses, startDate, weekStartsOn, refreshKey]); // Add weekStartsOn to dependencies
+  }, [courses, startDate, weekStartsOn]);
 
   return { classes, courseColors, startHour, endHour, loading, error, refetch: fetchCoursesAndSchedule };
 };

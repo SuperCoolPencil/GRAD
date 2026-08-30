@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, type Dispatch, type SetStateAction } from "react";
+import React, { useContext, useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -140,6 +140,7 @@ function TodaysClassesContent({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [holiday, setHoliday] = useState<Holiday | undefined>(undefined);
   const [activeSim, setActiveSim] = useState<{ courseName: string; simulation: BunkSimulationResult } | null>(null);
+  const longPressHandledClassId = useRef<string | null>(null);
 
   useEffect(() => {
     if (loading) return; // Wait until courses are loaded
@@ -258,12 +259,15 @@ function TodaysClassesContent({
 
   const renderClassItem = ({ item }: { item: ClassItem }) => {
     const course = courses.find(c => c.id === item.courseId);
-    const simulation = course ? simulateBunkClass(course, holidays, skipDays, 1, {
+    const bunkedClass = {
       date: formatDateToISO(currentDate),
       courseId: item.courseId,
       timeStart: item.timeStart,
       timeEnd: item.timeEnd,
-    }) : null;
+    };
+    const simulation = !item.status && course
+      ? simulateBunkClass(course, holidays, skipDays, 1, bunkedClass, false)
+      : null;
     const accentColor = getDeltaColor(item.needToAttend, colorScheme || 'light');
     const cardBackground =
       colorScheme === 'dark' ? Colors[colorScheme].alert : Colors[colorScheme].card;
@@ -278,8 +282,18 @@ function TodaysClassesContent({
       attendanceNote = `Can miss ${available} class${available === 1 ? '' : 'es'}`;
     }
 
-    const clearAttendanceStatus = () =>
+    const markAttendance = (status: AttendanceRecord['status']) => {
+      if (longPressHandledClassId.current === item.id) {
+        longPressHandledClassId.current = null;
+        return;
+      }
+      handleMarkAttendance(item.courseId, status, item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd);
+    };
+
+    const clearAttendanceStatus = () => {
+      longPressHandledClassId.current = item.id;
       deleteAttendanceRecord(item.courseId, formatDateToISO(currentDate), item.timeStart, item.timeEnd, item.isExtraClass);
+    };
 
     return (
       <TouchableOpacity
@@ -350,7 +364,10 @@ function TodaysClassesContent({
                   })}
                   onPress={(e) => {
                     e.stopPropagation();
-                    setActiveSim({ courseName: item.courseName, simulation });
+                    setActiveSim({
+                      courseName: item.courseName,
+                      simulation: simulateBunkClass(course!, holidays, skipDays, 1, bunkedClass),
+                    });
                   }}
                 >
                   <Ionicons
@@ -372,7 +389,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 accessibilityLabel={item.status === 'present' ? 'Present, marked. Long press to clear.' : 'Mark present'}
                 style={[styles.actionButton, { backgroundColor: Colors[colorScheme].success }, item.status === 'present' && styles.selectedActionButton]}
-                onPress={() => handleMarkAttendance(item.courseId, 'present', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onPress={() => markAttendance('present')}
                 onLongPress={item.status === 'present' ? clearAttendanceStatus : undefined}
               >
                 <Ionicons name={item.status === 'present' ? 'checkmark-circle' : 'checkmark-circle-outline'} size={18} color={Colors[colorScheme].buttonText} />
@@ -382,7 +399,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 accessibilityLabel={item.status === 'absent' ? 'Absent, marked. Long press to clear.' : 'Mark absent'}
                 style={[styles.actionButton, { backgroundColor: Colors[colorScheme || 'light'].error }, item.status === 'absent' && styles.selectedActionButton]}
-                onPress={() => handleMarkAttendance(item.courseId, 'absent', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onPress={() => markAttendance('absent')}
                 onLongPress={item.status === 'absent' ? clearAttendanceStatus : undefined}
               >
                 <Ionicons name={item.status === 'absent' ? 'close-circle' : 'close-circle-outline'} size={18} color={Colors[colorScheme].buttonText} />
@@ -392,7 +409,7 @@ function TodaysClassesContent({
               <TouchableOpacity
                 accessibilityLabel={item.status === 'cancelled' ? 'Cancelled, marked. Long press to clear.' : 'Mark cancelled'}
                 style={[styles.actionButton, styles.cancelActionButton, { borderColor: Colors[colorScheme || 'light'].icon }, item.status === 'cancelled' && styles.selectedActionButton]}
-                onPress={() => handleMarkAttendance(item.courseId, 'cancelled', item.isExtraClass, item.sourceId, item.timeStart, item.timeEnd)}
+                onPress={() => markAttendance('cancelled')}
                 onLongPress={item.status === 'cancelled' ? clearAttendanceStatus : undefined}
               >
                 <Ionicons name={item.status === 'cancelled' ? 'remove-circle' : 'remove-circle-outline'} size={18} color={Colors[colorScheme || 'light'].textSecondary} />
