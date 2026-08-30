@@ -171,7 +171,7 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginTop: 20,
+    marginTop: 6,
     alignItems: 'flex-start',
   },
   weekdaysContainer: {

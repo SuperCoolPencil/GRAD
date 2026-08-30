@@ -1,8 +1,7 @@
-import React, { useContext, useState, useMemo, useEffect } from 'react';
+import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, useColorScheme } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useCustomAlert } from '@/context/AlertContext';
-import { RadarChart } from '@salmonco/react-native-radar-chart';
 import { ThemedText } from '@/components/ThemedText';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,6 +13,7 @@ import HeatmapComponent from '@/components/Heatmap';
 import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { CoursePicker } from '@/components/CoursePicker';
+import { AttendanceTrendGraph } from '@/components/AttendanceTrendGraph';
 
 const formatDateForQuery = (date: Date): string => {
   return date.toISOString().slice(0, 10);
@@ -22,7 +22,7 @@ const formatDateForQuery = (date: Date): string => {
 const formatMonthRange = (date: Date): string => {
   const startMonth = date.toLocaleString('default', { month: 'short' });
   const end = new Date(date);
-  end.setMonth(end.getMonth() + 2);
+  end.setMonth(end.getMonth() + 1);
   const endMonth = end.toLocaleString('default', { month: 'short' });
   const year = date.getFullYear().toString().slice(-2);
   return `${startMonth} - ${endMonth} '${year}`;
@@ -51,7 +51,8 @@ export default function AnalyticsScreen() {
   const [showDatePicker, setShowDatePicker] = useState<'from' | 'to' | null>(null);
   const [heatmapCourses, setHeatmapCourses] = useState<Course[]>([]);
   const [selectedHeatmapCourse, setSelectedHeatmapCourse] = useState<string[]>([]); // Changed to string[]
-  const [displayMonth, setDisplayMonth] = useState(new Date(new Date().setMonth(new Date().getMonth() - 2)));
+  const [displayMonth, setDisplayMonth] = useState(new Date(new Date().setMonth(new Date().getMonth() - 1)));
+  const heatmapScrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(1);
   const recordsPerPage = 10;
 
@@ -168,16 +169,16 @@ export default function AnalyticsScreen() {
   const oldestRecordDate = useMemo(() => getOldestRecordDate(courses), [courses]);
 
   useEffect(() => {
-    const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
-    const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 3, 0);
+    const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1 - 14);
+    const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 2, 0);
 
     getCoursesWithRecordsInRange(formatDateForQuery(startDate), formatDateForQuery(endDate))
       .then(setHeatmapCourses);
   }, [displayMonth, getCoursesWithRecordsInRange]);
 
   const heatmapData = useMemo(() => {
-    const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
-    const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 3, 0);
+    const startDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1 - 14);
+    const endDate = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 2, 0);
     let coursesToDisplay = selectedHeatmapCourse.length > 0
       ? heatmapCourses.filter(c => selectedHeatmapCourse.includes(c.id!))
       : heatmapCourses;
@@ -227,9 +228,9 @@ export default function AnalyticsScreen() {
 
   const HistoryFilters = React.memo(function HistoryFilters() {
     return (
-    <View>
+    <View style={{ marginBottom: 8 }}>
       <CoursePicker
-        label="Course:"
+        label="Filter History:"
         courses={courses}
         selectedCourseIds={selectedCourses}
         onSelectionChange={setSelectedCourses}
@@ -238,15 +239,15 @@ export default function AnalyticsScreen() {
         showArchivedToggle={true}
         showSaveButton={true}
       />
-      <View style={styles.inputGroup}>
+      <View style={{ marginTop: 8 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, marginRight: 8 }}>
+          <View style={{ flex: 1, marginRight: 6 }}>
             <ThemedText style={styles.label}>From Date:</ThemedText>
             <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('from')}>
               <ThemedText style={styles.datePickerText}>{fromDate ? formatDate(fromDate) : 'Select Date'}</ThemedText>
             </TouchableOpacity>
           </View>
-          <View style={{ flex: 1, marginLeft: 8 }}>
+          <View style={{ flex: 1, marginLeft: 6 }}>
             <ThemedText style={styles.label}>To Date:</ThemedText>
             <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowDatePicker('to')}>
               <ThemedText style={styles.datePickerText}>{toDate ? formatDate(toDate) : 'Select Date'}</ThemedText>
@@ -256,12 +257,14 @@ export default function AnalyticsScreen() {
         {showDatePicker && (
           <DateTimePicker value={showDatePicker === 'from' ? fromDate || new Date() : toDate || new Date()} mode="date" onChange={handleDateChange} />
         )}
-        <TouchableOpacity style={styles.clearButton} onPress={() => {
-          setFromDate(null);
-          setToDate(null);
-        }}>
-          <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
-        </TouchableOpacity>
+        {(fromDate || toDate) && (
+          <TouchableOpacity style={styles.clearButton} onPress={() => {
+            setFromDate(null);
+            setToDate(null);
+          }}>
+            <ThemedText style={styles.clearButtonText}>Clear Dates</ThemedText>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
     );
@@ -277,25 +280,10 @@ export default function AnalyticsScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {chartData.length > 2 && (
-          <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
-            <ThemedText style={styles.sectionTitle} type="itemTitle">Overall Attendance</ThemedText>
-            <RadarChart
-              data={chartData}
-              maxValue={100}
-              gradientColor={{ startColor: '#393939', endColor: '#393939', count: 5 }}
-              stroke={['#666', '#666', '#666', '#666', '#666']}
-              strokeWidth={[1, 1, 1, 1, 1]}
-              strokeOpacity={[1, 1, 1, 1, 1]}
-              labelColor={colors.text}
-              dataFillColor={Colors[colorScheme].tint}
-              dataFillOpacity={0.8}
-              dataStroke={Colors[colorScheme].tint}
-              dataStrokeWidth={2}
-            />
-          </ThemedView>
-        )}
+        {/* Top: Overall Attendance */}
+        <AttendanceTrendGraph courses={activeCourses} />
 
+        {/* Middle: Heatmap */}
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>
           <View style={styles.heatmapHeader}>
             <TouchableOpacity onPress={handlePrevPage} disabled={oldestRecordDate ? displayMonth <= oldestRecordDate : true}>
@@ -308,7 +296,12 @@ export default function AnalyticsScreen() {
               <Ionicons name="chevron-forward" size={22} color={displayMonth.getMonth() === new Date().getMonth() && displayMonth.getFullYear() === new Date().getFullYear() ? colors.border : colors.text} />
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            ref={heatmapScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onContentSizeChange={() => heatmapScrollRef.current?.scrollToEnd({ animated: false })}
+          >
             <HeatmapComponent data={heatmapData} />
           </ScrollView>
           <CoursePicker
@@ -323,6 +316,7 @@ export default function AnalyticsScreen() {
           />
         </ThemedView>
 
+        {/* Bottom: Attendance History */}
         <AttendanceHistory
           title="Attendance History"
           records={attendanceRecords}
