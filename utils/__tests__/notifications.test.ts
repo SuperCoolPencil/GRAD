@@ -150,6 +150,7 @@ describe('notifications', () => {
             await scheduleCourseNotifications(course, { value: 15, anchor: 'before_start' });
 
             expect(mockScheduleNotification).toHaveBeenCalled();
+            expect(mockScheduleNotification.mock.calls[0][0].content.title).toBe('Computer Science - 82%');
         });
 
         it('should skip a cancelled weekly class for its next occurrence', async () => {
@@ -233,6 +234,7 @@ describe('notifications', () => {
             await scheduleCourseNotifications(course, timing);
 
             expect(mockScheduleNotification).toHaveBeenCalled();
+            expect(mockScheduleNotification.mock.calls[0][0].content.title).toBe('Computer Science - 91%');
         });
 
         it('should skip an extra class notification when it is cancelled', async () => {

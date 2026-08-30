@@ -18,6 +18,16 @@ const getWeekdayName = (dateStr: string): string => {
   return days[d.getDay()];
 };
 
+const SCHEDULE_DAY_TO_SHORT_NAME: Record<string, string> = {
+  monday: 'Mon',
+  tuesday: 'Tue',
+  wednesday: 'Wed',
+  thursday: 'Thu',
+  friday: 'Fri',
+  saturday: 'Sat',
+  sunday: 'Sun',
+};
+
 export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const activeCourses = useMemo(() => courses.filter((c) => !c.isArchived), [courses]);
@@ -37,6 +47,13 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
   // Day-of-the-Week Breakdown Stats
   const dayOfWeekStats = useMemo(() => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const regularClassDays = new Set(
+      activeCourses.flatMap(course =>
+        (course.weeklySchedule || [])
+          .map(item => SCHEDULE_DAY_TO_SHORT_NAME[item.day.toLowerCase()])
+          .filter((day): day is string => Boolean(day)),
+      ),
+    );
     const map: Record<string, { present: number; absent: number; total: number }> = {
       Mon: { present: 0, absent: 0, total: 0 },
       Tue: { present: 0, absent: 0, total: 0 },
@@ -60,12 +77,12 @@ export function AttendanceTrendGraph({ courses }: AttendanceTrendGraphProps) {
       }
     });
 
-    return days.map((day) => {
+    return days.filter(day => regularClassDays.has(day)).map((day) => {
       const { present, absent, total } = map[day];
       const pct = calculateAttendancePercentage(present, absent);
       return { day, present, absent, total, pct };
     });
-  }, [allRecords]);
+  }, [activeCourses, allRecords]);
 
   // Identify Weakest and Best Days
   const weakestDay = useMemo(() => {

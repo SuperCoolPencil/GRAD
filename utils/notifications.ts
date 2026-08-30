@@ -165,11 +165,18 @@ export const cancelCourseNotifications = async (courseId: string) => {
 };
 
 // Function to format the notification content
-const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass, occurrenceDate?: string) => {
-
-  const attendancePercentage = course.attendancePercentage ?? 0;
-  const presents = course.presents || 0;
-  const absents = course.absents || 0;
+const getNotificationContent = (
+  course: Course,
+  item: ScheduleItem | ExtraClass,
+  occurrenceDate?: string,
+  occurrenceStatus?: AttendanceRecord['status'],
+) => {
+  // A reminder describes the state immediately before this occurrence. If it
+  // has already been marked, exclude that mark from its own notification.
+  const presents = Math.max(0, (course.presents || 0) - (occurrenceStatus === 'present' ? 1 : 0));
+  const absents = Math.max(0, (course.absents || 0) - (occurrenceStatus === 'absent' ? 1 : 0));
+  const total = presents + absents;
+  const attendancePercentage = total > 0 ? Math.round((presents / total) * 100) : 100;
   const requiredAttendance = course.requiredAttendance ?? 75;
 
   const attendanceDelta = getAttendanceDelta(presents, absents, requiredAttendance);
@@ -289,7 +296,7 @@ const scheduleNotification = async (
 
     const triggerTime = calculateTriggerTime(nextClassStart, nextClassEnd);
 
-    const content = getNotificationContent(course, item, nextClassDateStr);
+    content = getNotificationContent(course, item, nextClassDateStr, existingRecord?.status);
     // For weekly recurring, we use WEEKLY trigger type
     // We need to convert triggerTime to weekday/hour/minute
     let triggerWeekday = triggerTime.getDay() + 1; // expo uses 1-7 (Sun=1)
@@ -326,7 +333,7 @@ const scheduleNotification = async (
       return;
     }
 
-    const content = getNotificationContent(course, item, item.date);
+    content = getNotificationContent(course, item, item.date, existingRecord?.status);
 
     // Skip notification if extra class is on a holiday
     if (isHoliday(item.date)) {
