@@ -22,9 +22,10 @@ interface CourseFormProps {
   initialData?: Partial<Course>;
   onSubmit: (courseData: Course) => Promise<void>;
   isEditing: boolean;
+  footer?: React.ReactNode;
 }
 
-const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditing }) => {
+const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditing, footer }) => {
   const { isValidCourseId, is24Hour } = useContext(AppContext);
   const colorScheme = useColorScheme() ?? 'light';
   const { showAlert } = useCustomAlert();
@@ -282,9 +283,12 @@ const CourseForm: React.FC<CourseFormProps> = ({ initialData, onSubmit, isEditin
         </>
       }
       ListFooterComponent={
-        <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
-          <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+            <ThemedText style={styles.primaryButtonText}>Save Course</ThemedText>
+          </TouchableOpacity>
+          {footer ? <View style={styles.footer}>{footer}</View> : null}
+        </>
       }
     />
   );
@@ -388,6 +392,9 @@ const getStyles = (colorScheme: 'light' | 'dark', colors: any) => StyleSheet.cre
     color: colors.buttonText,
     fontSize: 15,
     fontWeight: '600',
+  },
+  footer: {
+    marginTop: 24,
   },
   secondaryButton: {
     backgroundColor: Colors[colorScheme].card,

@@ -92,6 +92,26 @@ describe('calendar-aware attendance delta', () => {
         expect(getPlannedSkipDayAbsences(course, holidays, [skipDay], now)).toBe(0);
         expect(getCourseAttendanceDelta(course, holidays, [skipDay], now)).toBe(0);
     });
+
+    it('counts only sessions within a ranged, time-bounded skip', () => {
+        const rangedCourse: Course = {
+            ...course,
+            weeklySchedule: [
+                { id: 'morning', day: 'Monday', timeStart: '09:00', timeEnd: '10:00' },
+                { id: 'afternoon', day: 'Monday', timeStart: '14:00', timeEnd: '15:00' },
+            ],
+        };
+        const rangedSkip: SkipDay = {
+            id: 'skip-range',
+            date: '2026-01-12',
+            endDate: '2026-01-19',
+            courseId: 'CS101',
+            timeStart: '13:00',
+            timeEnd: '16:00',
+        };
+
+        expect(getPlannedSkipDayAbsences(rangedCourse, [], [rangedSkip], now)).toBe(2);
+    });
 });
 
 describe('createMissingAttendanceRecords', () => {
@@ -334,6 +354,47 @@ describe('createMissingAttendanceRecords', () => {
             expect(math101Record).toBeDefined();
             expect(cs101Record!.status).toBe('absent');
             expect(math101Record!.status).toBe('absent');
+        });
+
+        it('applies ranged, time-bounded skips only to matching sessions while backfilling', () => {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatDateToISO(yesterday);
+            const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][yesterday.getDay()];
+            const twoDaysAgo = new Date(yesterday);
+            twoDaysAgo.setDate(twoDaysAgo.getDate() - 1);
+
+            mockGetSetting.mockImplementation((key: string) =>
+                key === 'defaultAttendanceStatus' ? 'present' : null,
+            );
+            mockGetCourses.mockReturnValue([{
+                id: 'CS101',
+                name: 'Computer Science',
+                weeklySchedule: [
+                    { id: 'morning', day: dayOfWeek, timeStart: '09:00', timeEnd: '10:00' },
+                    { id: 'afternoon', day: dayOfWeek, timeStart: '14:00', timeEnd: '15:00' },
+                ],
+                extraClasses: [],
+                isArchived: false,
+                createdAt: formatDateToISO(twoDaysAgo),
+            } as any]);
+            (mockDb.getAllSync as jest.Mock).mockImplementation((query: string) => {
+                if (query.includes('holidays') || query.includes('attendance_records')) return [];
+                if (query.includes('skip_days')) {
+                    return [{
+                        id: 'skip-1', date: yesterdayStr, end_date: yesterdayStr, course_id: 'CS101',
+                        reason: null, time_start: '09:00', time_end: '10:00',
+                    }];
+                }
+                return [];
+            });
+
+            expect(createMissingAttendanceRecords()).toBe(true);
+            const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
+            expect(addedRecords).toEqual(expect.arrayContaining([
+                expect.objectContaining({ scheduleItemId: 'morning', status: 'absent' }),
+                expect.objectContaining({ scheduleItemId: 'afternoon', status: 'present' }),
+            ]));
         });
     });
 

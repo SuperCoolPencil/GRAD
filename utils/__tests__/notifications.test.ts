@@ -49,6 +49,7 @@ jest.mock('../database', () => ({
 jest.mock('../attendance', () => ({
     calculateAttendancePercentage: jest.fn().mockReturnValue(75),
     getAttendanceDelta: jest.fn().mockReturnValue(-1),
+    isClassSkippedBySkipDay: jest.fn().mockReturnValue(false),
 }));
 
 const mockDb = db.db as jest.Mocked<typeof db.db>;
@@ -125,6 +126,17 @@ describe('notifications', () => {
             // Should cancel existing but not schedule new
             expect(mockCancelScheduled).not.toHaveBeenCalled(); // No existing to cancel
             // Since holiday, no new notification should be scheduled
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+
+        it('should skip a class planned as a bunk', async () => {
+            const { isClassSkippedBySkipDay } = jest.requireMock('../attendance');
+            isClassSkippedBySkipDay.mockReturnValueOnce(true);
+
+            await scheduleCourseNotifications(baseCourse, { value: 15, anchor: 'before_start' }, [{
+                id: 'skip-1', date: '2099-01-01', courseId: 'CS101', timeStart: '09:00', timeEnd: '10:00',
+            }]);
+
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 

@@ -28,7 +28,12 @@ export const useAttendanceActions = () => {
     const isFuture = dateString > todayISO;
 
     if (isFuture) {
-      const simulation = simulateBunkClass(course, holidays, skipDays, 1);
+      const simulation = simulateBunkClass(course, holidays, skipDays, 1, {
+        date: dateString,
+        courseId: course.id,
+        timeStart: schedule.timeStart,
+        timeEnd: schedule.timeEnd,
+      });
       const isAlreadySkipped = skipDays.some(
         s => (!s.courseId || s.courseId === course.id) &&
              dateString >= s.date &&

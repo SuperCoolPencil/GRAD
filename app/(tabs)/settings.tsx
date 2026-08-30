@@ -29,6 +29,7 @@ import { CustomPicker } from '@/components/CustomPicker';
 export default function SettingsScreen() {
   const {
     courses,
+    skipDays,
     clearData,
     notificationTiming,
     updateNotificationTiming,
@@ -176,7 +177,7 @@ export default function SettingsScreen() {
       await cancelAllNotifications();
       for (const course of courses) {
         if (!course.isArchived) {
-          await scheduleCourseNotifications(course, notificationTiming);
+          await scheduleCourseNotifications(course, notificationTiming, skipDays);
         }
       }
     } else {
@@ -363,10 +364,11 @@ export default function SettingsScreen() {
         {isWeekPickerVisible && (
           <CustomPicker
             label=""
+            isVisible={isWeekPickerVisible}
+            onClose={() => setWeekPickerVisible(false)}
             selectedValue={weekStartsOn}
             onValueChange={(value) => {
               updateWeekStartsOn(value as 0 | 1 | 2 | 3 | 4 | 5 | 6);
-              setWeekPickerVisible(false);
             }}
             options={daysOfWeek.map((day, index) => ({ label: day, value: index as 0 | 1 | 2 | 3 | 4 | 5 | 6 }))}
             modalTitle="Select Start Day of Week"

@@ -112,25 +112,34 @@ const EditCourseScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CustomHeader
-        title={`Edit Course (ID: ${id})`}
-        rightElement={
-          <TouchableOpacity
-            onPress={handleArchiveToggle}
-            style={styles.headerIconButton}
-          >
-            <Ionicons
-              name={initialData.isArchived ? "arrow-up-circle-outline" : "archive-outline"}
-              size={24}
-              color={initialData.isArchived ? Colors[colorScheme].tint : Colors[colorScheme].warning}
-            />
-          </TouchableOpacity>
-        }
-      />
+      <CustomHeader title={`Edit Course (ID: ${id})`} />
       <CourseForm
         onSubmit={handleSubmit}
         isEditing={true}
         initialData={initialData}
+        footer={
+          <View style={styles.courseStatus}>
+            <ThemedText style={styles.statusLabel}>Course status</ThemedText>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={initialData.isArchived ? 'Unarchive course' : 'Archive course'}
+              onPress={handleArchiveToggle}
+              style={[
+                styles.archiveButton,
+                { borderColor: initialData.isArchived ? Colors[colorScheme].tint : Colors[colorScheme].error },
+              ]}
+            >
+              <Ionicons
+                name={initialData.isArchived ? 'arrow-up-circle-outline' : 'archive-outline'}
+                size={19}
+                color={initialData.isArchived ? Colors[colorScheme].tint : Colors[colorScheme].error}
+              />
+              <ThemedText style={{ color: initialData.isArchived ? Colors[colorScheme].tint : Colors[colorScheme].error }}>
+                {initialData.isArchived ? 'Unarchive Course' : 'Archive Course'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        }
       />
     </View>
   );
@@ -145,12 +154,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  archiveButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  courseStatus: {
+    paddingTop: 4,
+  },
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    opacity: 0.65,
+    marginBottom: 10,
   },
 });
 

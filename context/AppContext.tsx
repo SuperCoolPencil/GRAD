@@ -418,7 +418,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Unarchiving course: ${courseId}`);
     const course = courses.find(c => c.id === courseId);
     if (course) {
-      await scheduleCourseNotifications(course, notificationTiming);
+      await scheduleCourseNotifications(course, notificationTiming, skipDays);
       db.unarchiveCourse(courseId);
       setCourses(prev => prev.map(c => c.id === courseId ? { ...c, isArchived: false, archivedAt: undefined } : c));
       console.log(`[AppContext] Course unarchived: ${courseId}`);
@@ -532,14 +532,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         await cancelAllNotifications();
         for (const course of courses) {
           if (!course.isArchived) {
-            await scheduleCourseNotifications(course, notificationTiming);
+            await scheduleCourseNotifications(course, notificationTiming, skipDays);
           }
         }
         console.log('[AppContext] All notifications rescheduled.');
       };
       rescheduleAllNotifications();
     }
-  }, [courses, loading, notificationTiming]);
+  }, [courses, loading, notificationTiming, skipDays]);
 
   const getCoursesWithRecordsInRange = async (startDate: string, endDate: string): Promise<Course[]> => {
     console.log(`[AppContext] Getting courses with records in range: ${startDate} to ${endDate}`);

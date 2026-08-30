@@ -284,7 +284,7 @@ const processWeeklySchedule = (
   courseCounts: Record<string, AttendanceCounts>,
   defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
-  isSkipDay?: (dateString: string, courseId: string) => boolean
+  isSkipDay?: (dateString: string, courseId: string, timeStart: string, timeEnd: string) => boolean
 ) => {
   if (!course.weeklySchedule || course.weeklySchedule.length === 0) return;
 
@@ -328,7 +328,7 @@ const processWeeklySchedule = (
           addAutomaticAttendanceRecord({
             course,
             isHoliday,
-            isSkipDay: isSkipDay?.(dateString, course.id) ?? false,
+            isSkipDay: isSkipDay?.(dateString, course.id, schedule.timeStart, schedule.timeEnd) ?? false,
             defaultStatus,
             newRecords,
             courseCounts,
@@ -359,7 +359,7 @@ const processExtraClasses = (
   courseCounts: Record<string, AttendanceCounts>,
   defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
-  isSkipDay?: (dateString: string, courseId: string) => boolean
+  isSkipDay?: (dateString: string, courseId: string, timeStart: string, timeEnd: string) => boolean
 ) => {
   if (!course.extraClasses || course.extraClasses.length === 0) return;
 
@@ -394,7 +394,7 @@ const processExtraClasses = (
         addAutomaticAttendanceRecord({
           course,
           isHoliday,
-          isSkipDay: isSkipDay?.(extraClass.date, course.id) ?? false,
+          isSkipDay: isSkipDay?.(extraClass.date, course.id, extraClass.timeStart, extraClass.timeEnd) ?? false,
           defaultStatus,
           newRecords,
           courseCounts,
@@ -452,25 +452,23 @@ export const createMissingAttendanceRecords = (): boolean => {
   }
   console.log(`[ATTEND] Built holiday set with ${holidaySet.size} dates from ${holidaysFromDb.length} ranges.`);
 
-  // --- build skipDaySet (YYYY-MM-DD) for all skip days ----------
-  const skipDaySet = new Set<string>();
-  const skipDaysFromDb = db.getAllSync<{ date: string; course_id: string | null }>('SELECT date, course_id FROM skip_days');
-  for (const s of skipDaysFromDb) {
-    if (s.date) {
-      // Store as "date" or "date:courseId" to handle course-specific skip days
-      if (s.course_id) {
-        skipDaySet.add(`${s.date}:${s.course_id}`);
-      } else {
-        skipDaySet.add(s.date); // Applies to all courses
-      }
-    }
-  }
-  console.log(`[ATTEND] Built skip day set with ${skipDaySet.size} entries.`);
+  // Keep the same range and session-bound semantics used by projections and the tracker.
+  const skipDays = db.getAllSync<{
+    id: string; date: string; end_date: string | null; course_id: string | null;
+    reason: string | null; time_start: string | null; time_end: string | null;
+  }>('SELECT id, date, end_date, course_id, reason, time_start, time_end FROM skip_days').map(s => ({
+    id: s.id,
+    date: s.date,
+    endDate: s.end_date || s.date,
+    courseId: s.course_id || undefined,
+    reason: s.reason || undefined,
+    timeStart: s.time_start || undefined,
+    timeEnd: s.time_end || undefined,
+  }));
+  console.log(`[ATTEND] Loaded ${skipDays.length} skip day entries.`);
 
-  // Helper to check if a date is a skip day for a specific course
-  const isSkipDay = (dateString: string, courseId: string): boolean => {
-    return skipDaySet.has(dateString) || skipDaySet.has(`${dateString}:${courseId}`);
-  };
+  const isSkipDay = (dateString: string, courseId: string, timeStart: string, timeEnd: string): boolean =>
+    isClassSkippedBySkipDay(dateString, courseId, timeStart, timeEnd, skipDays);
 
   // --- build existingRecordIds (DB ids + deterministic indices used by processors) ---
   const existingRecordRows = db.getAllSync<{ id: string; course_id: string; class_date: string; time_start: string | null; schedule_item_id: string | null }>(

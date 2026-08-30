@@ -1,10 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
-import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming } from '@/types';
+import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming, SkipDay } from '@/types';
 import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
-import { getAttendanceDelta } from './attendance'
+import { getAttendanceDelta, isClassSkippedBySkipDay } from './attendance'
 
 const NOTIFICATION_ACTION_TASK = 'grad-notification-attendance-action';
 
@@ -30,7 +30,7 @@ if (Platform.OS !== 'web') {
 }
 
 // Function to schedule notifications for a single course
-export const scheduleCourseNotifications = async (course: Course, timing: NotificationTiming) => {
+export const scheduleCourseNotifications = async (course: Course, timing: NotificationTiming, skipDays: SkipDay[] = []) => {
   console.log(`[NOTIF] Scheduling notifications for course: ${course.name}`);
   // First, cancel any existing notifications for this course to avoid duplicates
   await cancelCourseNotifications(course.id);
@@ -39,13 +39,13 @@ export const scheduleCourseNotifications = async (course: Course, timing: Notifi
 
   if (weeklySchedule) {
     for (const item of weeklySchedule) {
-      await scheduleNotification(course, item, timing);
+      await scheduleNotification(course, item, timing, skipDays);
     }
   }
 
   if (extraClasses) {
     for (const item of extraClasses) {
-      await scheduleNotification(course, item, timing);
+      await scheduleNotification(course, item, timing, skipDays);
     }
   }
 };
@@ -210,7 +210,12 @@ const getNextClassDate = (item: ScheduleItem, now: Date): Date => {
   return nextClass;
 };
 
-const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraClass, timing: NotificationTiming) => {
+const scheduleNotification = async (
+  course: Course,
+  item: ScheduleItem | ExtraClass,
+  timing: NotificationTiming,
+  skipDays: SkipDay[],
+) => {
   const identifier = `${course.id}-${item.id}`;
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   if (existing.some(n => n.identifier === identifier)) {
@@ -269,6 +274,10 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       console.log(`[NOTIF] Skipping notification for ${course.name} on ${nextClassDateStr} (holiday).`);
       return;
     }
+    if (isClassSkippedBySkipDay(nextClassDateStr, course.id, item.timeStart, item.timeEnd, skipDays)) {
+      console.log(`[NOTIF] Skipping notification for ${course.name} on ${nextClassDateStr} (planned skip).`);
+      return;
+    }
 
     // Calculate class end time
     const [endHour, endMinute] = item.timeEnd.split(':').map(Number);
@@ -319,6 +328,10 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
     // Skip notification if extra class is on a holiday
     if (isHoliday(item.date)) {
       console.log(`[NOTIF] Skipping notification for extra class ${course.name} on ${item.date} (holiday).`);
+      return;
+    }
+    if (isClassSkippedBySkipDay(item.date, course.id, item.timeStart, item.timeEnd, skipDays)) {
+      console.log(`[NOTIF] Skipping notification for extra class ${course.name} on ${item.date} (planned skip).`);
       return;
     }
 

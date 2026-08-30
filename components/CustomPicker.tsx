@@ -11,6 +11,9 @@ interface CustomPickerProps<T> {
   onValueChange: (value: T) => void;
   options: { label: string; value: T }[];
   modalTitle: string;
+  /** When provided, the picker modal is controlled by the parent. */
+  isVisible?: boolean;
+  onClose?: () => void;
 }
 
 export const CustomPicker = <T extends string | number>({
@@ -19,6 +22,8 @@ export const CustomPicker = <T extends string | number>({
   onValueChange,
   options,
   modalTitle,
+  isVisible,
+  onClose,
 }: CustomPickerProps<T>) => {
   const colorScheme = useColorScheme() ?? 'light';
   const [modalVisible, setModalVisible] = useState(false);
@@ -27,6 +32,11 @@ export const CustomPicker = <T extends string | number>({
     const selectedOption = options.find((option) => option.value === selectedValue);
     return selectedOption ? selectedOption.label : '';
   }, [selectedValue, options]);
+  const modalIsVisible = isVisible ?? modalVisible;
+  const closeModal = () => {
+    setModalVisible(false);
+    onClose?.();
+  };
 
   return (
     <View style={styles.inputGroup}>
@@ -48,8 +58,8 @@ export const CustomPicker = <T extends string | number>({
       </TouchableOpacity>
 
       <BaseModal
-        isVisible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        isVisible={modalIsVisible}
+        onClose={closeModal}
         title={modalTitle}
         showCloseButton={true}
         dismissOnBackdropPress={true}
@@ -69,7 +79,7 @@ export const CustomPicker = <T extends string | number>({
                 ]}
                 onPress={() => {
                   onValueChange(item.value);
-                  setModalVisible(false);
+                  closeModal();
                 }}
               >
                 <ThemedText

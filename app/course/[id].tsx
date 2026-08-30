@@ -18,11 +18,10 @@ import { Course, ScheduleItem, ExtraClass, AttendanceRecord } from '@/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
 import { useCustomAlert } from '@/context/AlertContext';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import CustomHeader from '@/components/CustomHeader';
 import ConfigurationModal from '@/components/ConfigurationModal';
 import { UpdateCountModal } from '@/components/UpdateCountModal';
-import { calculateTargetDate, getCourseAttendanceDelta } from '@/utils/attendance';
+import { calculateTargetDate, getCourseAttendanceDelta, getPlannedSkipDayAbsences } from '@/utils/attendance';
 
 const getDeltaColor = (delta: number, colorScheme: 'light' | 'dark') => {
   if (delta > 0) return Colors[colorScheme].error;
@@ -55,11 +54,6 @@ export default function CourseDetailScreen() {
   const [course, setCourse] = useState<Course | null>(null);
   const colorScheme = useNativeColorScheme() ?? 'light';
   const { showAlert, hideAlert } = useCustomAlert();
-
-  const textColor = useThemeColor({}, 'text');
-  const borderColor = useThemeColor({}, 'border');
-  const primaryColor = useThemeColor({}, 'alertPrimary');
-  const tintColor = useThemeColor({}, 'tint');
 
   const [modalVisible, setModalVisible] = useState(false);
   const [configModalVisible, setConfigModalVisible] = useState(false);
@@ -213,6 +207,23 @@ export default function CourseDetailScreen() {
     );
   };
 
+  const handleManageCourse = () => {
+    if (!course) return;
+    showAlert(
+      'Manage Course',
+      course.isArchived ? 'This course is archived.' : 'Manage this course and its visibility.',
+      [
+        {
+          text: course.isArchived ? 'Unarchive' : 'Archive',
+          style: 'destructive',
+          onPress: course.isArchived ? handleUnarchive : handleArchive,
+        },
+        { text: 'Delete Course', style: 'destructive', onPress: handleDelete },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   if (loading) {
     return (
       <ThemedView style={styles.centered}>
@@ -241,6 +252,11 @@ export default function CourseDetailScreen() {
   const requiredAttendance = course.requiredAttendance || 75;
   const delta = getCourseAttendanceDelta(course, holidays, skipDays);
   const deltaColor = getDeltaColor(delta, colorScheme);
+  const plannedAbsences = getPlannedSkipDayAbsences(course, holidays, skipDays);
+  const projectedTotal = presents + absents + plannedAbsences;
+  const projectedAttendance = projectedTotal > 0
+    ? Math.round((presents / projectedTotal) * 100)
+    : 100;
 
   let attendanceNote = 'On target';
   if (delta > 0) {
@@ -248,43 +264,13 @@ export default function CourseDetailScreen() {
   } else if (delta < 0) {
     attendanceNote = `Can miss ${Math.abs(delta)} class${Math.abs(delta) === 1 ? '' : 'es'}`;
   }
+  const forecastMessage = targetDateInfo && targetDateInfo.classesNeeded > 0
+    ? `${plannedAbsences} planned skip${plannedAbsences === 1 ? '' : 's'} · ${projectedAttendance}% projected · attend ${targetDateInfo.classesNeeded}${targetDateInfo.targetDate ? ` by ${targetDateInfo.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}`
+    : `${plannedAbsences} planned skip${plannedAbsences === 1 ? '' : 's'} · ${projectedAttendance}% projected`;
 
   return (
     <>
       <CustomHeader title={course.id} />
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginTop: 32, paddingBottom: 16 }}>
-        <ThemedText
-          type="title"
-          style={{ maxWidth: '45%', flexShrink: 1, paddingLeft: 10 }}
-          ellipsizeMode="tail"
-        >
-          {course.name}
-        </ThemedText>
-        <View style={{ flexDirection: 'row' }}>
-          <TouchableOpacity onPress={() => setConfigModalVisible(true)} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-            <Ionicons name="cog-outline" size={24} color={Colors[colorScheme].tint} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push(`/edit-course/${course.id}`)}
-            style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
-          >
-            <Ionicons name="pencil" size={24} color={Colors[colorScheme].tint} />
-          </TouchableOpacity>
-          {/* Add Archive / Unarchive Button */}
-          {course.isArchived ? (
-            <TouchableOpacity onPress={handleUnarchive} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-              <Ionicons name="arrow-up-circle-outline" size={24} color={Colors[colorScheme].tint} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={handleArchive} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-              <Ionicons name="archive-outline" size={24} color={Colors[colorScheme].warning} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={handleDelete} style={[styles.headerIconButton, { backgroundColor: Colors[colorScheme].cardBackground }]}>
-            <Ionicons name="trash-outline" size={24} color={Colors[colorScheme].error} />
-          </TouchableOpacity>
-        </View>
-      </View>
       <ScrollView
         style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
         contentContainerStyle={styles.contentContainer}
@@ -301,75 +287,71 @@ export default function CourseDetailScreen() {
             }}
           />
         )}
-        <ThemedView style={[styles.card, { borderLeftColor: deltaColor, backgroundColor: Colors[colorScheme].card }]}>
-          <ThemedText type="subtitle" style={styles.cardTitle}>
-            Attendance Summary
-          </ThemedText>
-
-          <View style={styles.attendanceRow}>
-            <Ionicons name="pie-chart-outline" size={20} color={Colors[colorScheme].text} />
-            <ThemedText style={styles.attendanceText}>
-              Attendance <ThemedText type="defaultSemiBold">{attendancePercentage}%</ThemedText> · Target {requiredAttendance}%
-            </ThemedText>
+        <ThemedView style={[styles.heroCard, { backgroundColor: Colors[colorScheme].card }]}>
+          <View style={styles.heroTopRow}>
+            <View style={styles.courseMark}>
+              <ThemedText style={[styles.courseMarkText, { color: Colors[colorScheme].tint }]}>
+                {course.id.slice(0, 2).toUpperCase()}
+              </ThemedText>
+            </View>
+            <View style={styles.heroActions}>
+              <TouchableOpacity accessibilityLabel="Course settings" onPress={() => setConfigModalVisible(true)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+                <Ionicons name="options-outline" size={19} color={Colors[colorScheme].tint} />
+              </TouchableOpacity>
+              <TouchableOpacity accessibilityLabel="Edit course" onPress={() => router.push(`/edit-course/${course.id}`)} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+                <Ionicons name="pencil-outline" size={19} color={Colors[colorScheme].tint} />
+              </TouchableOpacity>
+              <TouchableOpacity accessibilityLabel="Manage course" onPress={handleManageCourse} style={[styles.heroAction, { backgroundColor: Colors[colorScheme].cardBackground }]}>
+                <Ionicons name="ellipsis-horizontal" size={20} color={Colors[colorScheme].icon} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <ThemedText type="title" style={styles.courseName}>{course.name}</ThemedText>
+          <View style={styles.heroMetaRow}>
+            <ThemedText style={styles.heroMeta}>{course.id}</ThemedText>
+            {course.isArchived && (
+              <View style={[styles.archivedPill, { backgroundColor: `${Colors[colorScheme].warning}18` }]}>
+                <Ionicons name="archive-outline" size={12} color={Colors[colorScheme].warning} />
+                <ThemedText style={[styles.archivedText, { color: Colors[colorScheme].warning }]}>Archived</ThemedText>
+              </View>
+            )}
+          </View>
+        </ThemedView>
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
+          <View style={styles.attendanceHeader}>
+            <ThemedText type="itemTitle" style={styles.cardTitle}>Attendance</ThemedText>
+            <View style={[styles.statusPill, { backgroundColor: `${deltaColor}18` }]}>
+              <Ionicons name={delta <= 0 ? 'checkmark-circle' : 'alert-circle'} size={14} color={deltaColor} />
+              <ThemedText style={[styles.statusPillText, { color: deltaColor }]}>{attendanceNote}</ThemedText>
+            </View>
           </View>
 
-          <View style={styles.attendanceRow}>
-            <Ionicons
-              name={delta <= 0 ? "checkmark-circle-outline" : "alert-circle-outline"}
-              size={20}
-              color={deltaColor}
-            />
-            <ThemedText style={[styles.attendanceText, { color: deltaColor }]}>
-              {attendanceNote}
-            </ThemedText>
+          <View style={styles.mainStat}>
+            <ThemedText style={styles.percentageText}>{attendancePercentage}%</ThemedText>
+            <ThemedText style={styles.percentageSubtext}>Target {requiredAttendance}% · {presents} of {presents + absents} attended</ThemedText>
           </View>
 
-          {/* Target Date Row */}
-          <View style={styles.attendanceRow}>
-            <Ionicons
-              name="calendar-outline"
-              size={20}
-              color={targetDateInfo && targetDateInfo.classesNeeded > 0
-                ? (targetDateInfo.targetDate ? Colors[colorScheme].warning : Colors[colorScheme].error)
-                : Colors[colorScheme].success}
-            />
-            <ThemedText style={styles.attendanceText}>
-              Target: {targetDateInfo && targetDateInfo.classesNeeded > 0
-                ? (targetDateInfo.targetDate
-                  ? targetDateInfo.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                  : targetDateInfo.message)
-                : '✓ Met'}
-            </ThemedText>
+          <View style={styles.statTileRow}>
+            <Pressable style={[styles.statTile, { backgroundColor: Colors[colorScheme].cardBackground }]} onPress={() => { setCountType('presents'); setModalVisible(true); }}>
+              <Ionicons name="checkmark-circle-outline" size={16} color={Colors[colorScheme].success} />
+              <ThemedText style={styles.statTileValue}>{presents}</ThemedText>
+              <ThemedText style={styles.statTileLabel}>Attended</ThemedText>
+            </Pressable>
+            <Pressable style={[styles.statTile, { backgroundColor: Colors[colorScheme].cardBackground }]} onPress={() => { setCountType('absents'); setModalVisible(true); }}>
+              <Ionicons name="close-circle-outline" size={16} color={Colors[colorScheme].error} />
+              <ThemedText style={styles.statTileValue}>{absents}</ThemedText>
+              <ThemedText style={styles.statTileLabel}>Missed</ThemedText>
+            </Pressable>
+            <Pressable style={[styles.statTile, { backgroundColor: Colors[colorScheme].cardBackground }]} onPress={() => { setCountType('cancelled'); setModalVisible(true); }}>
+              <Ionicons name="remove-circle-outline" size={16} color={Colors[colorScheme].icon} />
+              <ThemedText style={styles.statTileValue}>{cancelled}</ThemedText>
+              <ThemedText style={styles.statTileLabel}>Cancelled</ThemedText>
+            </Pressable>
           </View>
 
-          <View style={styles.attendanceDetailRow}>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="checkmark-outline" size={18} color={Colors[colorScheme].success} />
-              <Pressable onPress={() => {
-                setCountType("presents");
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Present: {presents}</ThemedText>
-              </Pressable>
-            </View>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="close-outline" size={18} color={Colors[colorScheme].error} />
-              <Pressable onPress={() => {
-                setCountType("absents");
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Absent: {absents}</ThemedText>
-              </Pressable>
-            </View>
-            <View style={styles.attendanceDetailItem}>
-              <Ionicons name="remove-circle-outline" size={18} color={Colors[colorScheme].icon} />
-              <Pressable onPress={() => {
-                setCountType("cancelled");
-                setModalVisible(true);
-              }}>
-                <ThemedText style={[styles.detailText, styles.clickableText]}> Cancelled: {cancelled}</ThemedText>
-              </Pressable>
-            </View>
+          <View style={styles.forecastLine}>
+            <Ionicons name="sparkles-outline" size={15} color={deltaColor} />
+            <ThemedText style={styles.forecastText}>{forecastMessage}</ThemedText>
           </View>
         </ThemedView>
 
@@ -387,11 +369,12 @@ export default function CourseDetailScreen() {
 
         {(course.weeklySchedule && course.weeklySchedule.length > 0) && (
           <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Weekly Schedule
-            </ThemedText>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="itemTitle" style={styles.cardTitle}>Weekly Schedule</ThemedText>
+              <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
+            </View>
             {course.weeklySchedule.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ScheduleItem) => (
-              <View key={item.id} style={styles.scheduleItem}>
+              <View key={item.id} style={[styles.scheduleItem, { backgroundColor: Colors[colorScheme].cardBackground }]}>
                 <Ionicons name="calendar-outline" size={18} color={Colors[colorScheme].icon} />
                 <ThemedText style={styles.scheduleText}>
                   <ThemedText type="defaultSemiBold">{item.day}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
@@ -403,12 +386,13 @@ export default function CourseDetailScreen() {
 
         {(course.extraClasses && course.extraClasses.length > 0) && (
           <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].card }]}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Extra Classes
-            </ThemedText>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="itemTitle" style={styles.cardTitle}>Extra Classes</ThemedText>
+              <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
+            </View>
             {course.extraClasses.filter(item => typeof item.timeStart === 'string' && typeof item.timeEnd === 'string').map((item: ExtraClass) => {
               return (
-                <View key={item.id} style={styles.scheduleItem}>
+                <View key={item.id} style={[styles.scheduleItem, { backgroundColor: Colors[colorScheme].cardBackground }]}>
                   <Ionicons name="add-circle-outline" size={18} color={Colors[colorScheme].tint} />
                   <ThemedText style={styles.scheduleText}>
                     <ThemedText type="defaultSemiBold">{item.date}:</ThemedText> {formatTime(item.timeStart, is24Hour)} - {formatTime(item.timeEnd, is24Hour)}
@@ -474,18 +458,134 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingVertical: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
     paddingHorizontal: 16,
   },
   card: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 5,
-    borderColor: 'transparent',
+    marginBottom: 12,
   },
   cardTitle: {
+    fontWeight: '600',
+  },
+  heroCard: {
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  courseMark: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(112, 112, 112, 0.12)',
+  },
+  courseMarkText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  heroAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  courseName: {
+    fontSize: 27,
+    lineHeight: 33,
+    fontWeight: '700',
+  },
+  heroMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 5,
+  },
+  heroMeta: {
+    fontSize: 13,
+    opacity: 0.6,
+  },
+  archivedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 10,
+  },
+  archivedText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  attendanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mainStat: {
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  percentageText: {
+    fontSize: 38,
+    fontWeight: '800',
+    lineHeight: 46,
+    letterSpacing: -1,
+    paddingTop: 4,
+  },
+  percentageSubtext: {
+    fontSize: 13,
+    opacity: 0.6,
+    marginTop: 2,
+  },
+  statTileRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  statTile: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statTileValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  statTileLabel: {
+    fontSize: 11,
+    opacity: 0.6,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -524,6 +624,20 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(128, 128, 128, 0.2)',
     flexWrap: 'wrap',
   },
+  forecastLine: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(127, 127, 127, 0.25)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  forecastText: {
+    flex: 1,
+    fontSize: 13,
+    opacity: 0.6,
+  },
   attendanceDetailItem: {
     flex: 1,
     flexDirection: 'row',
@@ -548,11 +662,20 @@ const styles = StyleSheet.create({
   scheduleItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 8,
   },
   scheduleText: {
     marginLeft: 8,
-    fontSize: 15,
+    fontSize: 14,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   historyItem: {
     flexDirection: 'row',
