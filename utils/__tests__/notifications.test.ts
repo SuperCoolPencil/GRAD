@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { Course, NotificationTiming } from '../../types';
 
 import {
@@ -17,6 +18,7 @@ jest.mock('expo-notifications', () => ({
     setNotificationCategoryAsync: jest.fn(),
     setNotificationChannelAsync: jest.fn(),
     requestPermissionsAsync: jest.fn(),
+    registerTaskAsync: jest.fn(),
     SchedulableTriggerInputTypes: {
         WEEKLY: 'weekly',
         DATE: 'date',
@@ -25,6 +27,11 @@ jest.mock('expo-notifications', () => ({
     AndroidImportance: {
         HIGH: 4,
     },
+}));
+
+jest.mock('expo-task-manager', () => ({
+    defineTask: jest.fn(),
+    isTaskRegisteredAsync: jest.fn().mockResolvedValue(false),
 }));
 
 // Mock database
@@ -118,6 +125,19 @@ describe('notifications', () => {
             // Should cancel existing but not schedule new
             expect(mockCancelScheduled).not.toHaveBeenCalled(); // No existing to cancel
             // Since holiday, no new notification should be scheduled
+            expect(mockScheduleNotification).not.toHaveBeenCalled();
+        });
+
+        it('should skip a weekly class already marked for its next occurrence', async () => {
+            const nextClass = new Date(Date.now() + 2 * 60 * 60 * 1000);
+            const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][nextClass.getDay()];
+            const timeStart = `${String(nextClass.getHours()).padStart(2, '0')}:${String(nextClass.getMinutes()).padStart(2, '0')}`;
+            const date = `${nextClass.getFullYear()}-${String(nextClass.getMonth() + 1).padStart(2, '0')}-${String(nextClass.getDate()).padStart(2, '0')}`;
+            const course = { ...baseCourse, weeklySchedule: [{ id: 'sched1', day, timeStart, timeEnd: '23:59' }] };
+            (mockDb.getFirstSync as jest.Mock).mockImplementation((query: string) => query.includes('attendance_records') ? { id: 'record1' } : null);
+
+            await scheduleCourseNotifications(course, { value: 15, anchor: 'before_start' });
+
             expect(mockScheduleNotification).not.toHaveBeenCalled();
         });
 
@@ -216,7 +236,7 @@ describe('notifications', () => {
             await setupNotificationChannels();
 
             expect(mockSetCategory).toHaveBeenCalledWith('class-actions', expect.arrayContaining([
-                expect.objectContaining({ identifier: 'present' }),
+                expect.objectContaining({ identifier: 'present', options: { opensAppToForeground: Platform.OS === 'ios' } }),
                 expect.objectContaining({ identifier: 'absent' }),
                 expect.objectContaining({ identifier: 'cancelled' }),
             ]));

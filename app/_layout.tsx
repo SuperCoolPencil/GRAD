@@ -58,7 +58,11 @@ function RootLayoutShell() {
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
       console.log('[NOTIF_RESPONSE] Listener fired. Response:', JSON.stringify(response, null, 2));
-      const { courseId, scheduleId } = response.notification.request.content.data as { courseId: string, scheduleId: string };
+      const { courseId, scheduleId, occurrenceDate } = response.notification.request.content.data as {
+        courseId: string;
+        scheduleId: string;
+        occurrenceDate?: string;
+      };
       const actionIdentifier = response.actionIdentifier;
       console.log(`[NOTIF_RESPONSE] Action: ${actionIdentifier}, Course: ${courseId}, Schedule: ${scheduleId}`);
 
@@ -68,7 +72,8 @@ function RootLayoutShell() {
           courseId,
           scheduleId,
           actionIdentifier as 'present' | 'absent' | 'cancelled',
-          response.notification.request.identifier
+          response.notification.request.identifier,
+          occurrenceDate,
         );
         // Refresh the app data to reflect the change immediately
         triggerRefresh();

@@ -1,9 +1,33 @@
 import * as Notifications from 'expo-notifications';
+import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming } from '@/types';
 import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
 import { getAttendanceDelta } from './attendance'
+
+const NOTIFICATION_ACTION_TASK = 'grad-notification-attendance-action';
+
+if (Platform.OS !== 'web') {
+  TaskManager.defineTask<Notifications.NotificationTaskPayload>(NOTIFICATION_ACTION_TASK, async ({ data }) => {
+    if (!('actionIdentifier' in data) || data.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+
+    const { courseId, scheduleId, occurrenceDate } = data.notification.request.content.data as {
+      courseId?: string;
+      scheduleId?: string;
+      occurrenceDate?: string;
+    };
+    if (!courseId || !scheduleId) return;
+
+    await handleNotificationAttendanceAction(
+      courseId,
+      scheduleId,
+      data.actionIdentifier as 'present' | 'absent' | 'cancelled',
+      data.notification.request.identifier,
+      occurrenceDate,
+    );
+  });
+}
 
 // Function to schedule notifications for a single course
 export const scheduleCourseNotifications = async (course: Course, timing: NotificationTiming) => {
@@ -67,7 +91,8 @@ export const handleNotificationAttendanceAction = async (
   courseId: string,
   scheduleId: string,
   actionIdentifier: 'present' | 'absent' | 'cancelled',
-  notificationIdentifier: string
+  notificationIdentifier: string,
+  occurrenceDate?: string,
 ) => {
   console.log(`[NOTIF_HANDLER] Handling action: ${actionIdentifier} for course: ${courseId}, schedule: ${scheduleId}`);
 
@@ -83,7 +108,7 @@ export const handleNotificationAttendanceAction = async (
 
   const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
   const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
-  const date = extraClassItem?.date || formatDateToISO(new Date());
+  const date = extraClassItem?.date || occurrenceDate || formatDateToISO(new Date());
 
   const existingRecord = getAttendanceRecords(-1, 0, [courseId], date, date).find(
     (record) =>
@@ -140,7 +165,7 @@ export const cancelCourseNotifications = async (courseId: string) => {
 };
 
 // Function to format the notification content
-const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass) => {
+const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass, occurrenceDate?: string) => {
 
   const attendancePercentage = course.attendancePercentage || 0;
   const presents = course.presents || 0;
@@ -165,7 +190,7 @@ const getNotificationContent = (course: Course, item: ScheduleItem | ExtraClass)
   return {
     title: `${course.name} - ${attendancePercentage}%`,
     body: deltaMessage,
-    data: { courseId: course.id, scheduleId: item.id },
+    data: { courseId: course.id, scheduleId: item.id, occurrenceDate },
     categoryIdentifier: 'class-actions',
   };
 };
@@ -194,9 +219,9 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
   }
 
   console.log(`[NOTIF] Scheduling notification for course: ${course.name}, item: ${item.id}, timing: ${timing.value} mins ${timing.anchor}`);
-  const content = getNotificationContent(course, item);
   const now = new Date();
   let trigger: Notifications.NotificationTriggerInput;
+  let content = getNotificationContent(course, item);
 
   // Helper to check if a date string (YYYY-MM-DD) is a holiday
   const isHoliday = (dateStr: string): boolean => {
@@ -227,7 +252,17 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
   if ('day' in item) { // It's a weekly schedule item
     const nextClassStart = getNextClassDate(item, now);
-    const nextClassDateStr = nextClassStart.toISOString().split('T')[0];
+    const nextClassDateStr = formatDateToISO(nextClassStart);
+    const existingRecord = db.getFirstSync(
+      'SELECT id FROM attendance_records WHERE course_id = ? AND schedule_item_id = ? AND class_date = ?',
+      [course.id, item.id, nextClassDateStr]
+    );
+
+    if (existingRecord) {
+      // ponytail: a repeating weekly trigger cannot omit one occurrence; notifications resume when the app next reschedules them.
+      console.log(`[NOTIF] Attendance record for ${course.name} on ${nextClassDateStr} already exists. Skipping notification.`);
+      return;
+    }
 
     // Skip notification if next class is on a holiday
     if (isHoliday(nextClassDateStr)) {
@@ -242,6 +277,7 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
 
     const triggerTime = calculateTriggerTime(nextClassStart, nextClassEnd);
 
+    const content = getNotificationContent(course, item, nextClassDateStr);
     // For weekly recurring, we use WEEKLY trigger type
     // We need to convert triggerTime to weekday/hour/minute
     let triggerWeekday = triggerTime.getDay() + 1; // expo uses 1-7 (Sun=1)
@@ -277,6 +313,8 @@ const scheduleNotification = async (course: Course, item: ScheduleItem | ExtraCl
       console.log(`[NOTIF] Attendance record for extra class ${course.name} on ${item.date} already exists. Skipping notification.`);
       return;
     }
+
+    const content = getNotificationContent(course, item, item.date);
 
     // Skip notification if extra class is on a holiday
     if (isHoliday(item.date)) {
@@ -339,11 +377,16 @@ export const setupNotificationChannels = async () => {
   }
 
   // Set up notification categories for action buttons
+  const opensAppToForeground = Platform.OS === 'ios';
   await Notifications.setNotificationCategoryAsync('class-actions', [
-    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground: true } },
-    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground: true } },
-    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground: true } },
+    { identifier: 'present', buttonTitle: 'Present', options: { opensAppToForeground } },
+    { identifier: 'absent', buttonTitle: 'Absent', options: { opensAppToForeground } },
+    { identifier: 'cancelled', buttonTitle: 'Cancelled', options: { opensAppToForeground } },
   ]);
+
+  if (Platform.OS !== 'web' && !(await TaskManager.isTaskRegisteredAsync(NOTIFICATION_ACTION_TASK))) {
+    await Notifications.registerTaskAsync(NOTIFICATION_ACTION_TASK);
+  }
 };
 
 export const requestPermissions = async () => {
