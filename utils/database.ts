@@ -204,43 +204,9 @@ export const initDatabase = () => {
     }
 
     if (schemaVersion < 2) {
-      console.log('Migrating database: removing stale attendance and orphaned course data');
+      console.log('Migrating database: removing duplicate attendance and orphaned course data');
 
-      // Older releases reset a course's in-memory creation date when its schedule
-      // changed, but did not persist that date. On the next launch, gap filling
-      // therefore generated attendance for every old version of the schedule.
-      // A non-extra attendance row whose schedule no longer belongs to the course
-      // is one of those stale generated records.
       db.execSync(`
-        CREATE TEMP TABLE stale_attendance_to_delete AS
-        SELECT id, course_id, status
-        FROM attendance_records ar
-        WHERE is_extra_class = 0
-          AND schedule_item_id IS NOT NULL
-          AND NOT EXISTS (
-            SELECT 1 FROM weekly_schedules ws
-            WHERE ws.id = ar.schedule_item_id
-              AND ws.course_id = ar.course_id
-          );
-
-        UPDATE courses
-        SET presents = MAX(0, presents - (
-              SELECT COUNT(*) FROM stale_attendance_to_delete s
-              WHERE s.course_id = courses.id AND s.status = 'present'
-            )),
-            absents = MAX(0, absents - (
-              SELECT COUNT(*) FROM stale_attendance_to_delete s
-              WHERE s.course_id = courses.id AND s.status = 'absent'
-            )),
-            cancelled = MAX(0, cancelled - (
-              SELECT COUNT(*) FROM stale_attendance_to_delete s
-              WHERE s.course_id = courses.id AND s.status = 'cancelled'
-            ));
-
-        DELETE FROM attendance_records
-        WHERE id IN (SELECT id FROM stale_attendance_to_delete);
-        DROP TABLE stale_attendance_to_delete;
-
         DELETE FROM attendance_records
         WHERE NOT EXISTS (
           SELECT 1 FROM courses c WHERE c.id = attendance_records.course_id
@@ -260,11 +226,9 @@ export const initDatabase = () => {
           );
 
         CREATE TEMP TABLE attendance_duplicates_to_delete AS
-        SELECT id, course_id, status
+        SELECT id
         FROM (
           SELECT id,
-                 course_id,
-                 status,
                  ROW_NUMBER() OVER (
                    PARTITION BY course_id, class_date, time_start, time_end, is_extra_class
                    ORDER BY rowid
@@ -273,23 +237,23 @@ export const initDatabase = () => {
         )
         WHERE occurrence_number > 1;
 
-        UPDATE courses
-        SET presents = MAX(0, presents - (
-              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
-              WHERE d.course_id = courses.id AND d.status = 'present'
-            )),
-            absents = MAX(0, absents - (
-              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
-              WHERE d.course_id = courses.id AND d.status = 'absent'
-            )),
-            cancelled = MAX(0, cancelled - (
-              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
-              WHERE d.course_id = courses.id AND d.status = 'cancelled'
-            ));
-
         DELETE FROM attendance_records
         WHERE id IN (SELECT id FROM attendance_duplicates_to_delete);
         DROP TABLE attendance_duplicates_to_delete;
+
+        UPDATE courses
+        SET presents = (
+              SELECT COUNT(*) FROM attendance_records ar
+              WHERE ar.course_id = courses.id AND ar.status = 'present'
+            ),
+            absents = (
+              SELECT COUNT(*) FROM attendance_records ar
+              WHERE ar.course_id = courses.id AND ar.status = 'absent'
+            ),
+            cancelled = (
+              SELECT COUNT(*) FROM attendance_records ar
+              WHERE ar.course_id = courses.id AND ar.status = 'cancelled'
+            );
       `);
     }
 

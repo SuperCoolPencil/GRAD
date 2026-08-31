@@ -10,7 +10,7 @@ jest.mock('expo-sqlite', () => ({
   })),
 }));
 
-import { bulkAddAttendanceRecords, db, deleteAttendanceOccurrence, upsertAttendanceRecord } from '../database';
+import { bulkAddAttendanceRecords, db, deleteAttendanceOccurrence, initDatabase, upsertAttendanceRecord } from '../database';
 
 const mockDatabase = db as jest.Mocked<typeof db>;
 
@@ -129,5 +129,22 @@ describe('attendance persistence', () => {
     expect(countStatement.executeSync).toHaveBeenCalledWith(1, 1, 0, 'CS101');
     expect(insertStatement.finalizeSync).toHaveBeenCalled();
     expect(countStatement.finalizeSync).toHaveBeenCalled();
+  });
+
+  it('deduplicates occurrences without deleting history for removed schedules', () => {
+    mockDatabase.getFirstSync.mockReturnValue({ user_version: 1 });
+    mockDatabase.getAllSync.mockReturnValue([]);
+
+    initDatabase();
+
+    const migrationSql = mockDatabase.execSync.mock.calls
+      .map(([sql]) => sql)
+      .join('\n');
+    expect(migrationSql).toContain(
+      'PARTITION BY course_id, class_date, time_start, time_end, is_extra_class',
+    );
+    expect(migrationSql).not.toContain('stale_attendance_to_delete');
+    expect(migrationSql).not.toContain('ws.id = ar.schedule_item_id');
+    expect(migrationSql).toContain('SELECT COUNT(*) FROM attendance_records ar');
   });
 });
