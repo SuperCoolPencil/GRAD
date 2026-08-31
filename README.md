@@ -15,7 +15,7 @@ npm run typecheck
 npm test
 ```
 
-Pull requests and pushes to `main` run these checks automatically. Releases are created only when a version tag is pushed. Before tagging, set `expo.version` in `app.json` to the release version, commit it, then push a matching tag:
+Pull requests and pushes to `main` run these checks automatically. Releases are created when a version tag is pushed. The release workflow derives `expo.version` from the tag in the GitHub Actions runner, so `app.json` does not need a separate version-bump commit:
 
 ```sh
 git tag v2.5.4
