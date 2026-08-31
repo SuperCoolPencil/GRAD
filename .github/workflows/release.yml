@@ -10,6 +10,7 @@ on:
   push:
     tags:
       - 'v*'
+      - 'test-v*'
 
 permissions:
   contents: write
@@ -22,10 +23,10 @@ jobs:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
 
     steps:
-      - name: Validate release tag
+      - name: Validate build tag
         run: |
-          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Tag '$RELEASE_TAG' does not match semver format vX.Y.Z"
+          if ! [[ "$RELEASE_TAG" =~ ^(test-)?v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$RELEASE_TAG' does not match vX.Y.Z or test-vX.Y.Z"
             exit 1
           fi
 
@@ -45,7 +46,8 @@ jobs:
 
       - name: Set app version from tag
         run: |
-          tag_version="${RELEASE_TAG#v}"
+          tag_version="${RELEASE_TAG#test-v}"
+          tag_version="${tag_version#v}"
           node -e 'const fs = require("fs"); const app = JSON.parse(fs.readFileSync("app.json", "utf8")); app.expo.version = process.argv[1]; fs.writeFileSync("app.json", `${JSON.stringify(app, null, 2)}\n`);' "$tag_version"
           test "$(node -p "require('./app.json').expo.version")" = "$tag_version"
           echo "Building app version $tag_version from tag $RELEASE_TAG"
@@ -81,7 +83,15 @@ jobs:
           test -n "$EXPO_TOKEN"
           eas build --local --platform android --profile production --non-interactive --output "$GITHUB_WORKSPACE/grad.apk"
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: grad-apk-${{ env.RELEASE_TAG }}
+          path: grad.apk
+          if-no-files-found: error
+
       - name: Publish GitHub release
+        if: startsWith(env.RELEASE_TAG, 'v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -22,7 +22,7 @@ git tag v2.5.4
 git push origin v2.5.4
 ```
 
-The release workflow runs the quality checks, builds a signed Android APK on GitHub Actions, and publishes it as the GitHub release asset. Before the first release, configure these repository Actions secrets:
+The release workflow runs the quality checks, builds a signed Android APK on GitHub Actions, and publishes it as the GitHub release asset. Tags named `test-vX.Y.Z` run the same build but only upload the APK as a workflow artifact; they never create or update a GitHub release. Before the first release, configure these repository Actions secrets:
 
 - `ANDROID_KEYSTORE_BASE64`: Base64-encoded Android release keystore.
 - `ANDROID_KEYSTORE_PASSWORD`: Keystore password.
