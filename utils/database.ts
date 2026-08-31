@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = [
   ['is24Hour', 'false'],
   ['defaultAttendanceStatus', 'absent'],
   ['holidayBehavior', 'skip'],
+  ['backupRemindersEnabled', 'false'],
+  ['lastBackupAt', ''],
 ] as const;
 
 const openDatabase = () => {

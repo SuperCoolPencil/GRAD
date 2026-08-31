@@ -51,6 +51,11 @@ export default function SettingsScreen() {
   const [latestVersion, setLatestVersion] = useState('');
   const [isWeekPickerVisible, setWeekPickerVisible] = useState(false);
   const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const backupRemindersEnabled = settings.backupRemindersEnabled === 'true';
+  const lastBackupDate = settings.lastBackupAt ? new Date(settings.lastBackupAt) : null;
+  const lastBackupLabel = lastBackupDate && !Number.isNaN(lastBackupDate.getTime())
+    ? lastBackupDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Never';
 
   useEffect(() => {
     const fetchLatestVersion = async () => {
@@ -118,6 +123,7 @@ export default function SettingsScreen() {
 
     try {
       await Sharing.shareAsync(dbUri);
+      updateSetting('lastBackupAt', new Date().toISOString());
     } catch {
       showAlert('Error', 'Failed to share the database file.');
     } finally {
@@ -261,6 +267,16 @@ export default function SettingsScreen() {
             value={updateNotificationsEnabled}
             onValueChange={handleUpdateNotificationToggle}
           />
+          <SettingsToggle
+            title="Backup Reminders"
+            subtitle="Remind me weekly to export my database"
+            iconName="shield-checkmark-outline"
+            value={backupRemindersEnabled}
+            onValueChange={async () => {
+              if (!backupRemindersEnabled) await requestPermissions();
+              updateSetting('backupRemindersEnabled', (!backupRemindersEnabled).toString());
+            }}
+          />
         </SettingsSection>
 
         {/* Section 3: Data & Storage */}
@@ -280,6 +296,7 @@ export default function SettingsScreen() {
           <SettingsButton
             title="Export Database"
             subtitle="Backup your attendance data"
+            value={`Last: ${lastBackupLabel}`}
             iconName="download-outline"
             onPress={handleExportData}
           />

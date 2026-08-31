@@ -7,6 +7,8 @@ import {
     cancelCourseNotifications,
     handleNotificationAttendanceAction,
     setupNotificationChannels,
+    scheduleBackupReminder,
+    cancelBackupReminder,
 } from '../notifications';
 import * as db from '../database';
 
@@ -270,6 +272,24 @@ describe('notifications', () => {
             expect(mockCancelScheduled).toHaveBeenCalledTimes(2);
             expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched1');
             expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched2');
+        });
+    });
+
+    describe('backup reminders', () => {
+        it('schedules a recurring weekly backup reminder', async () => {
+            await scheduleBackupReminder();
+
+            expect(mockScheduleNotification).toHaveBeenCalledWith(expect.objectContaining({
+                identifier: 'backup-reminder-weekly',
+                content: expect.objectContaining({ title: 'Back up your GRAD data' }),
+                trigger: expect.objectContaining({ seconds: 60 * 60 * 24 * 7, repeats: true }),
+            }));
+        });
+
+        it('cancels the recurring backup reminder', async () => {
+            await cancelBackupReminder();
+
+            expect(mockCancelScheduled).toHaveBeenCalledWith('backup-reminder-weekly');
         });
     });
 

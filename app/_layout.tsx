@@ -21,6 +21,8 @@ import {
   handleNotificationAttendanceAction,
   scheduleUpdateNotification,
   cancelUpdateNotification,
+  scheduleBackupReminder,
+  cancelBackupReminder,
 } from '@/utils/notifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -49,7 +51,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { triggerRefresh, loading, updateNotificationsEnabled } = useContext(AppContext);
+  const { triggerRefresh, loading, updateNotificationsEnabled, settings } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -90,6 +92,16 @@ function RootLayoutShell() {
     syncUpdateNotification();
     return () => { isActive = false; };
   }, [loaded, loading, updateNotificationsEnabled]);
+
+  useEffect(() => {
+    if (!loaded || loading) return;
+
+    if (settings.backupRemindersEnabled === 'true') {
+      scheduleBackupReminder();
+    } else {
+      cancelBackupReminder();
+    }
+  }, [loaded, loading, settings.backupRemindersEnabled]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
