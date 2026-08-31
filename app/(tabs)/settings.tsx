@@ -13,7 +13,6 @@ import {
   scheduleCourseNotifications,
   cancelAllNotifications,
   setupNotificationChannels,
-  scheduleUpdateNotification,
   cancelUpdateNotification,
 } from '@/utils/notifications';
 import { ThemedText } from '@/components/ThemedText';
@@ -57,20 +56,16 @@ export default function SettingsScreen() {
     const fetchLatestVersion = async () => {
       try {
         const response = await fetch('https://api.github.com/repos/SuperCoolPencil/GRAD/releases/latest');
+        if (!response.ok) throw new Error(`Update check failed: ${response.status}`);
         const data = await response.json();
         setLatestVersion(data.tag_name);
-        if (updateNotificationsEnabled && data.tag_name && data.tag_name !== `v${Constants.expoConfig?.version}`) {
-          await scheduleUpdateNotification(data.tag_name);
-        } else if (!updateNotificationsEnabled || data.tag_name === `v${Constants.expoConfig?.version}`) {
-          await cancelUpdateNotification();
-        }
       } catch (error) {
         console.error('Failed to fetch latest version:', error);
       }
     };
 
     fetchLatestVersion();
-  }, [updateNotificationsEnabled]);
+  }, []);
 
   useEffect(() => {
     if (settings.defaultAttendanceStatus) {
@@ -189,9 +184,6 @@ export default function SettingsScreen() {
     toggleUpdateNotifications();
     if (!updateNotificationsEnabled) {
       await requestPermissions();
-      if (latestVersion && latestVersion !== `v${Constants.expoConfig?.version}`) {
-        await scheduleUpdateNotification(latestVersion);
-      }
     } else {
       await cancelUpdateNotification();
     }

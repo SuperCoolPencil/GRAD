@@ -9,12 +9,19 @@ import { useEffect, useContext } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import 'react-native-reanimated';
 import { AppProvider, AppContext } from '../context/AppContext';
 import { AlertProvider } from '../context/AlertContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '../constants/Colors';
-import { setupNotificationChannels, requestPermissions, handleNotificationAttendanceAction } from '@/utils/notifications';
+import {
+  setupNotificationChannels,
+  requestPermissions,
+  handleNotificationAttendanceAction,
+  scheduleUpdateNotification,
+  cancelUpdateNotification,
+} from '@/utils/notifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,7 +49,7 @@ export default function RootLayout() {
 
 function RootLayoutShell() {
   const colorScheme = useColorScheme();
-  const { triggerRefresh } = useContext(AppContext);
+  const { triggerRefresh, loading, updateNotificationsEnabled } = useContext(AppContext);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -55,6 +62,34 @@ function RootLayoutShell() {
       requestPermissions();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    if (!loaded || loading) return;
+
+    let isActive = true;
+    const syncUpdateNotification = async () => {
+      try {
+        const response = await fetch('https://api.github.com/repos/SuperCoolPencil/GRAD/releases/latest');
+        if (!response.ok) throw new Error(`Update check failed: ${response.status}`);
+
+        const data = await response.json();
+        const latestVersion = typeof data.tag_name === 'string' ? data.tag_name : '';
+        if (!isActive) return;
+
+        const currentVersion = `v${Constants.expoConfig?.version}`;
+        if (updateNotificationsEnabled && latestVersion && latestVersion !== currentVersion) {
+          await scheduleUpdateNotification(latestVersion);
+        } else {
+          await cancelUpdateNotification();
+        }
+      } catch (error) {
+        console.error('Failed to check for app updates:', error);
+      }
+    };
+
+    syncUpdateNotification();
+    return () => { isActive = false; };
+  }, [loaded, loading, updateNotificationsEnabled]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
