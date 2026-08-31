@@ -1,4 +1,4 @@
-export type AttendanceStatus = 'present' | 'absent' | 'cancelled';
+export type AttendanceStatus = 'present' | 'absent' | 'cancelled' | 'holiday' | 'skipped';
 export type AttendanceCountField = 'presents' | 'absents' | 'cancelled';
 
 export interface AttendanceCounts {
@@ -81,7 +81,7 @@ export interface ClassItem {
   currentAttendance: number;
   needToAttend: number;
   workMarked?: string;
-  status?: 'present' | 'absent' | 'cancelled';
+  status?: AttendanceStatus;
 }
 
 export interface AlertButton {

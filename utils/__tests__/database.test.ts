@@ -131,6 +131,21 @@ describe('attendance persistence', () => {
     expect(countStatement.finalizeSync).toHaveBeenCalled();
   });
 
+  it('keeps skipped records visible while counting them as absences', () => {
+    const insertStatement = { executeSync: jest.fn(), finalizeSync: jest.fn() };
+    const countStatement = { executeSync: jest.fn(), finalizeSync: jest.fn() };
+    mockDatabase.prepareSync
+      .mockReturnValueOnce(insertStatement as any)
+      .mockReturnValueOnce(countStatement as any);
+
+    bulkAddAttendanceRecords([
+      { ...attendanceRecord, status: 'skipped' },
+      { ...attendanceRecord, id: 'holiday', date: '2026-09-01', status: 'holiday' },
+    ]);
+
+    expect(countStatement.executeSync).toHaveBeenCalledWith(0, 1, 0, 'CS101');
+  });
+
   it('deduplicates occurrences without deleting history for removed schedules', () => {
     mockDatabase.getFirstSync.mockReturnValue({ user_version: 1 });
     mockDatabase.getAllSync.mockReturnValue([]);

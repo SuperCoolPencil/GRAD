@@ -4,7 +4,7 @@ import { formatDateToISO } from './dateHelpers';
 import { getAttendanceCountField } from './attendanceStatus';
 
 const DATABASE_NAME = 'grad.db';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DEFAULT_SETTINGS = [
   ['theme', 'light'],
   ['notificationTime', '10'],
@@ -28,6 +28,7 @@ const adjustCourseAttendanceCount = (
   amount: 1 | -1,
 ): void => {
   const field = getAttendanceCountField(status);
+  if (!field) return;
   db.runSync(`UPDATE courses SET ${field} = MAX(0, ${field} + ?) WHERE id = ?`, amount, courseId);
 };
 
@@ -99,7 +100,7 @@ export const initDatabase = () => {
       class_date TEXT NOT NULL,
       time_start TEXT NOT NULL,
       time_end TEXT NOT NULL,
-      status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'cancelled')),
+      status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'cancelled', 'holiday', 'skipped')),
       is_extra_class BOOLEAN NOT NULL,
       schedule_item_id TEXT,
       FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
@@ -254,6 +255,30 @@ export const initDatabase = () => {
               SELECT COUNT(*) FROM attendance_records ar
               WHERE ar.course_id = courses.id AND ar.status = 'cancelled'
             );
+      `);
+    }
+
+    if (schemaVersion < 3) {
+      // SQLite cannot alter a CHECK constraint in place. Rebuild the table so
+      // informational holiday and skipped statuses can be stored in history.
+      db.execSync(`
+        CREATE TABLE attendance_records_new (
+          id TEXT PRIMARY KEY,
+          course_id TEXT NOT NULL,
+          class_date TEXT NOT NULL,
+          time_start TEXT NOT NULL,
+          time_end TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('present', 'absent', 'cancelled', 'holiday', 'skipped')),
+          is_extra_class BOOLEAN NOT NULL,
+          schedule_item_id TEXT,
+          FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+        );
+        INSERT INTO attendance_records_new
+          (id, course_id, class_date, time_start, time_end, status, is_extra_class, schedule_item_id)
+        SELECT id, course_id, class_date, time_start, time_end, status, is_extra_class, schedule_item_id
+        FROM attendance_records;
+        DROP TABLE attendance_records;
+        ALTER TABLE attendance_records_new RENAME TO attendance_records;
       `);
     }
 
@@ -548,7 +573,8 @@ export const bulkAddAttendanceRecords = (
       absents: 0,
       cancelled: 0,
     });
-    counts[getAttendanceCountField(record.status)] += 1;
+    const field = getAttendanceCountField(record.status);
+    if (field) counts[field] += 1;
   }
 
   db.withTransactionSync(() => {

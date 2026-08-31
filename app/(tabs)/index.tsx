@@ -12,7 +12,7 @@ import { AppContext } from "@/context/AppContext";
 import { useCustomAlert } from "@/context/AlertContext";
 import { formatTime } from "@/utils/time";
 import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
-import { AttendanceRecord, ClassItem, Course, ScheduleItem, ExtraClass, Holiday, SkipDay } from "@/types";
+import { ClassItem, Course, ScheduleItem, ExtraClass, Holiday, SkipDay } from "@/types";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -125,7 +125,7 @@ function TodaysClassesContent({
   skipDays,
 }: {
   courses: Course[];
-  upsertAttendance: (courseId: string, scheduleId: string, status: AttendanceRecord['status'], isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
+  upsertAttendance: (courseId: string, scheduleId: string, status: 'present' | 'absent' | 'cancelled', isExtraClass: boolean, timeStart: string, timeEnd: string, date: string) => void;
   deleteAttendanceRecord: (courseId: string, date: string, timeStart: string, timeEnd: string, isExtraClass: boolean) => void;
   loading: boolean;
   todaysClasses: ClassItem[];
@@ -282,7 +282,7 @@ function TodaysClassesContent({
       attendanceNote = `Can miss ${available} class${available === 1 ? '' : 'es'}`;
     }
 
-    const markAttendance = (status: AttendanceRecord['status']) => {
+    const markAttendance = (status: 'present' | 'absent' | 'cancelled') => {
       if (longPressHandledClassId.current === item.id) {
         longPressHandledClassId.current = null;
         return;

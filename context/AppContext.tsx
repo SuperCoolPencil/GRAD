@@ -459,9 +459,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       };
       if (result.previousStatus) {
         const previousField = getAttendanceCountField(result.previousStatus);
-        counts[previousField] = Math.max(0, counts[previousField] - 1);
+        if (previousField) counts[previousField] = Math.max(0, counts[previousField] - 1);
       }
-      counts[getAttendanceCountField(status)] += 1;
+      const statusField = getAttendanceCountField(status);
+      if (statusField) counts[statusField] += 1;
 
       return {
         ...currentCourse,
@@ -493,8 +494,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           presents: currentCourse.presents,
           absents: currentCourse.absents,
           cancelled: currentCourse.cancelled,
-          [countField]: Math.max(0, currentCourse[countField] - 1),
         };
+        if (countField) counts[countField] = Math.max(0, counts[countField] - 1);
         return {
           ...currentCourse,
           ...counts,

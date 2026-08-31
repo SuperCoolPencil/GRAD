@@ -270,15 +270,10 @@ const addAutomaticAttendanceRecord = ({
 }): void => {
   const decision = decideAutomaticAttendance({ isHoliday, isSkipDay, defaultStatus });
 
-  if (decision.action === 'skip') {
-    console.log(`[ATTEND] Skipping ${record.isExtraClass ? 'extra ' : ''}class for ${course.name} on ${record.date} (holiday)`);
-    return;
-  }
-
   newRecords.push({ ...record, status: decision.status });
 
   const kind = record.isExtraClass ? ' extra-class' : '';
-  const source = decision.reason === 'skip-day' ? ' (skip day)' : '';
+  const source = decision.reason === 'holiday' ? ' (holiday)' : decision.reason === 'skip-day' ? ' (skip day)' : '';
   console.log(`[ATTEND] Created ${decision.status.toUpperCase()}${kind} record for ${course.name} on ${record.date} at ${record.timeStart}${source}`);
 };
 

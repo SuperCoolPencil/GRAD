@@ -71,6 +71,16 @@ const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         statusColor = Colors[colorScheme].icon;
         displayStatusText = courseId ? 'Cancelled' : `${courseName} - Cancelled`;
         break;
+      case 'holiday':
+        statusIcon = 'calendar-outline';
+        statusColor = Colors[colorScheme].tint;
+        displayStatusText = courseId ? 'Holiday' : `${courseName} - Holiday`;
+        break;
+      case 'skipped':
+        statusIcon = 'close-circle-outline';
+        statusColor = Colors[colorScheme].textSecondary;
+        displayStatusText = courseId ? 'Skipped' : `${courseName} - Skipped`;
+        break;
     }
 
     return (

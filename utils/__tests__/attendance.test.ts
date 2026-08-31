@@ -274,7 +274,7 @@ describe('createMissingAttendanceRecords', () => {
     });
 
     describe('Holiday Behavior', () => {
-        it('should skip creating records for holidays (no attendance records)', () => {
+        it('should create informational holiday records that do not count as attendance', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = formatDateToISO(yesterday);
@@ -316,14 +316,17 @@ describe('createMissingAttendanceRecords', () => {
 
             const result = createMissingAttendanceRecords();
 
-            // Should not have created any records since yesterday was a holiday
-            expect(result).toBe(false);
-            expect(mockBulkAddAttendanceRecords).not.toHaveBeenCalled();
+            expect(result).toBe(true);
+            expect(mockBulkAddAttendanceRecords).toHaveBeenCalled();
+            const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
+            expect(addedRecords).toEqual([
+                expect.objectContaining({ date: yesterdayStr, status: 'holiday' }),
+            ]);
         });
     });
 
     describe('Skip Day Behavior', () => {
-        it('should create absent records for skip days', () => {
+        it('should create informational skipped records for skip days', () => {
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = formatDateToISO(yesterday);
@@ -358,13 +361,13 @@ describe('createMissingAttendanceRecords', () => {
 
             const result = createMissingAttendanceRecords();
 
-            // Should have created an absent record for the skip day
+            // The skip must remain visible without counting as an absence.
             expect(result).toBe(true);
             expect(mockBulkAddAttendanceRecords).toHaveBeenCalled();
 
             const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
             expect(addedRecords.length).toBe(1);
-            expect(addedRecords[0].status).toBe('absent');
+            expect(addedRecords[0].status).toBe('skipped');
             expect(addedRecords[0].date).toBe(yesterdayStr);
         });
 
@@ -424,10 +427,10 @@ describe('createMissingAttendanceRecords', () => {
             const cs101Record = addedRecords.find((r: any) => r.course_id === 'CS101');
             const math101Record = addedRecords.find((r: any) => r.course_id === 'MATH101');
 
-            // Both should be absent (CS101 from skip day, MATH101 from default status)
+            // CS101 is skipped; MATH101 gets the normal default status.
             expect(cs101Record).toBeDefined();
             expect(math101Record).toBeDefined();
-            expect(cs101Record!.status).toBe('absent');
+            expect(cs101Record!.status).toBe('skipped');
             expect(math101Record!.status).toBe('absent');
         });
 
@@ -467,7 +470,7 @@ describe('createMissingAttendanceRecords', () => {
             expect(createMissingAttendanceRecords()).toBe(true);
             const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
             expect(addedRecords).toEqual(expect.arrayContaining([
-                expect.objectContaining({ scheduleItemId: 'morning', status: 'absent' }),
+                expect.objectContaining({ scheduleItemId: 'morning', status: 'skipped' }),
                 expect.objectContaining({ scheduleItemId: 'afternoon', status: 'present' }),
             ]));
         });
