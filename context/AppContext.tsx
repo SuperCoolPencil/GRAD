@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
-import { Course, AttendanceRecord, ScheduleItem, ExtraClass, Holiday, NotificationTiming, SkipDay } from "../types";
+import { Course, AttendanceRecord, ExtraClass, Holiday, NotificationTiming, SkipDay } from "../types";
 import { formatDateToISO } from "@/utils/dateHelpers";
 import { cancelAllNotifications, cancelCourseNotifications, scheduleCourseNotifications } from "@/utils/notifications";
 import * as db from '../utils/database';
@@ -42,7 +42,6 @@ interface AppContextType {
   updateCourse: (updatedCourse: Course) => void;
   deleteCourse: (courseId: string) => void;
   isValidCourseId: (courseId: string) => boolean;
-  addScheduleItem: (courseId: string, newScheduleItem: ScheduleItem) => void;
   addExtraClass: (
     courseId: string,
     date: string,
@@ -94,7 +93,6 @@ export const AppContext = createContext<AppContextType>({
   updateCourse: () => { },
   deleteCourse: () => { },
   isValidCourseId: (courseId: string) => isValidCourseId(courseId),
-  addScheduleItem: () => { },
   addExtraClass: () => { },
   deleteExtraClass: () => { },
   clearData: () => { },
@@ -326,19 +324,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     console.log(`[AppContext] Course deleted successfully: ${courseId}`);
   };
 
-  const addScheduleItem = (courseId: string, newScheduleItem: ScheduleItem) => {
-    console.log(`[AppContext] Adding schedule item to course: ${courseId}, day: ${newScheduleItem.day}, time: ${newScheduleItem.timeStart}-${newScheduleItem.timeEnd}`);
-    db.addScheduleItem(courseId, newScheduleItem);
-    const updatedCourses = courses.map(c => {
-      if (c.id === courseId) {
-        return { ...c, weeklySchedule: [...(c.weeklySchedule || []), newScheduleItem] };
-      }
-      return c;
-    });
-    setCourses(updatedCourses);
-    console.log(`[AppContext] Schedule item added for course: ${courseId}.`);
-  };
-
   const addExtraClass = (courseId: string, date: string, timeStart: string, timeEnd: string) => {
     console.log(`[AppContext] Adding extra class to course: ${courseId}, date: ${date}, time: ${timeStart}-${timeEnd}`);
     const newExtraClass: ExtraClass = {
@@ -448,51 +433,34 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       return;
     }
 
-    const existingRecord = course.attendanceRecords?.find(
-      (record) =>
-        record.date === date &&
-        record.isExtraClass === isExtraClass &&
-        record.timeStart === timeStart &&
-        record.timeEnd === timeEnd
-    );
+    const result = db.upsertAttendanceRecord({
+      id: `${course.id}-${scheduleId}-${date}`,
+      course_id: course.id,
+      date,
+      status,
+      isExtraClass,
+      scheduleItemId: scheduleId,
+      timeStart,
+      timeEnd,
+    });
+    if (!result.changed) return;
 
-    let newRecord: AttendanceRecord | undefined;
-    if (existingRecord) {
-      console.log(`[AppContext] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${status}.`);
-      if (existingRecord.status === status) {
-        console.log(`[AppContext] Status for record ${existingRecord.id} is already ${status}. No update needed.`);
-        return;
-      }
-      db.updateAttendanceRecord(existingRecord.id, status);
-    } else {
-      console.log(`[AppContext] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${status}.`);
-      newRecord = {
-        id: `${courseId}-${scheduleId}-${date}`,
-        course_id: courseId,
-        date,
-        status,
-        isExtraClass,
-        scheduleItemId: scheduleId,
-        timeStart,
-        timeEnd,
-      };
-      db.addAttendanceRecord(newRecord);
-    }
-    const previousStatus = existingRecord?.status;
     setCourses(prev => prev.map(currentCourse => {
       if (currentCourse.id !== course.id) return currentCourse;
 
-      const records = existingRecord
-        ? (currentCourse.attendanceRecords || []).map(record =>
-            record.id === existingRecord.id ? { ...record, status } : record,
-          )
-        : [...(currentCourse.attendanceRecords || []), newRecord!];
+      const existingRecordIndex = (currentCourse.attendanceRecords || []).findIndex(record => record.id === result.record.id);
+      const records = existingRecordIndex >= 0
+        ? (currentCourse.attendanceRecords || []).map(record => record.id === result.record.id ? result.record : record)
+        : [...(currentCourse.attendanceRecords || []), result.record];
       const counts = {
         presents: currentCourse.presents,
         absents: currentCourse.absents,
         cancelled: currentCourse.cancelled,
       };
-      if (previousStatus) counts[getAttendanceCountField(previousStatus)] = Math.max(0, counts[getAttendanceCountField(previousStatus)] - 1);
+      if (result.previousStatus) {
+        const previousField = getAttendanceCountField(result.previousStatus);
+        counts[previousField] = Math.max(0, counts[previousField] - 1);
+      }
       counts[getAttendanceCountField(status)] += 1;
 
       return {
@@ -513,21 +481,14 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       return;
     }
 
-    const existingRecord = course.attendanceRecords?.find(
-      (record) =>
-        record.date === date &&
-        record.isExtraClass === isExtraClass &&
-        record.timeStart === timeStart &&
-        record.timeEnd === timeEnd
-    );
+    const deletedRecord = db.deleteAttendanceOccurrence(course.id, date, timeStart, timeEnd, isExtraClass);
 
-    if (existingRecord) {
-      console.log(`[AppContext] Found attendance record to delete: ${existingRecord.id}`);
-      db.deleteAttendanceRecord(existingRecord.id);
+    if (deletedRecord) {
+      console.log(`[AppContext] Found attendance record to delete: ${deletedRecord.id}`);
       setCourses(prev => prev.map(currentCourse => {
         if (currentCourse.id !== course.id) return currentCourse;
 
-        const countField = getAttendanceCountField(existingRecord.status);
+        const countField = getAttendanceCountField(deletedRecord.status);
         const counts = {
           presents: currentCourse.presents,
           absents: currentCourse.absents,
@@ -537,7 +498,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         return {
           ...currentCourse,
           ...counts,
-          attendanceRecords: (currentCourse.attendanceRecords || []).filter(record => record.id !== existingRecord.id),
+          attendanceRecords: (currentCourse.attendanceRecords || []).filter(record => record.id !== deletedRecord.id),
           attendancePercentage: calculateAttendancePercentage(counts.presents, counts.absents),
         };
       }));
@@ -569,9 +530,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     db.updateSetting('updateNotificationsEnabled', updateNotificationsEnabled.toString()); // Save new setting
     db.updateSetting('weekStartsOn', weekStartsOn.toString()); // Save new setting
 
-    courses.forEach(course => {
-      db.updateCourse(course);
-    });
     console.log('[AppContext] Save complete.');
   };
 
@@ -655,7 +613,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         updateCourse,
         deleteCourse,
         isValidCourseId,
-        addScheduleItem,
         addExtraClass,
         deleteExtraClass,
         clearData,

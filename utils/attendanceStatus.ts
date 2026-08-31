@@ -1,4 +1,4 @@
-import { AttendanceCountField, AttendanceCounts, AttendanceStatus } from '@/types';
+import { AttendanceCountField, AttendanceStatus } from '@/types';
 
 export const DEFAULT_ATTENDANCE_STATUS: AttendanceStatus = 'absent';
 
@@ -16,19 +16,6 @@ export const getDefaultAttendanceStatus = (value: unknown): AttendanceStatus =>
 
 export const getAttendanceCountField = (status: AttendanceStatus): AttendanceCountField =>
   STATUS_COUNT_FIELD[status];
-
-export const emptyAttendanceCounts = (): AttendanceCounts => ({
-  presents: 0,
-  absents: 0,
-  cancelled: 0,
-});
-
-export const addAttendanceStatusToCounts = (
-  counts: AttendanceCounts,
-  status: AttendanceStatus,
-): void => {
-  counts[getAttendanceCountField(status)] += 1;
-};
 
 export type AutomaticAttendanceDecision =
   | { action: 'skip'; reason: 'holiday' }

@@ -246,13 +246,11 @@ describe('createMissingAttendanceRecords', () => {
             expect(mockBulkAddAttendanceRecords).toHaveBeenCalled();
 
             const addedRecords = mockBulkAddAttendanceRecords.mock.calls[0][0];
-            const courseCounts = mockBulkAddAttendanceRecords.mock.calls[0][1];
             // All new records should have 'absent' status
             addedRecords.forEach((record: any) => {
                 expect(record.status).toBe('absent');
                 expect(record.course_id).toBe('CS101');
             });
-            expect(courseCounts.CS101.absents).toBe(addedRecords.length);
         });
 
         it('should return false when no new records are needed', () => {

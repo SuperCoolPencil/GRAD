@@ -1,10 +1,10 @@
 import * as SQLite from 'expo-sqlite';
-import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, ExtraClass, Holiday, ScheduleItem, SkipDay } from '../types';
+import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, ExtraClass, Holiday, SkipDay } from '../types';
 import { formatDateToISO } from './dateHelpers';
 import { getAttendanceCountField } from './attendanceStatus';
 
 const DATABASE_NAME = 'grad.db';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DEFAULT_SETTINGS = [
   ['theme', 'light'],
   ['notificationTime', '10'],
@@ -30,6 +30,23 @@ const adjustCourseAttendanceCount = (
   const field = getAttendanceCountField(status);
   db.runSync(`UPDATE courses SET ${field} = MAX(0, ${field} + ?) WHERE id = ?`, amount, courseId);
 };
+
+const mapAttendanceRecord = (row: any): AttendanceRecord => ({
+  id: row.id,
+  course_id: row.course_id,
+  date: row.class_date,
+  status: row.status,
+  isExtraClass: row.is_extra_class === 1,
+  scheduleItemId: row.schedule_item_id || undefined,
+  timeStart: row.time_start,
+  timeEnd: row.time_end,
+});
+
+interface AttendanceUpsertResult {
+  record: AttendanceRecord;
+  previousStatus: AttendanceStatus | null;
+  changed: boolean;
+}
 
 export const reopenDatabase = () => {
   db = openDatabase();
@@ -186,11 +203,103 @@ export const initDatabase = () => {
       }
     }
 
+    if (schemaVersion < 2) {
+      console.log('Migrating database: removing stale attendance and orphaned course data');
+
+      // Older releases reset a course's in-memory creation date when its schedule
+      // changed, but did not persist that date. On the next launch, gap filling
+      // therefore generated attendance for every old version of the schedule.
+      // A non-extra attendance row whose schedule no longer belongs to the course
+      // is one of those stale generated records.
+      db.execSync(`
+        CREATE TEMP TABLE stale_attendance_to_delete AS
+        SELECT id, course_id, status
+        FROM attendance_records ar
+        WHERE is_extra_class = 0
+          AND schedule_item_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM weekly_schedules ws
+            WHERE ws.id = ar.schedule_item_id
+              AND ws.course_id = ar.course_id
+          );
+
+        UPDATE courses
+        SET presents = MAX(0, presents - (
+              SELECT COUNT(*) FROM stale_attendance_to_delete s
+              WHERE s.course_id = courses.id AND s.status = 'present'
+            )),
+            absents = MAX(0, absents - (
+              SELECT COUNT(*) FROM stale_attendance_to_delete s
+              WHERE s.course_id = courses.id AND s.status = 'absent'
+            )),
+            cancelled = MAX(0, cancelled - (
+              SELECT COUNT(*) FROM stale_attendance_to_delete s
+              WHERE s.course_id = courses.id AND s.status = 'cancelled'
+            ));
+
+        DELETE FROM attendance_records
+        WHERE id IN (SELECT id FROM stale_attendance_to_delete);
+        DROP TABLE stale_attendance_to_delete;
+
+        DELETE FROM attendance_records
+        WHERE NOT EXISTS (
+          SELECT 1 FROM courses c WHERE c.id = attendance_records.course_id
+        );
+        DELETE FROM extra_classes
+        WHERE NOT EXISTS (
+          SELECT 1 FROM courses c WHERE c.id = extra_classes.course_id
+        );
+        DELETE FROM weekly_schedules
+        WHERE NOT EXISTS (
+          SELECT 1 FROM courses c WHERE c.id = weekly_schedules.course_id
+        );
+        DELETE FROM skip_days
+        WHERE course_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM courses c WHERE c.id = skip_days.course_id
+          );
+
+        CREATE TEMP TABLE attendance_duplicates_to_delete AS
+        SELECT id, course_id, status
+        FROM (
+          SELECT id,
+                 course_id,
+                 status,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY course_id, class_date, time_start, time_end, is_extra_class
+                   ORDER BY rowid
+                 ) AS occurrence_number
+          FROM attendance_records
+        )
+        WHERE occurrence_number > 1;
+
+        UPDATE courses
+        SET presents = MAX(0, presents - (
+              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
+              WHERE d.course_id = courses.id AND d.status = 'present'
+            )),
+            absents = MAX(0, absents - (
+              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
+              WHERE d.course_id = courses.id AND d.status = 'absent'
+            )),
+            cancelled = MAX(0, cancelled - (
+              SELECT COUNT(*) FROM attendance_duplicates_to_delete d
+              WHERE d.course_id = courses.id AND d.status = 'cancelled'
+            ));
+
+        DELETE FROM attendance_records
+        WHERE id IN (SELECT id FROM attendance_duplicates_to_delete);
+        DROP TABLE attendance_duplicates_to_delete;
+      `);
+    }
+
     db.execSync(`
       CREATE INDEX IF NOT EXISTS weekly_schedules_course_id ON weekly_schedules(course_id);
       CREATE INDEX IF NOT EXISTS extra_classes_course_id_date ON extra_classes(course_id, date);
       CREATE INDEX IF NOT EXISTS attendance_records_course_id_date_time ON attendance_records(course_id, class_date, time_start);
       CREATE INDEX IF NOT EXISTS attendance_records_date_time_end ON attendance_records(class_date DESC, time_end DESC);
+      CREATE UNIQUE INDEX IF NOT EXISTS attendance_records_occurrence_unique
+        ON attendance_records(course_id, class_date, time_start, time_end, is_extra_class);
       CREATE INDEX IF NOT EXISTS skip_days_course_id ON skip_days(course_id);
     `);
     db.execSync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
@@ -246,16 +355,7 @@ const getCourseFromDbRow = (
 
   const attendanceRecords = allAttendanceRecords
     .filter(r => r.course_id === c.id)
-    .map((r: any) => ({
-      id: r.id,
-      course_id: r.course_id,
-      date: r.class_date,
-      status: r.status,
-      isExtraClass: r.is_extra_class === 1,
-      scheduleItemId: r.schedule_item_id,
-      timeStart: r.time_start,
-      timeEnd: r.time_end,
-    }));
+    .map(mapAttendanceRecord);
 
   const presents = Math.max(0, Number.isFinite(c.presents) ? c.presents : 0);
   const absents = Math.max(0, Number.isFinite(c.absents) ? c.absents : 0);
@@ -311,39 +411,6 @@ export const getCoursesWithRecordsInRange = (startDate: string, endDate: string)
 
   return coursesFromDb.map((c: any) => getCourseFromDbRow(c, allSchedules, allExtraClasses, allAttendanceRecords));
 }
-
-export const getWeeklySchedule = (): (ScheduleItem & { course: Course })[] => {
-  console.log('Getting weekly schedule');
-  const scheduleFromDb = db.getAllSync(`
-    SELECT ws.*, c.id as course_id, c.name as course_name, c.required_attendance, c.is_archived, c.presents, c.absents, c.cancelled
-    FROM weekly_schedules ws
-    JOIN courses c ON ws.course_id = c.id
-    WHERE c.is_archived = 0
-  `);
-  return scheduleFromDb.map((s: any) => ({
-    id: s.id,
-    day: s.day,
-    timeStart: s.time_start,
-    timeEnd: s.time_end,
-    course: {
-      id: s.course_id,
-      name: s.course_name,
-      requiredAttendance: s.required_attendance,
-      isArchived: s.is_archived === 1,
-      presents: s.presents,
-      absents: s.absents,
-      cancelled: s.cancelled,
-    }
-  }));
-};
-
-export const updateCourseCounts = (courseId: string, presents: number, absents: number, cancelled: number) => {
-  console.log(`Updating counts for course: ${courseId}`);
-  db.runSync(
-    'UPDATE courses SET presents = ?, absents = ?, cancelled = ? WHERE id = ?',
-    presents, absents, cancelled, courseId
-  );
-};
 
 export const getCourseById = (courseId: string): Course | null => {
   console.log(`Getting course by id: ${courseId}`);
@@ -411,70 +478,6 @@ export const updateCourse = (course: Course) => {
       });
     }
 
-    if (course.attendanceRecords) {
-      const newAttendanceRecordIds = new Set(course.attendanceRecords.map(r => r.id));
-      const existingAttendanceRecordIds = new Set(db.getAllSync<{ id: string }>('SELECT id FROM attendance_records WHERE course_id = ?', course.id).map(r => r.id));
-
-      const recordsToDelete = [...existingAttendanceRecordIds].filter(id => !newAttendanceRecordIds.has(id));
-      if (recordsToDelete.length > 0) {
-        db.runSync(`DELETE FROM attendance_records WHERE id IN (${recordsToDelete.map(() => '?').join(',')})`, ...recordsToDelete);
-      }
-
-      course.attendanceRecords.forEach(record => {
-        if (existingAttendanceRecordIds.has(record.id)) {
-          db.runSync(
-            'UPDATE attendance_records SET class_date = ?, status = ?, is_extra_class = ?, schedule_item_id = ?, time_start = ?, time_end = ? WHERE id = ?',
-            record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd, record.id
-          );
-        } else {
-          db.runSync(
-            'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
-          );
-        }
-      });
-    }
-  });
-};
-
-export const updateAttendanceRecord = (recordId: string, newStatus: AttendanceStatus) => {
-  console.log(`[DB] Updating attendance record ${recordId} to status: ${newStatus}`);
-  db.withTransactionSync(() => {
-    const existingRecord = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
-
-    if (!existingRecord) {
-      console.log(`[DB] Attendance record not found: ${recordId}`);
-      return;
-    }
-
-    if (existingRecord.status === newStatus) {
-      console.log(`[DB] Status for record ${recordId} is already ${newStatus}. No update needed.`);
-      return;
-    }
-
-    // Update the attendance record status
-    db.runSync(
-      'UPDATE attendance_records SET status = ? WHERE id = ?',
-      newStatus, recordId
-    );
-
-    adjustCourseAttendanceCount(existingRecord.course_id, existingRecord.status, -1);
-    adjustCourseAttendanceCount(existingRecord.course_id, newStatus, 1);
-  });
-};
-
-export const deleteAttendanceRecord = (recordId: string) => {
-  console.log(`[DB] Deleting attendance record: ${recordId}`);
-  const record = db.getFirstSync<AttendanceRecord>('SELECT * FROM attendance_records WHERE id = ?', recordId);
-  if (!record) {
-    console.log(`[DB] Attendance record not found: ${recordId}`);
-    return;
-  }
-
-  db.withTransactionSync(() => {
-    db.runSync('DELETE FROM attendance_records WHERE id = ?', recordId);
-
-    adjustCourseAttendanceCount(record.course_id, record.status, -1);
   });
 };
 
@@ -483,24 +486,107 @@ export const deleteCourse = (courseId: string) => {
   db.runSync('DELETE FROM courses WHERE id = ?', courseId);
 };
 
-export const addAttendanceRecord = (record: AttendanceRecord) => {
-  console.log(`[DB] Adding attendance record for course: ${record.course_id}`);
+export const upsertAttendanceRecord = (record: AttendanceRecord): AttendanceUpsertResult => {
+  console.log(`[DB] Upserting attendance for ${record.course_id} on ${record.date} at ${record.timeStart}`);
+  let result: AttendanceUpsertResult | undefined;
+
   db.withTransactionSync(() => {
-    db.runSync(
-      'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      record.id, record.course_id, record.date, record.status, record.isExtraClass ? 1 : 0, record.scheduleItemId || null, record.timeStart, record.timeEnd
+    const row = db.getFirstSync<any>(
+      `SELECT * FROM attendance_records
+       WHERE course_id = ? AND class_date = ? AND time_start = ? AND time_end = ? AND is_extra_class = ?`,
+      record.course_id,
+      record.date,
+      record.timeStart,
+      record.timeEnd,
+      record.isExtraClass ? 1 : 0,
     );
 
+    if (row) {
+      const existingRecord = mapAttendanceRecord(row);
+      if (existingRecord.status === record.status) {
+        result = { record: existingRecord, previousStatus: existingRecord.status, changed: false };
+        return;
+      }
+
+      db.runSync(
+        'UPDATE attendance_records SET status = ?, schedule_item_id = ? WHERE id = ?',
+        record.status,
+        record.scheduleItemId || null,
+        existingRecord.id,
+      );
+      adjustCourseAttendanceCount(existingRecord.course_id, existingRecord.status, -1);
+      adjustCourseAttendanceCount(existingRecord.course_id, record.status, 1);
+      result = {
+        record: { ...existingRecord, status: record.status, scheduleItemId: record.scheduleItemId },
+        previousStatus: existingRecord.status,
+        changed: true,
+      };
+      return;
+    }
+
+    db.runSync(
+      'INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      record.id,
+      record.course_id,
+      record.date,
+      record.status,
+      record.isExtraClass ? 1 : 0,
+      record.scheduleItemId || null,
+      record.timeStart,
+      record.timeEnd,
+    );
     adjustCourseAttendanceCount(record.course_id, record.status, 1);
+    result = { record, previousStatus: null, changed: true };
   });
+
+  return result!;
+};
+
+export const deleteAttendanceOccurrence = (
+  courseId: string,
+  date: string,
+  timeStart: string,
+  timeEnd: string,
+  isExtraClass: boolean,
+): AttendanceRecord | null => {
+  console.log(`[DB] Deleting attendance for ${courseId} on ${date} at ${timeStart}`);
+  let deletedRecord: AttendanceRecord | null = null;
+
+  db.withTransactionSync(() => {
+    const row = db.getFirstSync<any>(
+      `SELECT * FROM attendance_records
+       WHERE course_id = ? AND class_date = ? AND time_start = ? AND time_end = ? AND is_extra_class = ?`,
+      courseId,
+      date,
+      timeStart,
+      timeEnd,
+      isExtraClass ? 1 : 0,
+    );
+    if (!row) return;
+
+    deletedRecord = mapAttendanceRecord(row);
+    db.runSync('DELETE FROM attendance_records WHERE id = ?', deletedRecord.id);
+    adjustCourseAttendanceCount(deletedRecord.course_id, deletedRecord.status, -1);
+  });
+
+  return deletedRecord;
 };
 
 export const bulkAddAttendanceRecords = (
   records: AttendanceRecord[],
-  courseCounts: Record<string, AttendanceCounts>,
 ) => {
   if (records.length === 0) return;
   console.log(`Bulk adding ${records.length} attendance records`);
+  const courseCounts: Record<string, AttendanceCounts> = {};
+  for (const record of records) {
+    const counts = courseCounts[record.course_id] ?? (courseCounts[record.course_id] = {
+      presents: 0,
+      absents: 0,
+      cancelled: 0,
+    });
+    counts[getAttendanceCountField(record.status)] += 1;
+  }
+
   db.withTransactionSync(() => {
     const statement = db.prepareSync('INSERT INTO attendance_records (id, course_id, class_date, status, is_extra_class, schedule_item_id, time_start, time_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
     try {
@@ -557,16 +643,7 @@ export const getAttendanceRecords = (
     params.push(limit, offset);
   }
 
-  return db.getAllSync(query, ...params).map((r: any) => ({
-    id: r.id,
-    course_id: r.course_id,
-    date: r.class_date,
-    status: r.status,
-    isExtraClass: r.is_extra_class === 1,
-    scheduleItemId: r.schedule_item_id,
-    timeStart: r.time_start,
-    timeEnd: r.time_end,
-  }));
+  return db.getAllSync(query, ...params).map(mapAttendanceRecord);
 };
 
 export const getAttendanceRecordsCount = (
@@ -597,19 +674,6 @@ export const getAttendanceRecordsCount = (
 
   const result = db.getFirstSync<{ count: number }>(query, ...params);
   return result ? result.count : 0;
-};
-
-export const addScheduleItem = (courseId: string, item: ScheduleItem) => {
-  console.log(`Adding schedule item for course: ${courseId}`);
-  db.runSync(
-    'INSERT INTO weekly_schedules (id, course_id, day, time_start, time_end) VALUES (?, ?, ?, ?, ?)',
-    item.id, courseId, item.day, item.timeStart, item.timeEnd
-  );
-};
-
-export const deleteScheduleItem = (itemId: string) => {
-  console.log(`Deleting schedule item: ${itemId}`);
-  db.runSync('DELETE FROM weekly_schedules WHERE id = ?', itemId);
 };
 
 export const addExtraClass = (courseId: string, item: ExtraClass) => {

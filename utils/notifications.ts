@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { Course, ScheduleItem, ExtraClass, AttendanceRecord, NotificationTiming, SkipDay } from '@/types';
-import { db, getCourseById, getAttendanceRecords, updateAttendanceRecord, addAttendanceRecord } from './database';
+import { db, getCourseById, upsertAttendanceRecord } from './database';
 import { formatDateToISO } from './dateHelpers';
 import { getAttendanceDelta, isClassSkippedBySkipDay } from './attendance'
 
@@ -102,51 +102,33 @@ export const handleNotificationAttendanceAction = async (
     return;
   }
 
-  const isExtraClass = course.extraClasses?.some(ec => ec.id === scheduleId) || false;
   const scheduleItem = course.weeklySchedule?.find(s => s.id === scheduleId);
   const extraClassItem = course.extraClasses?.find(e => e.id === scheduleId);
+  if (!scheduleItem && !extraClassItem) {
+    console.log(`[NOTIF_HANDLER] Schedule item not found for ID: ${scheduleId}`);
+    await Notifications.dismissNotificationAsync(notificationIdentifier);
+    return;
+  }
 
+  const isExtraClass = !!extraClassItem;
   const timeStart = scheduleItem?.timeStart || extraClassItem?.timeStart || '';
   const timeEnd = scheduleItem?.timeEnd || extraClassItem?.timeEnd || '';
   const date = extraClassItem?.date || occurrenceDate || formatDateToISO(new Date());
-
-  const existingRecord = getAttendanceRecords(-1, 0, [courseId], date, date).find(
-    (record) =>
-      record.date === date &&
-      record.isExtraClass === isExtraClass &&
-      record.timeStart === timeStart &&
-      record.timeEnd === timeEnd
-  );
-
-  if (existingRecord) {
-    console.log(`[NOTIF_HANDLER] Existing attendance record found for ${courseId} on ${date}. Updating status from ${existingRecord.status} to ${actionIdentifier}.`);
-    if (existingRecord.status === actionIdentifier) {
-      console.log(`[NOTIF_HANDLER] Status for record ${existingRecord.id} is already ${actionIdentifier}. No update needed.`);
-    } else {
-      updateAttendanceRecord(existingRecord.id, actionIdentifier);
-    }
-  } else {
-    console.log(`[NOTIF_HANDLER] No existing attendance record found for ${courseId} on ${date}. Creating new record with status: ${actionIdentifier}.`);
-    const newRecord: AttendanceRecord = {
-      id: `${courseId}-${scheduleId}-${date}`, // Unique ID for the record
-      course_id: courseId,
-      date,
-      status: actionIdentifier,
-      isExtraClass,
-      scheduleItemId: scheduleId,
-      timeStart,
-      timeEnd,
-    };
-    addAttendanceRecord(newRecord);
-  }
+  upsertAttendanceRecord({
+    id: `${courseId}-${scheduleId}-${date}`,
+    course_id: courseId,
+    date,
+    status: actionIdentifier,
+    isExtraClass,
+    scheduleItemId: scheduleId,
+    timeStart,
+    timeEnd,
+  });
 
   // Dismiss the notification after handling the action
   await Notifications.dismissNotificationAsync(notificationIdentifier);
   console.log(`[NOTIF_HANDLER] Notification ${notificationIdentifier} dismissed.`);
 
-  // Optionally, trigger a refresh for the app if it's in the foreground
-  // This part would typically be handled by the AppContext if the app is active.
-  // For background, the database update is sufficient.
 };
 
 

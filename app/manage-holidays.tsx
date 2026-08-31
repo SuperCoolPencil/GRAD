@@ -8,7 +8,6 @@ import { ThemedView } from '../components/ThemedView';
 import CustomHeader from '../components/CustomHeader';
 import { formatDateToISO, parseISOToDate } from '../utils/dateHelpers';
 import { Colors } from '../constants/Colors';
-import { useTheme } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCustomAlert } from '../context/AlertContext';
 import { calculateTargetDate } from '../utils/attendance';
@@ -19,7 +18,6 @@ const ManageHolidaysScreen: React.FC = () => {
   const { holidays, addHoliday, deleteHoliday, skipDays, addSkipDay, deleteSkipDay, courses } = useContext(AppContext);
   const { showAlert } = useCustomAlert();
   const colorScheme = useColorScheme() ?? 'light';
-  const { colors } = useTheme();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('holidays');
@@ -42,7 +40,7 @@ const ManageHolidaysScreen: React.FC = () => {
   const [showPastHolidays, setShowPastHolidays] = useState<boolean>(false);
   const [showPastSkipDays, setShowPastSkipDays] = useState<boolean>(false);
 
-  const styles = useMemo(() => getStyles(colorScheme, colors), [colorScheme, colors]);
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
 
   const resetForm = useCallback(() => {
     setName('');
@@ -558,7 +556,7 @@ const ManageHolidaysScreen: React.FC = () => {
   );
 };
 
-const getStyles = (colorScheme: 'light' | 'dark', colors: any) =>
+const getStyles = (colorScheme: 'light' | 'dark') =>
   StyleSheet.create({
     container: {
       flex: 1,

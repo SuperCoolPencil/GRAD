@@ -5,6 +5,7 @@ import { Course, NotificationTiming } from '../../types';
 import {
     scheduleCourseNotifications,
     cancelCourseNotifications,
+    handleNotificationAttendanceAction,
     setupNotificationChannels,
 } from '../notifications';
 import * as db from '../database';
@@ -15,6 +16,7 @@ jest.mock('expo-notifications', () => ({
     scheduleNotificationAsync: jest.fn(),
     cancelScheduledNotificationAsync: jest.fn(),
     cancelAllScheduledNotificationsAsync: jest.fn(),
+    dismissNotificationAsync: jest.fn(),
     setNotificationCategoryAsync: jest.fn(),
     setNotificationChannelAsync: jest.fn(),
     requestPermissionsAsync: jest.fn(),
@@ -40,9 +42,7 @@ jest.mock('../database', () => ({
         getFirstSync: jest.fn(),
     },
     getCourseById: jest.fn(),
-    getAttendanceRecords: jest.fn(),
-    updateAttendanceRecord: jest.fn(),
-    addAttendanceRecord: jest.fn(),
+    upsertAttendanceRecord: jest.fn(),
 }));
 
 // Mock attendance
@@ -270,6 +270,46 @@ describe('notifications', () => {
             expect(mockCancelScheduled).toHaveBeenCalledTimes(2);
             expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched1');
             expect(mockCancelScheduled).toHaveBeenCalledWith('CS101-sched2');
+        });
+    });
+
+    describe('handleNotificationAttendanceAction', () => {
+        const course: Course = {
+            id: 'CS101',
+            name: 'Computer Science',
+            requiredAttendance: 75,
+            presents: 10,
+            absents: 2,
+            cancelled: 0,
+            weeklySchedule: [{ id: 'sched1', day: 'Monday', timeStart: '09:00', timeEnd: '10:00' }],
+            extraClasses: [],
+        };
+
+        it('uses the shared attendance upsert for notification actions', async () => {
+            (db.getCourseById as jest.Mock).mockReturnValue(course);
+
+            await handleNotificationAttendanceAction('CS101', 'sched1', 'present', 'notification-1', '2026-08-31');
+
+            expect(db.upsertAttendanceRecord).toHaveBeenCalledWith({
+                id: 'CS101-sched1-2026-08-31',
+                course_id: 'CS101',
+                date: '2026-08-31',
+                status: 'present',
+                isExtraClass: false,
+                scheduleItemId: 'sched1',
+                timeStart: '09:00',
+                timeEnd: '10:00',
+            });
+            expect(Notifications.dismissNotificationAsync).toHaveBeenCalledWith('notification-1');
+        });
+
+        it('does not create malformed attendance for a removed schedule', async () => {
+            (db.getCourseById as jest.Mock).mockReturnValue(course);
+
+            await handleNotificationAttendanceAction('CS101', 'removed', 'present', 'notification-2', '2026-08-31');
+
+            expect(db.upsertAttendanceRecord).not.toHaveBeenCalled();
+            expect(Notifications.dismissNotificationAsync).toHaveBeenCalledWith('notification-2');
         });
     });
 

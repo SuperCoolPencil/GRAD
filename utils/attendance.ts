@@ -1,12 +1,7 @@
-import { AttendanceCounts, AttendanceRecord, AttendanceStatus, Course, Holiday, SkipDay } from '@/types';
+import { AttendanceRecord, AttendanceStatus, Course, Holiday, SkipDay } from '@/types';
 import { db, getSetting, bulkAddAttendanceRecords, getCourses } from './database';
 import { formatDateToISO, parseISOToDate } from './dateHelpers';
-import {
-  addAttendanceStatusToCounts,
-  decideAutomaticAttendance,
-  emptyAttendanceCounts,
-  getDefaultAttendanceStatus,
-} from './attendanceStatus';
+import { decideAutomaticAttendance, getDefaultAttendanceStatus } from './attendanceStatus';
 
 /**
  * Returns classes to attend (positive), classes that can be missed (negative),
@@ -265,7 +260,6 @@ const addAutomaticAttendanceRecord = ({
   isSkipDay,
   defaultStatus,
   newRecords,
-  courseCounts,
 }: {
   course: Pick<Course, 'id' | 'name'>;
   record: AttendanceRecord;
@@ -273,7 +267,6 @@ const addAutomaticAttendanceRecord = ({
   isSkipDay: boolean;
   defaultStatus: AttendanceStatus;
   newRecords: AttendanceRecord[];
-  courseCounts: Record<string, AttendanceCounts>;
 }): void => {
   const decision = decideAutomaticAttendance({ isHoliday, isSkipDay, defaultStatus });
 
@@ -283,8 +276,6 @@ const addAutomaticAttendanceRecord = ({
   }
 
   newRecords.push({ ...record, status: decision.status });
-  const counts = courseCounts[course.id] ?? (courseCounts[course.id] = emptyAttendanceCounts());
-  addAttendanceStatusToCounts(counts, decision.status);
 
   const kind = record.isExtraClass ? ' extra-class' : '';
   const source = decision.reason === 'skip-day' ? ' (skip day)' : '';
@@ -298,7 +289,6 @@ const processWeeklySchedule = (
   now: Date,
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
-  courseCounts: Record<string, AttendanceCounts>,
   defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
   isSkipDay?: (dateString: string, courseId: string, timeStart: string, timeEnd: string) => boolean
@@ -326,13 +316,15 @@ const processWeeklySchedule = (
           // check local existing ids first
           let exists = existingRecordIds.has(attendanceId);
 
-          // also check DB for a record with same course/date/timeStart to avoid duplicates
+          // Also check the canonical occurrence identity used by the database.
           if (!exists) {
             const dbExisting = db.getFirstSync(
-              'SELECT id FROM attendance_records WHERE course_id = ? AND class_date = ? AND time_start = ?',
+              `SELECT id FROM attendance_records
+               WHERE course_id = ? AND class_date = ? AND time_start = ? AND time_end = ? AND is_extra_class = 0`,
               course.id,
               dateString,
-              schedule.timeStart
+              schedule.timeStart,
+              schedule.timeEnd,
             );
             exists = !!dbExisting;
           }
@@ -348,7 +340,6 @@ const processWeeklySchedule = (
             isSkipDay: isSkipDay?.(dateString, course.id, schedule.timeStart, schedule.timeEnd) ?? false,
             defaultStatus,
             newRecords,
-            courseCounts,
             record: {
             id: attendanceId,
             course_id: course.id,
@@ -373,7 +364,6 @@ const processExtraClasses = (
   endDate: Date,
   existingRecordIds: Set<unknown>,
   newRecords: AttendanceRecord[],
-  courseCounts: Record<string, AttendanceCounts>,
   defaultStatus: AttendanceStatus,
   holidaySet?: Set<string>, // optional set of 'YYYY-MM-DD' strings
   isSkipDay?: (dateString: string, courseId: string, timeStart: string, timeEnd: string) => boolean
@@ -392,13 +382,15 @@ const processExtraClasses = (
         // check local existing ids first
         let exists = existingRecordIds.has(attendanceId);
 
-        // also safe-check DB
+        // Also check the canonical occurrence identity used by the database.
         if (!exists) {
           const dbExisting = db.getFirstSync(
-            'SELECT id FROM attendance_records WHERE course_id = ? AND class_date = ? AND time_start = ?',
+            `SELECT id FROM attendance_records
+             WHERE course_id = ? AND class_date = ? AND time_start = ? AND time_end = ? AND is_extra_class = 1`,
             course.id,
             extraClass.date,
-            extraClass.timeStart
+            extraClass.timeStart,
+            extraClass.timeEnd,
           );
           exists = !!dbExisting;
         }
@@ -414,7 +406,6 @@ const processExtraClasses = (
           isSkipDay: isSkipDay?.(extraClass.date, course.id, extraClass.timeStart, extraClass.timeEnd) ?? false,
           defaultStatus,
           newRecords,
-          courseCounts,
           record: {
             id: attendanceId,
             course_id: course.id,
@@ -503,7 +494,6 @@ export const createMissingAttendanceRecords = (): boolean => {
   console.log(`[ATTEND] Found ${existingRecordIds.size} existing attendance identifiers.`);
 
   const newRecords: AttendanceRecord[] = [];
-  const courseCounts: Record<string, AttendanceCounts> = {};
 
   for (const course of courses) {
     console.log(`[ATTEND] Processing course: ${course.name} (${course.id})`);
@@ -525,8 +515,6 @@ export const createMissingAttendanceRecords = (): boolean => {
     const endDate = course.isArchived && course.archivedAt ? new Date(course.archivedAt) : now;
     console.log(`[ATTEND] Processing up to ${endDate.toISOString()}`);
 
-    if (!courseCounts[course.id]) courseCounts[course.id] = emptyAttendanceCounts();
-
     // call processors (they will consult holidaySet & isSkipDay)
     processWeeklySchedule(
       course,
@@ -535,7 +523,6 @@ export const createMissingAttendanceRecords = (): boolean => {
       now,
       existingRecordIds,
       newRecords,
-      courseCounts,
       defaultStatus,
       holidaySet,
       isSkipDay
@@ -547,7 +534,6 @@ export const createMissingAttendanceRecords = (): boolean => {
       endDate,
       existingRecordIds,
       newRecords,
-      courseCounts,
       defaultStatus,
       holidaySet,
       isSkipDay
@@ -556,7 +542,7 @@ export const createMissingAttendanceRecords = (): boolean => {
 
   if (newRecords.length > 0) {
     console.log(`[ATTEND] Found ${newRecords.length} new attendance records to create.`);
-    bulkAddAttendanceRecords(newRecords, courseCounts);
+    bulkAddAttendanceRecords(newRecords);
     console.log('[ATTEND] Finished creating missing attendance records.');
     return true;
   }

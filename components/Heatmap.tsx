@@ -63,7 +63,7 @@ const HeatmapComponent = ({ data }: HeatmapComponentProps) => {
     const firstDate = data[0].date;
     const dayOfWeek = (firstDate.getDay() + 6) % 7;
 
-    const processedData = data.map((d, i) => ({
+    const processedData = data.map(d => ({
       value: d.value,
       isHoliday: d.isHoliday,
       hasExtraClass: d.hasExtraClass,

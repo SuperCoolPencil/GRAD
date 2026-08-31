@@ -17,7 +17,6 @@ interface DayColumnProps {
   getBlockStyle: (classItem: ClassItem, date: Date) => object;
   handleSelectClass: (classItem: ClassItem, date: Date) => void;
   handleLongPressClass?: (classItem: ClassItem) => void;
-  courseColors: Record<string, string>;
   weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   onHeaderPress: (dateString: string) => void;
 }
@@ -30,7 +29,6 @@ const DayColumn: React.FC<DayColumnProps> = ({
   getBlockStyle,
   handleSelectClass,
   handleLongPressClass,
-  courseColors,
   weekStartsOn,
   onHeaderPress,
 }) => {

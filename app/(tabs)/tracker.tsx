@@ -475,7 +475,6 @@ export default function VisualAttendanceTracker() {
                     getBlockStyle={getBlockStyle}
                     handleSelectClass={handleSelectClass}
                     handleLongPressClass={(classItem) => router.push(`/course/${classItem.course.id}`)}
-                    courseColors={courseColors}
                     weekStartsOn={weekStartsOn}
                     onHeaderPress={handleDayHeaderPress}
                   />
