@@ -558,6 +558,35 @@ export const calculateAttendancePercentage = (presents: number, absents: number)
   return Math.round(percentage);
 };
 
+export interface AttendanceStreaks {
+  current: number;
+  longest: number;
+}
+
+/**
+ * Calculates consecutive attended class sessions. Holidays and cancelled
+ * sessions are neutral, while absences and planned skips break the streak.
+ */
+export const getAttendanceStreaks = (records: AttendanceRecord[]): AttendanceStreaks => {
+  const sessions = records
+    .filter(record => record.status === 'present' || record.status === 'absent' || record.status === 'skipped')
+    .sort((a, b) => `${a.date}T${a.timeStart}`.localeCompare(`${b.date}T${b.timeStart}`));
+
+  let current = 0;
+  let longest = 0;
+
+  for (const session of sessions) {
+    if (session.status === 'present') {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else {
+      current = 0;
+    }
+  }
+
+  return { current, longest };
+};
+
 export const getOldestRecordDate = (courses: Course[]): Date | null => {
   if (courses.length === 0) return null;
 

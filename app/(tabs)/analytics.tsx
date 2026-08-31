@@ -14,6 +14,7 @@ import { Colors } from '@/constants/Colors';
 import AttendanceHistory from '@/components/AttendanceHistory';
 import { CoursePicker } from '@/components/CoursePicker';
 import { AttendanceTrendGraph } from '@/components/AttendanceTrendGraph';
+import { AttendanceStreaks } from '@/components/AttendanceStreaks';
 import { formatDateToISO, parseISOToDate } from '@/utils/dateHelpers';
 
 const formatMonthRange = (date: Date): string => {
@@ -276,6 +277,8 @@ export default function AnalyticsScreen() {
       >
         {/* Top: Overall Attendance */}
         <AttendanceTrendGraph courses={activeCourses} />
+
+        <AttendanceStreaks courses={activeCourses} />
 
         {/* Middle: Heatmap */}
         <ThemedView style={[styles.card, { backgroundColor: colors.card }]}>

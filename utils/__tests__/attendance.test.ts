@@ -1,4 +1,4 @@
-import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getCourseAttendanceDelta, getPlannedSkipDayAbsences, simulateBunkClass } from '../attendance';
+import { createMissingAttendanceRecords, calculateTargetDate, calculateAttendancePercentage, generateHeatmapData, getAttendanceDelta, getAttendanceStreaks, getCourseAttendanceDelta, getPlannedSkipDayAbsences, simulateBunkClass } from '../attendance';
 import * as db from '../database';
 import { Course, Holiday, SkipDay } from '@/types';
 import { formatDateToISO } from '../dateHelpers';
@@ -562,6 +562,33 @@ describe('createMissingAttendanceRecords', () => {
             expect(addedRecords[0].date).toBe(yesterdayStr);
             expect(addedRecords[0].status).toBe('absent');
         });
+    });
+});
+
+describe('getAttendanceStreaks', () => {
+    it('tracks current and longest present-session streaks', () => {
+        const record = (id: string, status: 'present' | 'absent' | 'skipped' | 'holiday' | 'cancelled') => ({
+            id,
+            course_id: 'CS101',
+            date: `2026-01-0${id}`,
+            status,
+            isExtraClass: false,
+            timeStart: '09:00',
+            timeEnd: '10:00',
+        });
+
+        expect(getAttendanceStreaks([
+            record('1', 'present'),
+            record('2', 'present'),
+            record('3', 'holiday'),
+            record('4', 'present'),
+            record('5', 'skipped'),
+            record('6', 'present'),
+        ])).toEqual({ current: 1, longest: 3 });
+    });
+
+    it('returns zeroes when no class session has been attended', () => {
+        expect(getAttendanceStreaks([])).toEqual({ current: 0, longest: 0 });
     });
 });
 
