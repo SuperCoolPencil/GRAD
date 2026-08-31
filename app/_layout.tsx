@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useContext } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -94,15 +94,25 @@ function RootLayoutShell() {
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(async (response) => {
       console.log('[NOTIF_RESPONSE] Listener fired. Response:', JSON.stringify(response, null, 2));
-      const { courseId, scheduleId, occurrenceDate } = response.notification.request.content.data as {
-        courseId: string;
-        scheduleId: string;
+      const { courseId, scheduleId, occurrenceDate, url } = response.notification.request.content.data as {
+        courseId?: string;
+        scheduleId?: string;
         occurrenceDate?: string;
+        url?: string;
       };
       const actionIdentifier = response.actionIdentifier;
       console.log(`[NOTIF_RESPONSE] Action: ${actionIdentifier}, Course: ${courseId}, Schedule: ${scheduleId}`);
 
-      if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) {
+      if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER && typeof url === 'string') {
+        try {
+          await Linking.openURL(url);
+        } catch (error) {
+          console.error('Failed to open notification link:', error);
+        }
+        return;
+      }
+
+      if (actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER && courseId && scheduleId) {
         // Call the utility function to handle the attendance action
         await handleNotificationAttendanceAction(
           courseId,
