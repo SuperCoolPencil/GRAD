@@ -86,27 +86,6 @@ export const cancelUpdateNotification = async () => {
   await Notifications.cancelScheduledNotificationAsync('app-update-notification-weekly');
 };
 
-export const scheduleBackupReminder = async () => {
-  console.log('[NOTIF] Scheduling weekly backup reminder');
-  await Notifications.scheduleNotificationAsync({
-    identifier: 'backup-reminder-weekly',
-    content: {
-      title: 'Back up your GRAD data',
-      body: 'Export your database to keep your attendance data safe.',
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 60 * 60 * 24 * 7,
-      repeats: true,
-    },
-  });
-};
-
-export const cancelBackupReminder = async () => {
-  console.log('[NOTIF] Cancelling backup reminder');
-  await Notifications.cancelScheduledNotificationAsync('backup-reminder-weekly');
-};
-
 // Function to handle notification attendance actions
 export const handleNotificationAttendanceAction = async (
   courseId: string,
@@ -388,7 +367,6 @@ export const cancelAllNotifications = async () => {
   console.log('[NOTIF] Cancelling all notifications');
   await Notifications.cancelAllScheduledNotificationsAsync();
   await cancelUpdateNotification(); // Also cancel update notification
-  await cancelBackupReminder();
 };
 
 export const setupNotificationChannels = async () => {
